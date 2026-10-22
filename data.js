@@ -1445,9 +1445,56 @@ window.EBAO_MODULES = [
         "actuary_notes": "Garment & Fabrics allows Actuaries to insert custom reserve or commission calculation fabrics directly into the issuance flow without waiting for IT core release cycles.",
         "op_notes": "Dry run feature provides step-by-step latency profiling to identify performance bottlenecks in third-party API calls (e.g. external credit bureau check).",
         "pdf_page": 24
+      },
+      {
+        "code": "SOP-ARC-03",
+        "title": "Configuring New Life Insurance Product: Plan Definition, Age Limits, Riders & Actuarial Rate Tables",
+        "ui_path": "Main Menu > Architecture & Product Factory > Product Master > Plan Configuration Console",
+        "prerequisites": [
+          "Product Factory Administrator or Appointed Actuary role assigned in URP",
+          "Product Specification Document, actuarial rate tables, and modal loading factors approved"
+        ],
+        "steps": [
+          "1. Navigate to Architecture & Product Factory > Product Master > Create New Plan.",
+          "2. Step 1 - Plan Header Definition:\n   - Enter Plan Code (e.g. 'ENDOW_20'), Plan Name ('Endowment 20-Year Participating'), LOB Type ('Traditional / Savings'), and Base Currency ('VND' / 'USD').",
+          "3. Step 2 - Contract Term & Age Rules Configuration:\n   - Set Issue Age Range: Minimum Entry Age (30 Days), Maximum Entry Age (60 Years).\n   - Define Coverage Term (20 Years fixed) and Premium Payment Term (PPT: 10, 15, or 20 Years).",
+          "4. Step 3 - Supplementary Rider Binding:\n   - Select allowed riders from compatibility matrix: 'CI-02 Critical Illness', 'HI-03 Hospital Income', 'ACC-01 Personal Accident', 'WOP-01 Waiver of Premium'.\n   - Set Maximum Rider SA multiplier: Rider SA cannot exceed 100% of Base SA.",
+          "5. Step 4 - Actuarial Rate Tables Upload & Parameterization:\n   - Upload CSV/Excel rate tables: Gross Annual Premium per 1,000 SA, Guaranteed Cash Value schedule, Surrender Penalty scale, and Terminal Bonus factors.\n   - Configure Modal Factors: Annual (1.0), Semi-Annual (0.51), Quarterly (0.26), Monthly (0.088).",
+          "6. Step 5 - Rating Engine Testing & Validation:\n   - Input test sample: Male, Age 35, Non-Smoker, SA 100,000,000 VND. Click 'Execute Rating Test'.\n   - Verify calculated premium matches actuarial specification with 0.00% variance.",
+          "7. Step 6 - Publish to System of Record:\n   - Click 'Publish Plan'. System commits definitions into T_PLAN, T_PLAN_BENEFIT, T_RATE_TABLE, activating plan for instant quotation across Sales Portals and Core PAS."
+        ],
+        "fields_table": [
+          {
+            "name": "Plan Code",
+            "type": "String (Unique)",
+            "required": "Yes",
+            "desc": "Contractual product identifier"
+          },
+          {
+            "name": "Line of Business",
+            "type": "Select",
+            "required": "Yes",
+            "desc": "Traditional, Par, Non-Par, ILP, Universal"
+          },
+          {
+            "name": "Entry Age Bounds",
+            "type": "Integer Range",
+            "required": "Yes",
+            "desc": "Min age (days) and Max entry age"
+          },
+          {
+            "name": "Rate Table Matrices",
+            "type": "File Upload / DB",
+            "required": "Yes",
+            "desc": "Mortality, premium rate, cash value schedules"
+          }
+        ],
+        "actuary_notes": "All pricing tables are decoupled from backend code. Formula engine dynamically loads tables at runtime via headless API.",
+        "op_notes": "Once published, plan parameters are version-controlled with audit logs to ensure regulatory compliance with Ministry of Finance approvals.",
+        "pdf_page": 28
       }
     ],
-    "sop_count": 2,
+    "sop_count": 3,
     "interconnections": {
       "module_code": "ARCH_ISO",
       "upstream_sources": [
@@ -7461,9 +7508,56 @@ window.EBAO_MODULES = [
         "actuary_notes": "Claim payment finalizes actual-to-expected mortality experience records for annual actuarial valuation studies.",
         "op_notes": "Settlement notification is automatically transmitted to servicing agent to facilitate death certificate hand-over.",
         "pdf_page": 336
+      },
+      {
+        "code": "SOP-CLM-05",
+        "title": "Adjudicating Living Benefit Claims: Critical Illness (CI) & Cashless Hospital Income Settlement",
+        "ui_path": "Main Menu > Claims Management > Living Benefits Workbench > Adjudicate Claim",
+        "prerequisites": [
+          "Supplementary Rider is in 'INFORCE_RIDER' status at time of event occurrence",
+          "Medical records, pathology reports, hospital discharge summary, and attending physician statement submitted"
+        ],
+        "steps": [
+          "1. Open Claims Management > Living Benefits Workbench > Search Policy Number.",
+          "2. Select Claim Benefit Type: 'Critical Illness (Major/Minor)' or 'Hospital Income Daily Cash Benefit'.",
+          "3. Verify Contractual Waiting Period & Survival Period:\n   - Critical Illness: System validates that Date of Diagnosis >= Policy Commence Date + 90 Days Waiting Period.\n   - Check Survival Period condition: Insured must survive at least 14 days post-diagnosis for specific CI definitions.",
+          "4. In the Diagnosis & Medical Adjudication Panel:\n   - Select ICD-10 Diagnosis Code (e.g. 'C34 Malignant neoplasm of bronchus and lung' or 'I21 Acute myocardial infarction').\n   - Cross-reference with standard 50 CI contractual definitions in eBao Medical Ontology.",
+          "5. Benefit Calculation Engine:\n   - For Critical Illness: Benefit Amount = 100% of Rider Sum Assured (Accelerated reduces Base Plan SA; Additional pays on top without reducing Base SA).\n   - For Hospital Income: Days of Confinement (Deductible 0-1 day) * Daily Benefit Limit + ICU Intensive Care 200% Loading.",
+          "6. Offset Outstanding Debt:\n   - System checks open policy loans or unpaid premiums during grace period, auto-netting debt from gross benefit payout.",
+          "7. Approve Settlement Voucher:\n   - Click 'Authorize Payout'. System generates T_CLAIM_DISBURSEMENT, triggers bank EFT transfer, and updates rider status to 'TERMINATED_CLAIMED'."
+        ],
+        "fields_table": [
+          {
+            "name": "Claim Benefit Type",
+            "type": "Select",
+            "required": "Yes",
+            "desc": "CI Major, CI Minor, Hospital Cash, TPD"
+          },
+          {
+            "name": "ICD-10 Code",
+            "type": "Search / Select",
+            "required": "Yes",
+            "desc": "Standard medical diagnosis code"
+          },
+          {
+            "name": "Date of Diagnosis",
+            "type": "Date",
+            "required": "Yes",
+            "desc": "Must satisfy 90-day waiting period"
+          },
+          {
+            "name": "Net Benefit Payable",
+            "type": "Currency (Auto)",
+            "required": "Auto",
+            "desc": "Gross claim minus unpaid premiums and debt"
+          }
+        ],
+        "actuary_notes": "Accelerated CI claims immediately reduce base sum assured and future gross premium reserve liabilities. Additional CI leaves base policy intact.",
+        "op_notes": "Electronic integration with hospital billing systems allows direct cashless guarantee of payment (GOP) issuance.",
+        "pdf_page": 260
       }
     ],
-    "sop_count": 4,
+    "sop_count": 5,
     "interconnections": {
       "module_code": "CLM_APP",
       "upstream_sources": [
@@ -8055,9 +8149,99 @@ window.EBAO_MODULES = [
         "actuary_notes": "Disbursement timing is tracked by Actuarial Asset-Liability Matching (ALM) engines to optimize cash liquidity yields.",
         "op_notes": "If a bank transfer bounces due to invalid account number, system alerts operator and reverses voucher to 'Pending Account Correction'.",
         "pdf_page": 398
+      },
+      {
+        "code": "SOP-PAY-03",
+        "title": "Cashier Premium Collection, Suspense Ledger Matching & Electronic Receipting",
+        "ui_path": "Main Menu > Payment & Finance > Cashier Management > Receipting & Suspense Console",
+        "prerequisites": [
+          "Bank credit clearing statement / direct cashier collection recorded",
+          "Open billing receivable or unallocated payment voucher in system"
+        ],
+        "steps": [
+          "1. Access Payment & Finance > Cashier Management > Unallocated Suspense Inflow.",
+          "2. Query unallocated bank deposits in T_SUSPENSE_ACCT by Transaction Reference, Remitter Name, or Amount.",
+          "3. Match Inflow with Open Policy Bill:\n   - Enter Policy Number or Proposal Number.\n   - System queries T_BILL_RECEIVABLE for matched outstanding amount.",
+          "4. In the Payment Allocation Screen:\n   - Allocate amount: Base Premium, Supplementary Riders, Modal Loading, and Premium Suspense Balance (if overpaid).\n   - Select Collection Channel: Over-the-counter Cash, Credit Card POS, Bank Wire Transfer, QR Code Mobile Payment.",
+          "5. Click 'Confirm Receipt & Allocate'. Step Result:\n   - System generates Electronic Tax Invoice / Premium Official Receipt (PDF with digital signature).\n   - System posts balanced sub-ledger journal: Dr. Bank Clearing Account / Cr. Premium Income Receivable (T_SUB_LEDGER).\n   - System immediately advances Policy Paid-To-Date (PTD) by 1 modal payment term."
+        ],
+        "fields_table": [
+          {
+            "name": "Suspense Inflow ID",
+            "type": "String",
+            "required": "Yes",
+            "desc": "Unallocated bank transaction record"
+          },
+          {
+            "name": "Policy / Proposal No",
+            "type": "String",
+            "required": "Yes",
+            "desc": "Destination target contract in SOR"
+          },
+          {
+            "name": "Collection Method",
+            "type": "Select",
+            "required": "Yes",
+            "desc": "Bank Transfer, QR, Credit Card, Counter"
+          },
+          {
+            "name": "Allocated Amount",
+            "type": "Currency",
+            "required": "Yes",
+            "desc": "Must equal or exceed open bill due amount"
+          }
+        ],
+        "actuary_notes": "Receipting automatically clears premium receivables and triggers daily unearned premium reserve (UPR) recalculation.",
+        "op_notes": "Any overpayment is held in customer suspense balance (T_SUSPENSE_ACCT) to be credited against future billing or refunded upon request.",
+        "pdf_page": 388
+      },
+      {
+        "code": "SOP-PAY-04",
+        "title": "Agent Commission Settlement, Statutory Clawback Debiting & Sub-Ledger ERP Posting",
+        "ui_path": "Main Menu > Payment & Finance > Agency Compensation > Commission Ledger & Clawback Console",
+        "prerequisites": [
+          "Agent licensing and contract agreement active in Agency Module",
+          "Trigger event occurred: Initial policy enforcement (Credit) OR 21-Day Free-Look / Lapse (Clawback Debit)"
+        ],
+        "steps": [
+          "1. Open Payment & Finance > Agency Compensation > Commission Ledger.",
+          "2. Review Daily Trigger Events:\n   - Scenario A: New Inforce Policies -> System calculates First Year Commission (FYC = Annual Premium * Commission Rate % based on plan code and pay term).\n   - Scenario B: 21-Day Free-Look Cancellations (TERMINATED_FREE_LOOK) -> System flags mandatory 100% FYC Clawback.\n   - Scenario C: First Year Policy Lapses (LAPSED) -> System calculates pro-rata commission clawback.",
+          "3. Execute Clawback Batch Run:\n   - Select target servicing agent accounts.\n   - System generates negative commission transaction (Dr. Agent Commission Ledger T_AGENT_COMM_TRX).\n   - Clawback debit is automatically offset against upcoming weekly or monthly commission earnings.",
+          "4. Balance Sub-Ledger Journals:\n   - Posts balanced entry: Dr. Commission Expense Refund / Cr. Agent Commission Payable.\n   - Validates total debit equals total credit (0.00 discrepancy).",
+          "5. Generate Agency Settlement Statements:\n   - Export consolidated statement showing Gross FYC, Renewal Commission (RYC), Clawback deductions, Withholding Tax (PIT 5%), and Net Remittance."
+        ],
+        "fields_table": [
+          {
+            "name": "Agent License Code",
+            "type": "String",
+            "required": "Yes",
+            "desc": "Servicing agent identifier"
+          },
+          {
+            "name": "Commission Transaction Type",
+            "type": "Select",
+            "required": "Yes",
+            "desc": "FYC Credit, RYC Credit, Free-Look Clawback, Lapse Clawback"
+          },
+          {
+            "name": "Policy Number",
+            "type": "String",
+            "required": "Yes",
+            "desc": "Associated contract generating commission"
+          },
+          {
+            "name": "Net Remittance",
+            "type": "Currency (Auto)",
+            "required": "Auto",
+            "desc": "Gross earnings minus clawbacks and taxes"
+          }
+        ],
+        "actuary_notes": "Commission clawback protects acquisition expense recovery assumptions built into actuarial pricing models.",
+        "op_notes": "If an agent terminates with negative commission balance, system flags debt recovery flag and transfers to agency legal collections.",
+        "pdf_page": 412
       }
     ],
-    "sop_count": 2,
+    "sop_count": 4,
     "interconnections": {
       "module_code": "FIN_PAYMENT",
       "upstream_sources": [
