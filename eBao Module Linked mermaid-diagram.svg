@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1573.618 1038.1" width="1573.618" height="1038.1" style="--bg:#1F1F1F;--fg:#CCCCCC;--line:#CCCCCC;--accent:#0078D4;--muted:#CCCCCCCC;--surface:#181818;--border:#CCCCCC;background:var(--bg)">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap');
+  text { font-family: 'Inter', system-ui, sans-serif; }
+  svg {
+    /* Derived from --bg and --fg (overridable via --line, --accent, etc.) */
+    --_text:          var(--fg);
+    --_text-sec:      var(--muted, color-mix(in srgb, var(--fg) 60%, var(--bg)));
+    --_text-muted:    var(--muted, color-mix(in srgb, var(--fg) 40%, var(--bg)));
+    --_text-faint:    color-mix(in srgb, var(--fg) 25%, var(--bg));
+    --_line:          var(--line, color-mix(in srgb, var(--fg) 50%, var(--bg)));
+    --_arrow:         var(--accent, color-mix(in srgb, var(--fg) 85%, var(--bg)));
+    --_node-fill:     var(--surface, color-mix(in srgb, var(--fg) 3%, var(--bg)));
+    --_node-stroke:   var(--border, color-mix(in srgb, var(--fg) 20%, var(--bg)));
+    --_group-fill:    var(--bg);
+    --_group-hdr:     color-mix(in srgb, var(--fg) 5%, var(--bg));
+    --_inner-stroke:  color-mix(in srgb, var(--fg) 12%, var(--bg));
+    --_key-badge:     color-mix(in srgb, var(--fg) 10%, var(--bg));
+  }
+</style>
+<defs>
+  <marker id="arrowhead" markerWidth="8" markerHeight="5" refX="7" refY="2.5" orient="auto">
+    <polygon points="0 0, 8 2.5, 0 5" fill="var(--_arrow)" stroke="var(--_arrow)" stroke-width="0.75" stroke-linejoin="round" />
+  </marker>
+  <marker id="arrowhead-start" markerWidth="8" markerHeight="5" refX="1" refY="2.5" orient="auto-start-reverse">
+    <polygon points="8 0, 0 2.5, 8 5" fill="var(--_arrow)" stroke="var(--_arrow)" stroke-width="0.75" stroke-linejoin="round" />
+  </marker>
+</defs>
+<polyline class="edge" data-from="Mod1" data-to="Mod2" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Cấu hình sản phẩm, Biểu phí, Quy tắc STP" points="1098.116,383.3 1098.116,505.6000000000001" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="Mod2" data-to="Mod3" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Hồ sơ vượt ngưỡng STP / Khai báo y khoa xấu" points="1098.116,542.5 1098.116,735.0999999999999 1102.55325,735.0999999999999 1102.55325,747.0999999999999" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="Mod3" data-to="Mod2" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Quyết định tăng phí (EM) / Loại trừ / Chấp thuận" points="1158.6122500000001,747.0999999999999 1158.6122500000001,735.0999999999999 1334.9479999999999,735.0999999999999 1334.9479999999999,666.8 1155.6569999999997,666.8 1155.6569999999997,542.5" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="Mod2" data-to="SOR" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Hợp đồng Inforce vào SOR System of Record" points="1040.5749999999998,542.5 1040.5749999999998,548.5 663.746,548.5 663.746,628.8 626.7601666666667,628.8 626.7601666666667,640.8" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="SOR" data-to="Mod5" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Quét hợp đồng đến hạn thu phí (T-30)" points="573.7508333333334,640.8 573.7508333333334,628.8 540.7555,628.8 540.7555,112.9 1008.5745833333334,112.9 1008.5745833333334,76.9" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="Mod5" data-to="Mod8" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Thất bại thu phí &gt;60 ngày (Hết ân hạn)" points="1057.4088333333334,76.9 1057.4088333333334,193.2" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="Mod8" data-to="Mod4" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Tự động kích hoạt Đóng phí bằng tiền vay (APL) / Mất hiệu lực (Lapse)" points="1016.7016666666666,230.10000000000002 1016.7016666666666,266.1 271.28150000000005,266.1 271.28150000000016,505.6000000000001" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="Mod4" data-to="Mod3" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Tăng STBH / Thêm Rider sau phát hành" points="334.3800000000001,542.5 334.3800000000001,560.5 880.014,560.5 880.014,735.0999999999999 1046.4942500000002,735.0999999999999 1046.4942500000002,747.0999999999999" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="Mod4" data-to="Mod7" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Lệnh chi trả Giải ước / Vay hợp đồng (85% LTV)" points="208.18300000000016,542.5 208.18300000000016,695.4 153,695.4 153,949.1999999999998 357.18123333333335,949.1999999999998 357.18123333333335,961.1999999999998" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="SOR" data-to="Mod6" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Sự kiện bảo hiểm xảy ra (Tử vong, CI, Nằm viện)" points="573.7508333333334,691.6999999999999 573.7508333333334,727.6999999999999 460.47625000000005,727.6999999999999 460.47625000000005,783.9999999999999 543.35455,783.9999999999999 543.35455,807.9999999999999" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="Mod4" data-to="Mod6" data-style="dotted" data-arrow-start="false" data-arrow-end="true" data-label="Cấn trừ Nợ vay gốc + Lãi dồn tích" points="271.28150000000016,542.5 271.28150000000016,695.4 275.2720000000001,695.4 275.2720000000001,795.9999999999999 488.7261500000001,795.9999999999999 488.7261500000001,807.9999999999999" fill="none" stroke="var(--_line)" stroke-width="1" stroke-dasharray="4 4" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="Mod5" data-to="Mod6" data-style="dotted" data-arrow-start="false" data-arrow-end="true" data-label="Cấn trừ Phí ân hạn chưa đóng" points="1106.2430833333333,76.9 1106.2430833333333,112.9 1459.4720000000002,112.9 1459.4720000000002,795.9999999999999 652.61135,795.9999999999999 652.61135,807.9999999999999" fill="none" stroke="var(--_line)" stroke-width="1" stroke-dasharray="4 4" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="Mod6" data-to="Mod7" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Lệnh chi trả tiền bồi thường cho Thụ hưởng" points="570.66875,844.8999999999999 570.6687499999999,949.1999999999998 424.2695666666667,949.1999999999998 424.2695666666667,961.1999999999998" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="Mod6" data-to="SOR" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Chấm dứt hợp đồng / Giảm STBH trong SOR" points="597.98295,807.9999999999999 597.98295,783.9999999999999 688.84225,783.9999999999999 688.84225,727.6999999999999 626.7601666666667,727.6999999999999 626.7601666666667,691.6999999999999" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="Mod8" data-to="Mod1" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Trích xuất dữ liệu định phí dự phòng (Month-End Valuation)" points="1098.116,230.10000000000002 1098.116,346.40000000000003" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<g class="edge-label" data-from="Mod1" data-to="Mod2" data-label="Cấu hình sản phẩm, Biểu phí, Quy tắc STP">
+  <rect x="989.6160000000001" y="426.30000000000007" width="216.046" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="1097.6390000000001" y="441.45000000000005" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Cấu hình sản phẩm, Biểu phí, Quy tắc STP</text>
+</g>
+<g class="edge-label" data-from="Mod2" data-to="Mod3" data-label="Hồ sơ vượt ngưỡng STP / Khai báo y khoa xấu">
+  <rect x="984.1160000000002" y="673.8" width="227.332" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="1097.7820000000002" y="688.9499999999999" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Hồ sơ vượt ngưỡng STP / Khai báo y khoa xấu</text>
+</g>
+<g class="edge-label" data-from="Mod3" data-to="Mod2" data-label="Quyết định tăng phí (EM) / Loại trừ / Chấp thuận">
+  <rect x="1215.4479999999999" y="673.8" width="238.02400000000003" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="1334.4599999999998" y="688.9499999999999" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Quyết định tăng phí (EM) / Loại trừ / Chấp thuận</text>
+</g>
+<g class="edge-label" data-from="Mod2" data-to="SOR" data-label="Hợp đồng Inforce vào SOR System of Record">
+  <rect x="551.746" y="567.5" width="223.76799999999997" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="663.63" y="582.65" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Hợp đồng Inforce vào SOR System of Record</text>
+</g>
+<g class="edge-label" data-from="SOR" data-to="Mod5" data-label="Quét hợp đồng đến hạn thu phí (T-30)">
+  <rect x="446.2555" y="523.2" width="188.72200000000004" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="540.6165" y="538.35" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Quét hợp đồng đến hạn thu phí (T-30)</text>
+</g>
+<g class="edge-label" data-from="Mod5" data-to="Mod8" data-label="Thất bại thu phí &gt;60 ngày (Hết ân hạn)">
+  <rect x="960.9088333333332" y="119.9" width="192.28600000000003" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="1057.0518333333332" y="135.05" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Thất bại thu phí &gt;60 ngày (Hết ân hạn)</text>
+</g>
+<g class="edge-label" data-from="Mod8" data-to="Mod4" data-label="Tự động kích hoạt Đóng phí bằng tiền vay (APL) / Mất hiệu lực (Lapse)">
+  <rect x="100.28150000000005" y="438.30000000000007" width="341.97399999999993" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="271.2685" y="453.45000000000005" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Tự động kích hoạt Đóng phí bằng tiền vay (APL) / Mất hiệu lực (Lapse)</text>
+</g>
+<g class="edge-label" data-from="Mod4" data-to="Mod3" data-label="Tăng STBH / Thêm Rider sau phát hành">
+  <rect x="779.514" y="697.8" width="200.60200000000003" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="879.815" y="712.9499999999999" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Tăng STBH / Thêm Rider sau phát hành</text>
+</g>
+<g class="edge-label" data-from="Mod4" data-to="Mod7" data-label="Lệnh chi trả Giải ước / Vay hợp đồng (85% LTV)">
+  <rect x="35.999999999999986" y="911.8999999999999" width="233.27200000000008" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="152.63600000000002" y="927.0499999999998" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Lệnh chi trả Giải ước / Vay hợp đồng (85% LTV)</text>
+</g>
+<g class="edge-label" data-from="SOR" data-to="Mod6" data-label="Sự kiện bảo hiểm xảy ra (Tử vong, CI, Nằm viện)">
+  <rect x="343.47625000000005" y="734.6999999999999" width="233.86599999999999" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="460.40925000000004" y="749.8499999999999" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Sự kiện bảo hiểm xảy ra (Tử vong, CI, Nằm viện)</text>
+</g>
+<g class="edge-label" data-from="Mod4" data-to="Mod6" data-label="Cấn trừ Nợ vay gốc + Lãi dồn tích">
+  <rect x="188.7720000000001" y="702.4" width="172.09" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="274.8170000000001" y="717.55" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Cấn trừ Nợ vay gốc + Lãi dồn tích</text>
+</g>
+<g class="edge-label" data-from="Mod5" data-to="Mod6" data-label="Cấn trừ Phí ân hạn chưa đóng">
+  <rect x="1380.9720000000002" y="641.5" width="156.64600000000004" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="1459.2950000000003" y="656.65" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Cấn trừ Phí ân hạn chưa đóng</text>
+</g>
+<g class="edge-label" data-from="Mod6" data-to="Mod7" data-label="Lệnh chi trả tiền bồi thường cho Thụ hưởng">
+  <rect x="463.66874999999993" y="887.8999999999999" width="213.67000000000004" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="570.50375" y="903.0499999999998" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Lệnh chi trả tiền bồi thường cho Thụ hưởng</text>
+</g>
+<g class="edge-label" data-from="Mod6" data-to="SOR" data-label="Chấm dứt hợp đồng / Giảm STBH trong SOR">
+  <rect x="581.34225" y="734.6999999999999" width="214.26400000000004" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="688.4742500000001" y="749.8499999999999" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Chấm dứt hợp đồng / Giảm STBH trong SOR</text>
+</g>
+<g class="edge-label" data-from="Mod8" data-to="Mod1" data-label="Trích xuất dữ liệu định phí dự phòng (Month-End Valuation)">
+  <rect x="949.6160000000001" y="273.1" width="296.23600000000005" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="1097.7340000000002" y="288.25" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Trích xuất dữ liệu định phí dự phòng (Month-End Valuation)</text>
+</g>
+<g class="node" data-id="Mod1" data-label="Mod 01: Architecture &amp; Product Factory" data-shape="rectangle">
+  <rect x="963.7680000000001" y="346.40000000000003" width="268.69599999999997" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1098.1160000000002" y="364.85" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Mod 01: Architecture &amp; Product Factory</text>
+</g>
+<g class="node" data-id="Mod2" data-label="Mod 02: New Business (NB APP)" data-shape="rectangle">
+  <rect x="983.034" y="505.6000000000001" width="230.16399999999993" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1098.116" y="524.0500000000001" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Mod 02: New Business (NB APP)</text>
+</g>
+<g class="node" data-id="Mod3" data-label="Mod 03: Underwriting (UW APP)" data-shape="rectangle">
+  <rect x="990.4352500000001" y="747.0999999999999" width="224.236" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1102.5532500000002" y="765.55" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Mod 03: Underwriting (UW APP)</text>
+</g>
+<g class="node" data-id="SOR" data-label="SOR Core Database" data-shape="cylinder">
+  <rect x="520.7415000000001" y="647.8" width="159.02799999999996" height="36.900000000000006" fill="var(--_node-fill)" stroke="none" />
+  <line x1="520.7415000000001" y1="647.8" x2="520.7415000000001" y2="684.6999999999999" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <line x1="679.7695000000001" y1="647.8" x2="679.7695000000001" y2="684.6999999999999" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <ellipse cx="600.2555000000001" cy="684.6999999999999" rx="79.51399999999998" ry="7" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <ellipse cx="600.2555000000001" cy="647.8" rx="79.51399999999998" ry="7" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="600.2555000000001" y="666.25" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">SOR Core Database</text>
+</g>
+<g class="node" data-id="Mod5" data-label="Mod 05: Billing &amp; Collection" data-shape="rectangle">
+  <rect x="959.7403333333334" y="40" width="195.33699999999996" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1057.4088333333334" y="58.45" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Mod 05: Billing &amp; Collection</text>
+</g>
+<g class="node" data-id="Mod8" data-label="Mod 08: Batch Console (EOD/EOM)" data-shape="rectangle">
+  <rect x="935.2873333333333" y="193.2" width="244.24299999999997" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1057.4088333333334" y="211.64999999999998" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Mod 08: Batch Console (EOD/EOM)</text>
+</g>
+<g class="node" data-id="Mod4" data-label="Mod 04: Customer Service (CS APP)" data-shape="rectangle">
+  <rect x="145.08450000000016" y="505.6000000000001" width="252.39399999999998" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="271.28150000000016" y="524.0500000000001" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Mod 04: Customer Service (CS APP)</text>
+</g>
+<g class="node" data-id="Mod7" data-label="Mod 07: Payment &amp; Finance" data-shape="rectangle">
+  <rect x="290.09290000000004" y="961.1999999999998" width="201.265" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="390.72540000000004" y="979.6499999999999" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Mod 07: Payment &amp; Finance</text>
+</g>
+<g class="node" data-id="Mod6" data-label="Mod 06: Claims Management (CLM APP)" data-shape="rectangle">
+  <rect x="434.0977500000001" y="807.9999999999999" width="273.14199999999994" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="570.66875" y="826.4499999999999" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Mod 06: Claims Management (CLM APP)</text>
+</g>
+</svg>

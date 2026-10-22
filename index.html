@@ -1,0 +1,1531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>eBao Gemini Life Core PAS & InsureForge Knowledge Hub & Simulator</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Mermaid.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased">
+
+  <!-- TOP HEADER -->
+  <header class="bg-slate-900 text-white sticky top-0 z-40 shadow-md border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Logo & Branding -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-black text-white text-lg shadow-sm">
+            eB
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-extrabold text-base tracking-tight text-white">eBao Gemini Life Core PAS</span>
+              <span class="text-[10px] font-mono bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full border border-blue-400/30">v2026.04</span>
+              <span class="text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-400/30">InsureForge Ready</span>
+            </div>
+            <div class="text-[11px] text-slate-400">Operations & Actuarial Knowledge Platform & Lite Core Engine</div>
+          </div>
+        </div>
+
+        <!-- Controls: System Date & PDF Viewer Button -->
+        <div class="flex items-center gap-3">
+          <!-- System Biz Date -->
+          <div class="hidden sm:flex items-center gap-2 bg-slate-800/90 px-3 py-1.5 rounded-lg border border-slate-700 text-xs font-mono">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-slate-400">Biz Date:</span>
+            <span id="header-biz-date" class="font-bold text-white">2026-10-20</span>
+            <button id="btn-quick-roll-date" title="Advance business date +1 day" class="ml-1 text-slate-300 hover:text-white px-1.5 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-[10px] font-bold transition-colors">
+              +1D
+            </button>
+          </div>
+
+          <!-- Open PDF Viewer Button -->
+          <button id="btn-open-pdf-viewer" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-sm transition-all border border-indigo-400/40">
+            <span>📖</span>
+            <span class="hidden md:inline">Open PDF Guide (517 Pages)</span>
+            <span class="md:hidden">PDF</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Navigation Tabs Bar -->
+      <nav class="flex items-center space-x-1 overflow-x-auto py-1 border-t border-slate-800/80 text-xs">
+        <button data-tab="modules" class="nav-tab px-3.5 py-2.5 font-bold rounded-lg border-b-2 tab-active text-blue-400 border-blue-500 flex items-center gap-2 whitespace-nowrap transition-all">
+          <span>🏛️</span> <span>8 Modules & SOP Hub</span>
+        </button>
+        <button data-tab="master-tables" class="nav-tab px-3.5 py-2.5 font-semibold rounded-lg border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 whitespace-nowrap transition-all">
+          <span>📊</span> <span>Master Reference Tables</span>
+        </button>
+        <button data-tab="diagrams" class="nav-tab px-3.5 py-2.5 font-semibold rounded-lg border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 whitespace-nowrap transition-all">
+          <span>🔀</span> <span>Interactive Diagrams & ERD</span>
+        </button>
+        <button data-tab="simulator" class="nav-tab px-3.5 py-2.5 font-semibold rounded-lg border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 whitespace-nowrap transition-all">
+          <span>🧪</span> <span>eBao Lite Simulator</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+        </button>
+        <button data-tab="functions" class="nav-tab px-3.5 py-2.5 font-semibold rounded-lg border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 whitespace-nowrap transition-all">
+          <span>📑</span> <span>394 Functions Matrix</span>
+        </button>
+        <button data-tab="config" class="nav-tab px-3.5 py-2.5 font-semibold rounded-lg border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 whitespace-nowrap transition-all">
+          <span>⚙️</span> <span>InsureForge Studio</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- ============================================================== -->
+    <!-- VIEW 1: 8 MODULES ARCHITECTURE DIAGRAM & SOP HUB                -->
+    <!-- ============================================================== -->
+    <section id="view-modules" class="tab-view fade-in">
+      <div class="mb-4">
+        <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+          <span>🏛️</span> eBao Gemini 8 Standard Modules Architecture & SOP Hub
+        </h1>
+        <p class="text-xs text-slate-500 mt-1">
+          Click any module node in the diagram below to inspect its detailed specifications, SOP procedures, and jump directly to its PDF reference pages.
+        </p>
+      </div>
+
+                  <!-- EXACT ARCHITECTURE DIAGRAM CONTAINER (FROM eBao Module Linked mermaid-diagram.svg) -->
+      <div class="bg-[#1F1F1F] p-4 sm:p-6 rounded-2xl shadow-xl border border-slate-700 mb-6 overflow-hidden">
+        <div class="flex items-center justify-between mb-3 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="font-bold text-slate-200 uppercase tracking-wider">eBao Gemini Master Module Integration Architecture</span>
+            <span class="text-slate-400">(Click any module box to view details below)</span>
+          </div>
+          <div class="text-[11px] text-slate-300 font-mono bg-slate-800 px-3 py-1 rounded-lg border border-slate-700">
+            Active: <span id="diag-active-badge" class="font-bold text-sky-400">Mod 01: Architecture & Product Factory</span>
+          </div>
+        </div>
+
+        <!-- SVG Architecture Diagram Canvas (Pixel-perfect from eBao Module Linked mermaid-diagram.svg) -->
+        <div class="w-full overflow-x-auto rounded-xl border border-slate-800" id="svg-interactive-container">
+<svg id="module-linked-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1573.618 1038.1" width="100%" height="auto" class="w-full min-w-[950px] select-none" style="--bg:#1F1F1F;--fg:#CCCCCC;--line:#CCCCCC;--accent:#0078D4;--muted:#CCCCCCCC;--surface:#181818;--border:#CCCCCC;background:var(--bg)">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap');
+  text { font-family: 'Inter', system-ui, sans-serif; }
+  svg {
+    /* Derived from --bg and --fg (overridable via --line, --accent, etc.) */
+    --_text:          var(--fg);
+    --_text-sec:      var(--muted, color-mix(in srgb, var(--fg) 60%, var(--bg)));
+    --_text-muted:    var(--muted, color-mix(in srgb, var(--fg) 40%, var(--bg)));
+    --_text-faint:    color-mix(in srgb, var(--fg) 25%, var(--bg));
+    --_line:          var(--line, color-mix(in srgb, var(--fg) 50%, var(--bg)));
+    --_arrow:         var(--accent, color-mix(in srgb, var(--fg) 85%, var(--bg)));
+    --_node-fill:     var(--surface, color-mix(in srgb, var(--fg) 3%, var(--bg)));
+    --_node-stroke:   var(--border, color-mix(in srgb, var(--fg) 20%, var(--bg)));
+    --_group-fill:    var(--bg);
+    --_group-hdr:     color-mix(in srgb, var(--fg) 5%, var(--bg));
+    --_inner-stroke:  color-mix(in srgb, var(--fg) 12%, var(--bg));
+    --_key-badge:     color-mix(in srgb, var(--fg) 10%, var(--bg));
+  }
+</style>
+<defs>
+  <marker id="arrowhead" markerWidth="8" markerHeight="5" refX="7" refY="2.5" orient="auto">
+    <polygon points="0 0, 8 2.5, 0 5" fill="var(--_arrow)" stroke="var(--_arrow)" stroke-width="0.75" stroke-linejoin="round" />
+  </marker>
+  <marker id="arrowhead-start" markerWidth="8" markerHeight="5" refX="1" refY="2.5" orient="auto-start-reverse">
+    <polygon points="8 0, 0 2.5, 8 5" fill="var(--_arrow)" stroke="var(--_arrow)" stroke-width="0.75" stroke-linejoin="round" />
+  </marker>
+</defs>
+<polyline class="edge" data-from="Mod1" data-to="Mod2" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Cấu hình sản phẩm, Biểu phí, Quy tắc STP" points="1098.116,383.3 1098.116,505.6000000000001" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="Mod2" data-to="Mod3" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Hồ sơ vượt ngưỡng STP / Khai báo y khoa xấu" points="1098.116,542.5 1098.116,735.0999999999999 1102.55325,735.0999999999999 1102.55325,747.0999999999999" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="Mod3" data-to="Mod2" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Quyết định tăng phí (EM) / Loại trừ / Chấp thuận" points="1158.6122500000001,747.0999999999999 1158.6122500000001,735.0999999999999 1334.9479999999999,735.0999999999999 1334.9479999999999,666.8 1155.6569999999997,666.8 1155.6569999999997,542.5" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="Mod2" data-to="SOR" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Hợp đồng Inforce vào SOR System of Record" points="1040.5749999999998,542.5 1040.5749999999998,548.5 663.746,548.5 663.746,628.8 626.7601666666667,628.8 626.7601666666667,640.8" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="SOR" data-to="Mod5" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Quét hợp đồng đến hạn thu phí (T-30)" points="573.7508333333334,640.8 573.7508333333334,628.8 540.7555,628.8 540.7555,112.9 1008.5745833333334,112.9 1008.5745833333334,76.9" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="Mod5" data-to="Mod8" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Thất bại thu phí &gt;60 ngày (Hết ân hạn)" points="1057.4088333333334,76.9 1057.4088333333334,193.2" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="Mod8" data-to="Mod4" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Tự động kích hoạt Đóng phí bằng tiền vay (APL) / Mất hiệu lực (Lapse)" points="1016.7016666666666,230.10000000000002 1016.7016666666666,266.1 271.28150000000005,266.1 271.28150000000016,505.6000000000001" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="Mod4" data-to="Mod3" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Tăng STBH / Thêm Rider sau phát hành" points="334.3800000000001,542.5 334.3800000000001,560.5 880.014,560.5 880.014,735.0999999999999 1046.4942500000002,735.0999999999999 1046.4942500000002,747.0999999999999" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="Mod4" data-to="Mod7" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Lệnh chi trả Giải ước / Vay hợp đồng (85% LTV)" points="208.18300000000016,542.5 208.18300000000016,695.4 153,695.4 153,949.1999999999998 357.18123333333335,949.1999999999998 357.18123333333335,961.1999999999998" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="SOR" data-to="Mod6" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Sự kiện bảo hiểm xảy ra (Tử vong, CI, Nằm viện)" points="573.7508333333334,691.6999999999999 573.7508333333334,727.6999999999999 460.47625000000005,727.6999999999999 460.47625000000005,783.9999999999999 543.35455,783.9999999999999 543.35455,807.9999999999999" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="Mod4" data-to="Mod6" data-style="dotted" data-arrow-start="false" data-arrow-end="true" data-label="Cấn trừ Nợ vay gốc + Lãi dồn tích" points="271.28150000000016,542.5 271.28150000000016,695.4 275.2720000000001,695.4 275.2720000000001,795.9999999999999 488.7261500000001,795.9999999999999 488.7261500000001,807.9999999999999" fill="none" stroke="var(--_line)" stroke-width="1" stroke-dasharray="4 4" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="Mod5" data-to="Mod6" data-style="dotted" data-arrow-start="false" data-arrow-end="true" data-label="Cấn trừ Phí ân hạn chưa đóng" points="1106.2430833333333,76.9 1106.2430833333333,112.9 1459.4720000000002,112.9 1459.4720000000002,795.9999999999999 652.61135,795.9999999999999 652.61135,807.9999999999999" fill="none" stroke="var(--_line)" stroke-width="1" stroke-dasharray="4 4" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="Mod6" data-to="Mod7" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Lệnh chi trả tiền bồi thường cho Thụ hưởng" points="570.66875,844.8999999999999 570.6687499999999,949.1999999999998 424.2695666666667,949.1999999999998 424.2695666666667,961.1999999999998" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="Mod6" data-to="SOR" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Chấm dứt hợp đồng / Giảm STBH trong SOR" points="597.98295,807.9999999999999 597.98295,783.9999999999999 688.84225,783.9999999999999 688.84225,727.6999999999999 626.7601666666667,727.6999999999999 626.7601666666667,691.6999999999999" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="Mod8" data-to="Mod1" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Trích xuất dữ liệu định phí dự phòng (Month-End Valuation)" points="1098.116,230.10000000000002 1098.116,346.40000000000003" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<g class="edge-label" data-from="Mod1" data-to="Mod2" data-label="Cấu hình sản phẩm, Biểu phí, Quy tắc STP">
+  <rect x="989.6160000000001" y="426.30000000000007" width="216.046" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="1097.6390000000001" y="441.45000000000005" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Cấu hình sản phẩm, Biểu phí, Quy tắc STP</text>
+</g>
+<g class="edge-label" data-from="Mod2" data-to="Mod3" data-label="Hồ sơ vượt ngưỡng STP / Khai báo y khoa xấu">
+  <rect x="984.1160000000002" y="673.8" width="227.332" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="1097.7820000000002" y="688.9499999999999" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Hồ sơ vượt ngưỡng STP / Khai báo y khoa xấu</text>
+</g>
+<g class="edge-label" data-from="Mod3" data-to="Mod2" data-label="Quyết định tăng phí (EM) / Loại trừ / Chấp thuận">
+  <rect x="1215.4479999999999" y="673.8" width="238.02400000000003" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="1334.4599999999998" y="688.9499999999999" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Quyết định tăng phí (EM) / Loại trừ / Chấp thuận</text>
+</g>
+<g class="edge-label" data-from="Mod2" data-to="SOR" data-label="Hợp đồng Inforce vào SOR System of Record">
+  <rect x="551.746" y="567.5" width="223.76799999999997" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="663.63" y="582.65" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Hợp đồng Inforce vào SOR System of Record</text>
+</g>
+<g class="edge-label" data-from="SOR" data-to="Mod5" data-label="Quét hợp đồng đến hạn thu phí (T-30)">
+  <rect x="446.2555" y="523.2" width="188.72200000000004" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="540.6165" y="538.35" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Quét hợp đồng đến hạn thu phí (T-30)</text>
+</g>
+<g class="edge-label" data-from="Mod5" data-to="Mod8" data-label="Thất bại thu phí &gt;60 ngày (Hết ân hạn)">
+  <rect x="960.9088333333332" y="119.9" width="192.28600000000003" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="1057.0518333333332" y="135.05" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Thất bại thu phí &gt;60 ngày (Hết ân hạn)</text>
+</g>
+<g class="edge-label" data-from="Mod8" data-to="Mod4" data-label="Tự động kích hoạt Đóng phí bằng tiền vay (APL) / Mất hiệu lực (Lapse)">
+  <rect x="100.28150000000005" y="438.30000000000007" width="341.97399999999993" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="271.2685" y="453.45000000000005" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Tự động kích hoạt Đóng phí bằng tiền vay (APL) / Mất hiệu lực (Lapse)</text>
+</g>
+<g class="edge-label" data-from="Mod4" data-to="Mod3" data-label="Tăng STBH / Thêm Rider sau phát hành">
+  <rect x="779.514" y="697.8" width="200.60200000000003" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="879.815" y="712.9499999999999" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Tăng STBH / Thêm Rider sau phát hành</text>
+</g>
+<g class="edge-label" data-from="Mod4" data-to="Mod7" data-label="Lệnh chi trả Giải ước / Vay hợp đồng (85% LTV)">
+  <rect x="35.999999999999986" y="911.8999999999999" width="233.27200000000008" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="152.63600000000002" y="927.0499999999998" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Lệnh chi trả Giải ước / Vay hợp đồng (85% LTV)</text>
+</g>
+<g class="edge-label" data-from="SOR" data-to="Mod6" data-label="Sự kiện bảo hiểm xảy ra (Tử vong, CI, Nằm viện)">
+  <rect x="343.47625000000005" y="734.6999999999999" width="233.86599999999999" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="460.40925000000004" y="749.8499999999999" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Sự kiện bảo hiểm xảy ra (Tử vong, CI, Nằm viện)</text>
+</g>
+<g class="edge-label" data-from="Mod4" data-to="Mod6" data-label="Cấn trừ Nợ vay gốc + Lãi dồn tích">
+  <rect x="188.7720000000001" y="702.4" width="172.09" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="274.8170000000001" y="717.55" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Cấn trừ Nợ vay gốc + Lãi dồn tích</text>
+</g>
+<g class="edge-label" data-from="Mod5" data-to="Mod6" data-label="Cấn trừ Phí ân hạn chưa đóng">
+  <rect x="1380.9720000000002" y="641.5" width="156.64600000000004" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="1459.2950000000003" y="656.65" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Cấn trừ Phí ân hạn chưa đóng</text>
+</g>
+<g class="edge-label" data-from="Mod6" data-to="Mod7" data-label="Lệnh chi trả tiền bồi thường cho Thụ hưởng">
+  <rect x="463.66874999999993" y="887.8999999999999" width="213.67000000000004" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="570.50375" y="903.0499999999998" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Lệnh chi trả tiền bồi thường cho Thụ hưởng</text>
+</g>
+<g class="edge-label" data-from="Mod6" data-to="SOR" data-label="Chấm dứt hợp đồng / Giảm STBH trong SOR">
+  <rect x="581.34225" y="734.6999999999999" width="214.26400000000004" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="688.4742500000001" y="749.8499999999999" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Chấm dứt hợp đồng / Giảm STBH trong SOR</text>
+</g>
+<g class="edge-label" data-from="Mod8" data-to="Mod1" data-label="Trích xuất dữ liệu định phí dự phòng (Month-End Valuation)">
+  <rect x="949.6160000000001" y="273.1" width="296.23600000000005" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="1097.7340000000002" y="288.25" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Trích xuất dữ liệu định phí dự phòng (Month-End Valuation)</text>
+</g>
+<g class="node cursor-pointer transition-all" data-id="Mod1" data-label="Mod 01: Architecture &amp; Product Factory" data-shape="rectangle">
+  <rect x="963.7680000000001" y="346.40000000000003" width="268.69599999999997" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1098.1160000000002" y="364.85" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Mod 01: Architecture &amp; Product Factory</text>
+</g>
+<g class="node cursor-pointer transition-all" data-id="Mod2" data-label="Mod 02: New Business (NB APP)" data-shape="rectangle">
+  <rect x="983.034" y="505.6000000000001" width="230.16399999999993" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1098.116" y="524.0500000000001" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Mod 02: New Business (NB APP)</text>
+</g>
+<g class="node cursor-pointer transition-all" data-id="Mod3" data-label="Mod 03: Underwriting (UW APP)" data-shape="rectangle">
+  <rect x="990.4352500000001" y="747.0999999999999" width="224.236" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1102.5532500000002" y="765.55" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Mod 03: Underwriting (UW APP)</text>
+</g>
+<g class="node cursor-pointer transition-all" data-id="SOR" data-label="SOR Core Database" data-shape="cylinder">
+  <rect x="520.7415000000001" y="647.8" width="159.02799999999996" height="36.900000000000006" fill="var(--_node-fill)" stroke="none" />
+  <line x1="520.7415000000001" y1="647.8" x2="520.7415000000001" y2="684.6999999999999" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <line x1="679.7695000000001" y1="647.8" x2="679.7695000000001" y2="684.6999999999999" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <ellipse cx="600.2555000000001" cy="684.6999999999999" rx="79.51399999999998" ry="7" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <ellipse cx="600.2555000000001" cy="647.8" rx="79.51399999999998" ry="7" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="600.2555000000001" y="666.25" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">SOR Core Database</text>
+</g>
+<g class="node cursor-pointer transition-all" data-id="Mod5" data-label="Mod 05: Billing &amp; Collection" data-shape="rectangle">
+  <rect x="959.7403333333334" y="40" width="195.33699999999996" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1057.4088333333334" y="58.45" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Mod 05: Billing &amp; Collection</text>
+</g>
+<g class="node cursor-pointer transition-all" data-id="Mod8" data-label="Mod 08: Batch Console (EOD/EOM)" data-shape="rectangle">
+  <rect x="935.2873333333333" y="193.2" width="244.24299999999997" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1057.4088333333334" y="211.64999999999998" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Mod 08: Batch Console (EOD/EOM)</text>
+</g>
+<g class="node cursor-pointer transition-all" data-id="Mod4" data-label="Mod 04: Customer Service (CS APP)" data-shape="rectangle">
+  <rect x="145.08450000000016" y="505.6000000000001" width="252.39399999999998" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="271.28150000000016" y="524.0500000000001" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Mod 04: Customer Service (CS APP)</text>
+</g>
+<g class="node cursor-pointer transition-all" data-id="Mod7" data-label="Mod 07: Payment &amp; Finance" data-shape="rectangle">
+  <rect x="290.09290000000004" y="961.1999999999998" width="201.265" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="390.72540000000004" y="979.6499999999999" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Mod 07: Payment &amp; Finance</text>
+</g>
+<g class="node cursor-pointer transition-all" data-id="Mod6" data-label="Mod 06: Claims Management (CLM APP)" data-shape="rectangle">
+  <rect x="434.0977500000001" y="807.9999999999999" width="273.14199999999994" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="570.66875" y="826.4499999999999" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Mod 06: Claims Management (CLM APP)</text>
+</g>
+</svg>
+        </div>
+      </div>
+
+      <!-- SELECTED MODULE DOSSIER & SOPS HUB (STANDARDIZED TEMPLATE) -->
+      <div id="module-dossier-card" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-6">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- VIEW 2: MASTER CORE REFERENCE TABLES                           -->
+    <!-- ============================================================== -->
+    <section id="view-master-tables" class="tab-view hidden fade-in">
+      <div class="mb-6">
+        <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+          <span>📊</span> eBao Core Master Reference & Policy Life Cycle Tables
+        </h1>
+        <p class="text-xs text-slate-500 mt-1">
+          Statutory dates taxonomy, 21-day Free-Look mechanics, Customer Service alteration rules, and chronological batch job executions formatted in standard tables.
+        </p>
+
+        <!-- Subtabs -->
+        <div class="flex items-center gap-2 mt-4 border-b border-slate-200 pb-2 overflow-x-auto text-xs">
+          <button data-subtab="tbl-milestones" class="subtab-btn px-3.5 py-1.5 font-extrabold rounded-lg bg-blue-600 text-white shadow-sm transition-all flex items-center gap-1.5 border border-blue-500">
+            <span>⭐</span> <span>⏱️ 3 Core Milestones (21-Day, 60-Day, Mid-Term Rider)</span>
+          </button>
+          <button data-subtab="tbl-dates" class="subtab-btn px-3 py-1.5 font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all">
+            📅 13 Policy Lifecycle Dates
+          </button>
+          <button data-subtab="tbl-freelook" class="subtab-btn px-3 py-1.5 font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all">
+            🛡️ 21-Day Free-Look Statutory Rules
+          </button>
+          <button data-subtab="tbl-alterations" class="subtab-btn px-3 py-1.5 font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all">
+            🔄 CS Alteration Master Taxonomy
+          </button>
+          <button data-subtab="tbl-batch-seq" class="subtab-btn px-3 py-1.5 font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all">
+            ⏱️ Nightly Batch Pipeline Sequence
+          </button>
+        </div>
+      </div>
+
+            <!-- Subtab 0: Core Milestones & Time Mechanics (Featured First) -->
+      <div id="subtab-content-tbl-milestones" class="master-subtab-view">
+        
+        <!-- Header Banner: Interactive Lifecycle Roadmap -->
+        <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-5 rounded-2xl shadow-md mb-6 border border-indigo-900/40">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] font-mono uppercase tracking-wider text-indigo-400 font-bold bg-indigo-500/20 px-2 py-0.5 rounded border border-indigo-500/30">eBao Core Life Cycle Engine</span>
+                <span class="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/30">3 Critical Milestones & Statutory Rules</span>
+              </div>
+              <h2 class="text-xl font-black tracking-tight text-white mt-1">Định Nghĩa Các Ngày & 3 Mốc Thời Gian Trọng Yếu Trong Vòng Đời Hợp Đồng</h2>
+              <p class="text-xs text-slate-300 mt-0.5">Phân tích chuẩn nghiệp vụ: Mốc 21 ngày cân nhắc, Mốc 60 ngày gia hạn (Auto-Lapse vs APL), và Ngày hiệu lực kèm công thức tính phí ngắn hạn (Pro-Rata) khi gắn Rider sau khi HĐ chính đang Inforce.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="openPdfViewer(88)" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs border border-indigo-400/30 flex items-center gap-1.5">
+                <span>📖</span> <span>PDF P.88 (Free-Look)</span>
+              </button>
+              <button onclick="openPdfViewer(214)" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg text-xs border border-purple-400/30 flex items-center gap-1.5">
+                <span>📖</span> <span>PDF P.214 (Rider Inception)</span>
+              </button>
+              <button onclick="openPdfViewer(368)" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-xs border border-amber-400/30 flex items-center gap-1.5">
+                <span>📖</span> <span>PDF P.368 (Grace & APL)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Stepper Roadmap -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs pt-3 border-t border-indigo-800/50">
+            <div class="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/80">
+              <span class="text-[10px] text-slate-400 font-mono block">Bước 1: Khởi tạo</span>
+              <b class="text-white text-xs block truncate">Proposal Date (D01)</b>
+              <span class="text-[10px] text-slate-400">Tuổi & Thẩm định</span>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/80">
+              <span class="text-[10px] text-slate-400 font-mono block">Bước 2: Phát hành</span>
+              <b class="text-white text-xs block truncate">Issue & Delivery (D03/D04)</b>
+              <span class="text-[10px] text-slate-400">e-ACK Chữ ký số</span>
+            </div>
+            <div class="p-2.5 rounded-xl bg-emerald-950/80 border border-emerald-500/50 shadow-sm cursor-pointer hover:bg-emerald-900/80 transition-all" onclick="document.getElementById('card-ms-freelook').scrollIntoView({behavior: 'smooth'})">
+              <span class="text-[10px] text-emerald-400 font-mono font-bold block">⭐ MỐC 1: 21 NGÀY</span>
+              <b class="text-emerald-300 text-xs block truncate">21-Day Free-Look</b>
+              <span class="text-[10px] text-emerald-400">100% Hoàn phí / Clawback</span>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/80">
+              <span class="text-[10px] text-slate-400 font-mono block">Bước 3: Hiệu lực</span>
+              <b class="text-white text-xs block truncate">Inforce & Due Date (D07)</b>
+              <span class="text-[10px] text-slate-400">T-30 Sinh hóa đơn</span>
+            </div>
+            <div class="p-2.5 rounded-xl bg-amber-950/80 border border-amber-500/50 shadow-sm cursor-pointer hover:bg-amber-900/80 transition-all" onclick="document.getElementById('card-ms-grace').scrollIntoView({behavior: 'smooth'})">
+              <span class="text-[10px] text-amber-400 font-mono font-bold block">⭐ MỐC 2: 60 NGÀY</span>
+              <b class="text-amber-300 text-xs block truncate">60-Day Grace Period</b>
+              <span class="text-[10px] text-amber-400">Auto-Lapse vs APL Nửa đêm</span>
+            </div>
+            <div class="p-2.5 rounded-xl bg-purple-950/80 border border-purple-500/50 shadow-sm cursor-pointer hover:bg-purple-900/80 transition-all" onclick="document.getElementById('card-ms-rider').scrollIntoView({behavior: 'smooth'})">
+              <span class="text-[10px] text-purple-400 font-mono font-bold block">⭐ MỐC 3: RIDER INCEPTION</span>
+              <b class="text-purple-300 text-xs block truncate">Mid-Term Rider Attach</b>
+              <span class="text-[10px] text-purple-400">Phí ngắn hạn (Pro-Rata)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- MILESTONE 1: 21-DAY FREE LOOK -->
+        <div id="card-ms-freelook" class="bg-white rounded-2xl border border-slate-200 shadow-sm mb-6 overflow-hidden">
+          <div class="bg-emerald-50/60 p-4 border-b border-emerald-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <span class="text-3xl p-2 bg-emerald-100 text-emerald-700 rounded-xl border border-emerald-200">🛡️</span>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-mono text-xs font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">MỐC 01: 21 NGÀY CÂN NHẮC</span>
+                  <span class="text-xs font-semibold text-slate-500 font-mono">21-Day Statutory Free-Look / Cooling-Off Window</span>
+                </div>
+                <h3 class="text-base font-extrabold text-slate-900 mt-0.5">Quy Tắc Đếm Ngược 21 Ngày, Cơ Chế Hoàn Phí & Thu Hồi Hoa Hồng Đại Lý</h3>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="openPdfViewer(88)" class="px-3 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold rounded-lg text-xs border border-emerald-300">
+                📄 PDF Guide P.88
+              </button>
+            </div>
+          </div>
+
+          <div class="p-5 grid grid-cols-1 lg:grid-cols-12 gap-6 text-xs">
+            <!-- Left Column: Domain Explanations & Rules -->
+            <div class="lg:col-span-7 space-y-4">
+              <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+                <h4 class="font-bold text-slate-900 text-xs mb-1.5 flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <span>1. Thời Điểm Bắt Đầu Đếm & Quy Tắc Kích Hoạt (Clock Inception)</span>
+                </h4>
+                <p class="text-slate-700 leading-relaxed mb-2">
+                  Theo Điều khoản chuẩn và Luật Kinh doanh Bảo hiểm, thời hạn 21 ngày cân nhắc <b>bắt đầu đếm từ ngày Bên mua bảo hiểm xác nhận đã nhận Hợp đồng bảo hiểm</b> (<code class="bg-slate-200 px-1.5 py-0.5 rounded font-mono text-blue-700">T_POLICY.DELIVERY_DATE</code> qua Chữ ký nhận bàn giao hoặc OTP e-ACK xác nhận trên Cổng thông tin).
+                </p>
+                <div class="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-rose-800 font-semibold text-[11px]">
+                  ⚠️ LƯU Ý CỐT LÕI CỦA EBAO PAS: Tuyệt đối KHÔNG ĐƯỢC tính thời hạn 21 ngày từ ngày Phát hành hợp đồng (<code class="font-mono">ISSUE_DATE</code>). Nếu sau 14 ngày kể từ Issue Date chưa có e-ACK, hệ thống tự động fallback: <code class="font-mono">DELIVERY_DATE = ISSUE_DATE + 14 ngày</code> bưu điện.
+                </div>
+              </div>
+
+              <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+                <h4 class="font-bold text-slate-900 text-xs mb-1.5 flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <span>2. Công Thức & Cơ Chế Hoàn Phí (Refund Mechanics: Traditional vs ILP)</span>
+                </h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-slate-700 mb-2">
+                  <div class="p-2.5 bg-blue-50/70 rounded-lg border border-blue-200">
+                    <b class="text-blue-900 block mb-1">Hợp Đồng Truyền Thống (Trad / Endowment / Term)</b>
+                    <code class="block font-mono text-[11px] text-blue-800 mb-1">Net Refund = 100% Tổng phí đã đóng - Chi phí khám sức khỏe</code>
+                    <span class="text-[11px] text-slate-600 block">Doanh nghiệp bảo hiểm hấp thụ toàn bộ chi phí vận hành, chỉ khấu trừ chi phí khám y khoa thực tế (nếu có).</span>
+                  </div>
+                  <div class="p-2.5 bg-indigo-50/70 rounded-lg border border-indigo-200">
+                    <b class="text-indigo-900 block mb-1">Hợp Đồng Liên Kết Đơn Vị (Unit-Linked / ILP)</b>
+                    <code class="block font-mono text-[11px] text-indigo-800 mb-1">Net Refund = Phí chưa phân bổ + (CCQ × NAV) + Phí ban đầu - Chi phí khám</code>
+                    <span class="text-[11px] text-slate-600 block">Khách hàng chịu rủi ro biến động giá chứng chỉ quỹ (NAV) tại ngày định giá kế tiếp.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+                <h4 class="font-bold text-slate-900 text-xs mb-1.5 flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <span>3. Thu Hồi 100% Hoa Hồng & Hủy Hợp Đồng Vô Hiệu Từ Đầu</span>
+                </h4>
+                <ul class="space-y-1.5 text-slate-700">
+                  <li class="flex items-start gap-2">
+                    <span class="text-emerald-600 font-bold">•</span>
+                    <span><b>Thu hồi Hoa hồng (Commission Clawback):</b> Module 07 tự động thu hồi (Clawback) 100% hoa hồng năm nhất (FYC) đã hạch toán của Đại lý phục vụ (<code class="font-mono text-blue-700">T_AGENT_COMM_TRX</code>).</span>
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-emerald-600 font-bold">•</span>
+                    <span><b>Trạng thái hợp đồng:</b> Chuyển từ <code class="font-mono text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded">INFORCE</code> sang <code class="font-mono text-rose-700 bg-rose-50 px-1 py-0.5 rounded">TERMINATED_FREE_LOOK</code> (Hủy vô hiệu từ đầu - VOID_AB_INITIO).</span>
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-emerald-600 font-bold">•</span>
+                    <span><b>Hoàn nhập dự phòng kế toán:</b> Toàn bộ Dự phòng phí chưa kiếm được (UPR) được hoàn nhập 100% vào sổ cái kế toán ERP.</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Right Column: Interactive Live Calculator -->
+            <div class="lg:col-span-5 bg-emerald-50/30 p-4 rounded-xl border border-emerald-200 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <h4 class="font-bold text-emerald-900 text-xs flex items-center gap-1.5">
+                    <span>⚡</span> <span>Bộ Tính Hoàn Phí 21 Ngày Cân Nhắc (Live Calculator)</span>
+                  </h4>
+                  <span class="text-[10px] font-mono text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded font-bold">Interactive</span>
+                </div>
+                <p class="text-[11px] text-slate-500 mb-3">Kiểm tra số tiền hoàn lại cho khách hàng và hoa hồng thu hồi tức thì.</p>
+                
+                <div class="space-y-2.5">
+                  <div>
+                    <label class="block text-slate-700 font-semibold mb-1">Loại sản phẩm</label>
+                    <select id="calc-fl-product-type" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white font-semibold">
+                      <option value="TRAD">Sản phẩm Truyền Thống (Endowment / Term / Whole Life)</option>
+                      <option value="ILP">Sản phẩm Liên Kết Đầu Tư (Unit-Linked / ILP)</option>
+                    </select>
+                  </div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label class="block text-slate-700 font-semibold mb-1">Tổng phí đã đóng (VND)</label>
+                      <input type="number" id="calc-fl-premium" value="25000000" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg font-mono bg-white">
+                    </div>
+                    <div>
+                      <label class="block text-slate-700 font-semibold mb-1">Chi phí y khoa (VND)</label>
+                      <input type="number" id="calc-fl-med-fee" value="1200000" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg font-mono bg-white">
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label class="block text-slate-700 font-semibold mb-1">Tỷ lệ hoa hồng Đại lý (%)</label>
+                      <input type="number" id="calc-fl-comm-rate" value="35" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg font-mono bg-white">
+                    </div>
+                    <div>
+                      <label class="block text-slate-700 font-semibold mb-1">Biến động NAV quỹ (chỉ ILP)</label>
+                      <input type="number" id="calc-fl-nav-diff" value="-2" placeholder="% thay đổi" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg font-mono bg-white">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Output Box -->
+              <div class="mt-4 p-3.5 bg-white rounded-xl border border-emerald-200 shadow-sm space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-slate-500 text-xs">Tổng phí ban đầu:</span>
+                  <span id="out-fl-gross-prem" class="font-mono font-bold text-slate-800">25,000,000 VND</span>
+                </div>
+                <div class="flex items-center justify-between text-rose-600">
+                  <span class="text-xs">Trừ chi phí khám y tế:</span>
+                  <span id="out-fl-med-deduct" class="font-mono font-bold">-1,200,000 VND</span>
+                </div>
+                <div class="flex items-center justify-between text-amber-700 text-xs" id="out-fl-ilp-row" style="display: none;">
+                  <span>Biến động thị trường CCQ:</span>
+                  <span id="out-fl-ilp-adj" class="font-mono font-bold">-476,000 VND</span>
+                </div>
+                <div class="pt-2 border-t border-slate-200 flex items-center justify-between">
+                  <span class="font-extrabold text-slate-900 text-xs">Số tiền Hoàn lại Khách hàng:</span>
+                  <span id="out-fl-net-refund" class="font-mono font-black text-sm text-emerald-700">23,800,000 VND</span>
+                </div>
+                <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-rose-700 font-semibold text-xs">
+                  <span>Hoa hồng Đại lý bị thu hồi (100%):</span>
+                  <span id="out-fl-clawback" class="font-mono font-bold">8,750,000 VND</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MILESTONE 2: 60-DAY GRACE PERIOD -->
+        <div id="card-ms-grace" class="bg-white rounded-2xl border border-slate-200 shadow-sm mb-6 overflow-hidden">
+          <div class="bg-amber-50/60 p-4 border-b border-amber-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <span class="text-3xl p-2 bg-amber-100 text-amber-700 rounded-xl border border-amber-200">⏳</span>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-mono text-xs font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded">MỐC 02: 60 NGÀY GIA HẠN ĐÓNG PHÍ</span>
+                  <span class="text-xs font-semibold text-slate-500 font-mono">60-Day Premium Grace Period & Midnight Decision Engine</span>
+                </div>
+                <h3 class="text-base font-extrabold text-slate-900 mt-0.5">Tiến Trình 60 Ngày Gia Hạn, Thông Báo Tự Động & Xử Lý Auto-Lapse vs APL Nửa Đêm</h3>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="openPdfViewer(368)" class="px-3 py-1 bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold rounded-lg text-xs border border-amber-300">
+                📄 PDF Guide P.368
+              </button>
+            </div>
+          </div>
+
+          <div class="p-5 grid grid-cols-1 lg:grid-cols-12 gap-6 text-xs">
+            <!-- Left Column: Aging Timeline & Logic -->
+            <div class="lg:col-span-7 space-y-4">
+              <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+                <h4 class="font-bold text-slate-900 text-xs mb-1.5 flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                  <span>1. Mốc Thời Gian Kích Hoạt & Quyền Lợi Bảo Hiểm Trong 60 Ngày</span>
+                </h4>
+                <ul class="space-y-1.5 text-slate-700">
+                  <li class="flex items-start gap-2">
+                    <span class="text-amber-600 font-bold">•</span>
+                    <span><b>Bắt đầu:</b> Kích hoạt vào ngày kế tiếp của Ngày đến hạn đóng phí (<code class="font-mono text-blue-700">Premium Due Date</code>) khi hóa đơn T-30 ngày chưa được thanh toán (Paid-To-Date chưa nâng).</span>
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-amber-600 font-bold">•</span>
+                    <span><b>Hiệu lực bảo vệ 100%:</b> Trong suốt 60 ngày gia hạn, trạng thái hợp đồng vẫn là <code class="font-mono text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded">INFORCE</code>. Mọi quyền lợi tử vong, thương tật, tai nạn, nằm viện, bệnh hiểm nghèo vẫn được chi trả 100%.</span>
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-amber-600 font-bold">•</span>
+                    <span><b>Chi trả bồi thường khi đang gia hạn (Claim during Grace):</b> Công ty chi trả toàn bộ quyền lợi bồi thường nhưng sẽ <b>khấu trừ số tiền phí quá hạn chưa đóng</b> khỏi số tiền bồi thường.</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+                <h4 class="font-bold text-slate-900 text-xs mb-1.5 flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                  <span>2. Tiến Trình Thông Báo Tự Động (Automated Notice Dispatches)</span>
+                </h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-slate-700 mb-2">
+                  <div class="p-2.5 bg-white rounded-lg border border-slate-200 shadow-2xs">
+                    <b class="text-blue-900 block mb-0.5">Ngày thứ 30: Nhắc Đóng Phí Lần 1</b>
+                    <span class="text-[11px] text-slate-600 block">Hệ thống gửi SMS, Email và thông báo đẩy qua Ứng dụng khách hàng kèm đường link cổng thanh toán trực tuyến (<code class="font-mono">NOTICE_PREM_REMIND_1</code>).</span>
+                  </div>
+                  <div class="p-2.5 bg-white rounded-lg border border-slate-200 shadow-2xs">
+                    <b class="text-rose-900 block mb-0.5">Ngày thứ 45: Cảnh Báo Mất Hiệu Lực Lần 2</b>
+                    <span class="text-[11px] text-slate-600 block">Hệ thống phát hành thư cảnh báo chuyển phát nhanh và tin nhắn khẩn cấp cảnh báo nguy cơ hủy hợp đồng hoặc kích hoạt vay APL (<code class="font-mono">NOTICE_PREM_WARNING_FINAL</code>).</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+                <h4 class="font-bold text-slate-900 text-xs mb-1.5 flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                  <span>3. Xử Lý Tại 23:59:59 Ngày Thứ 60 (Midnight Batch Execution Engine)</span>
+                </h4>
+                <p class="text-slate-700 leading-relaxed mb-2">
+                  Hệ thống chạy Batch Job <code class="font-mono text-purple-700">JOB_APL_EXEC</code> (02:00 AM) và <code class="font-mono text-rose-700">JOB_AUTO_LAPSE_TRAD</code> (02:45 AM) kiểm tra công thức:
+                </p>
+                <div class="p-2 bg-slate-100 rounded font-mono text-[11px] text-center text-slate-800 font-bold mb-2">
+                  Net Cash Value = Gross Cash Value - Nợ vay gốc - Lãi vay cộng dồn
+                </div>
+                <div class="space-y-2">
+                  <div class="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-slate-800">
+                    <b class="text-emerald-900 block">Trường hợp A (Net Cash Value ≥ Phí định kỳ chưa đóng): KÍCH HOẠT VAY APL</b>
+                    <span class="text-[11px] text-slate-700 block mt-0.5">Tự động tạm ứng từ Giá trị hoàn lại để đóng phí (<code class="font-mono">JOB_APL_EXEC</code>). Trạng thái chuyển thành <code class="font-mono text-amber-700 font-bold">INFORCE_APL</code>. PTD tăng thêm 1 kỳ phí. Bắt đầu tính lãi vay hợp đồng hàng ngày (6.5%/năm).</span>
+                  </div>
+                  <div class="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-slate-800">
+                    <b class="text-rose-900 block">Trường hợp B (Net Cash Value < Phí định kỳ chưa đóng): MẤT HIỆU LỰC (AUTO-LAPSE)</b>
+                    <span class="text-[11px] text-slate-700 block mt-0.5">Hợp đồng rơi vào mất hiệu lực (<code class="font-mono">JOB_AUTO_LAPSE_TRAD</code>). Trạng thái chuyển thành <code class="font-mono text-rose-700 font-bold">LAPSED</code>. Số tiền bảo hiểm chuyển về 0, toàn bộ Rider bị hủy, kích hoạt thời hạn 2 năm xin khôi phục (<code class="font-mono">T_POLICY.LAPSED_DATE</code>).</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Column: Interactive Live Evaluator -->
+            <div class="lg:col-span-5 bg-amber-50/30 p-4 rounded-xl border border-amber-200 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <h4 class="font-bold text-amber-900 text-xs flex items-center gap-1.5">
+                    <span>⚡</span> <span>Bộ Mô Phỏng Đếm Ngược 60 Ngày & Quyết Định Nửa Đêm</span>
+                  </h4>
+                  <span class="text-[10px] font-mono text-amber-700 bg-amber-100 px-2 py-0.5 rounded font-bold">Interactive</span>
+                </div>
+                <p class="text-[11px] text-slate-500 mb-3">Thử nghiệm số ngày nợ phí và so sánh Giá trị hoàn lại ròng để dự báo kịch bản.</p>
+
+                <div class="space-y-2.5">
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label class="block text-slate-700 font-semibold mb-1">Số ngày gia hạn đã trôi qua</label>
+                      <input type="number" id="calc-gr-days" value="45" min="0" max="65" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg font-mono bg-white">
+                    </div>
+                    <div>
+                      <label class="block text-slate-700 font-semibold mb-1">Phí định kỳ nợ (VND)</label>
+                      <input type="number" id="calc-gr-prem" value="18000000" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg font-mono bg-white">
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label class="block text-slate-700 font-semibold mb-1">Giá trị hoàn lại (VND)</label>
+                      <input type="number" id="calc-gr-cv" value="45000000" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg font-mono bg-white">
+                    </div>
+                    <div>
+                      <label class="block text-slate-700 font-semibold mb-1">Nợ vay + Lãi (VND)</label>
+                      <input type="number" id="calc-gr-debt" value="10000000" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg font-mono bg-white">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Output Box -->
+              <div class="mt-4 p-3.5 bg-white rounded-xl border border-amber-200 shadow-sm space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-slate-500 text-xs">Giá trị hoàn lại ròng (Net CV):</span>
+                  <span id="out-gr-net-cv" class="font-mono font-bold text-slate-900">35,000,000 VND</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-slate-500 text-xs">Tình trạng thông báo hiện tại:</span>
+                  <span id="out-gr-notice-status" class="font-semibold text-xs text-rose-700">Đã gửi Cảnh báo lần 2 (Ngày 45)</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-slate-500 text-xs">Số ngày còn lại trước Cutoff:</span>
+                  <span id="out-gr-days-left" class="font-mono font-bold text-blue-700">Còn 15 ngày</span>
+                </div>
+                <div class="pt-2 border-t border-slate-200">
+                  <span class="block text-[11px] text-slate-500 mb-1">Dự báo Xử lý lúc 23:59:59 Ngày 60:</span>
+                  <div id="out-gr-decision-box" class="p-2.5 rounded-lg font-bold text-xs bg-emerald-50 text-emerald-800 border border-emerald-200">
+                    ✅ Kích hoạt Tự Động Vay Đóng Phí (APL) - Trạng thái: INFORCE_APL
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MILESTONE 3: MID-TERM RIDER ATTACHMENT -->
+        <div id="card-ms-rider" class="bg-white rounded-2xl border border-slate-200 shadow-sm mb-6 overflow-hidden">
+          <div class="bg-purple-50/60 p-4 border-b border-purple-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <span class="text-3xl p-2 bg-purple-100 text-purple-700 rounded-xl border border-purple-200">➕</span>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-mono text-xs font-bold text-purple-800 bg-purple-100 px-2 py-0.5 rounded">MỐC 03: GẮN SẢN PHẨM BỔ TRỢ (RIDER) SAU KHI HĐ ĐANG INFORCE</span>
+                  <span class="text-xs font-semibold text-slate-500 font-mono">Mid-Term Rider Addition / CS Alteration (CS-FN-03 / TX-CS-017)</span>
+                </div>
+                <h3 class="text-base font-extrabold text-slate-900 mt-0.5">Quy Tắc Xác Định Ngày Hiệu Lực, Công Thức Tính Phí Ngắn Hạn (Pro-Rata) & Đồng Bộ Kỳ Phí</h3>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="openPdfViewer(214)" class="px-3 py-1 bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold rounded-lg text-xs border border-purple-300">
+                📄 PDF Guide P.214
+              </button>
+            </div>
+          </div>
+
+          <div class="p-5 grid grid-cols-1 lg:grid-cols-12 gap-6 text-xs">
+            <!-- Left Column: Rules & Mathematical Formulation -->
+            <div class="lg:col-span-7 space-y-4">
+              <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+                <h4 class="font-bold text-slate-900 text-xs mb-1.5 flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                  <span>1. Điều Kiện Tiên Quyết & Thẩm Định Y Khoa Bắt Buộc</span>
+                </h4>
+                <ul class="space-y-1.5 text-slate-700">
+                  <li class="flex items-start gap-2">
+                    <span class="text-purple-600 font-bold">•</span>
+                    <span><b>Trạng thái hợp đồng chính:</b> Phải đang là <code class="font-mono text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded">INFORCE</code> và Paid-To-Date không bị nợ quá hạn. Tuyệt đối không cho phép gắn Rider nếu hợp đồng chính đang ở trạng thái <code class="font-mono">LAPSED</code>, <code class="font-mono">PAID_UP</code> (RPU) hoặc <code class="font-mono">INFORCE_APL</code>.</span>
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-purple-600 font-bold">•</span>
+                    <span><b>Thẩm định rủi ro bắt buộc (Underwriting):</b> Tương tự như hợp đồng mới, việc gắn thêm rủi ro giữa kỳ bắt buộc phải qua thẩm định Y khoa và Tài chính (sinh task <code class="font-mono text-blue-700">T_UW_TASK</code>). Nếu vượt hạn mức miễn khám, khách hàng phải cung cấp hồ sơ sức khỏe hoặc khám kiểm tra y tế.</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+                <h4 class="font-bold text-slate-900 text-xs mb-1.5 flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                  <span>2. Hai Lựa Chọn Ngày Hiệu Lực Của Sản Phẩm Bổ Trợ (Effective Date Options)</span>
+                </h4>
+                <div class="space-y-2.5">
+                  <div class="p-3 bg-white rounded-lg border border-slate-200 shadow-2xs">
+                    <div class="flex items-center justify-between mb-1">
+                      <b class="text-slate-900 font-bold">Lựa chọn 1: Hiệu lực vào Ngày kỷ niệm / Kỳ đóng phí tiếp theo (Next Due Date)</b>
+                      <span class="font-mono text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-bold">Phí ngắn hạn: 0 VND</span>
+                    </div>
+                    <p class="text-slate-600 leading-relaxed text-[11px]">
+                      Ngày hiệu lực rủi ro của Rider sẽ trùng với <code class="font-mono text-blue-700">Next Due Date</code> của Hợp đồng chính. Không cần phát sinh thu phí ngắn hạn lẻ; phí bảo hiểm của Rider sẽ tự động cộng gộp vào hóa đơn đóng phí định kỳ kế tiếp của Hợp đồng chính.
+                    </p>
+                  </div>
+                  <div class="p-3 bg-indigo-50/60 rounded-lg border border-indigo-200 shadow-2xs">
+                    <div class="flex items-center justify-between mb-1">
+                      <b class="text-indigo-950 font-bold">Lựa chọn 2: Hiệu lực ngay lập tức tại ngày chấp thuận giữa kỳ (Immediate Mid-Term Inception)</b>
+                      <span class="font-mono text-[10px] bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-bold">Thu Phí Ngắn Hạn Pro-Rata</span>
+                    </div>
+                    <p class="text-slate-700 leading-relaxed text-[11px] mb-2">
+                      Rider có hiệu lực ngay tại ngày thẩm định hoàn tất (<code class="font-mono text-blue-700">Approval Date</code>). Khách hàng được bảo vệ ngay lập tức nhưng hệ thống bắt buộc phải tính và thu <b>Phí bảo hiểm ngắn hạn (Pro-Rata Short Period Premium)</b> tương ứng với số ngày bảo vệ từ ngày hiệu lực đến kỳ đóng phí tiếp theo.
+                    </p>
+                    <div class="p-2.5 bg-white rounded border border-indigo-200 font-mono text-[11px] text-center text-indigo-900 font-bold">
+                      Phí Pro-Rata = Phí năm của Rider × (Số ngày còn lại đến Next Due Date / 365)
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+                <h4 class="font-bold text-slate-900 text-xs mb-1.5 flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                  <span>3. Quy Tắc Đồng Bộ Kỳ Phí (PTD Sync) & Giới Hạn Thời Hạn Bảo Hiểm</span>
+                </h4>
+                <ul class="space-y-1.5 text-slate-700">
+                  <li class="flex items-start gap-2">
+                    <span class="text-purple-600 font-bold">•</span>
+                    <span><b>Đồng bộ PTD:</b> Khi đến Kỳ đóng phí kế tiếp (<code class="font-mono text-blue-700">Next Due Date</code>), Paid-To-Date của Rider sẽ được ĐỒNG BỘ 100% với Paid-To-Date của Hợp đồng chính: <code class="font-mono font-bold text-slate-900">PTD_Rider = PTD_Main</code>. Toàn bộ các kỳ hóa đơn sau đó sẽ thu gộp chung 1 lần theo định kỳ của HĐ chính.</span>
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-purple-600 font-bold">•</span>
+                    <span><b>Thời hạn tối đa:</b> Ngày kết thúc của Rider KHÔNG ĐƯỢC vượt quá ngày đáo hạn của HĐ chính (<code class="font-mono">Rider Expiry Date ≤ Main Maturity Date</code>) và tự động chấm dứt khi NĐBH đạt độ tuổi tối đa quy định của Rider (Ví dụ: Nằm viện kết thúc ở tuổi 65, Bệnh hiểm nghèo kết thúc ở tuổi 70).</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Right Column: Interactive Live Pro-Rata Calculator -->
+            <div class="lg:col-span-5 bg-purple-50/30 p-4 rounded-xl border border-purple-200 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <h4 class="font-bold text-purple-900 text-xs flex items-center gap-1.5">
+                    <span>⚡</span> <span>Bộ Tính Phí Ngắn Hạn Pro-Rata & Lịch Đồng Bộ Kỳ Phí</span>
+                  </h4>
+                  <span class="text-[10px] font-mono text-purple-700 bg-purple-100 px-2 py-0.5 rounded font-bold">Interactive</span>
+                </div>
+                <p class="text-[11px] text-slate-500 mb-3">Tính toán chính xác số tiền phí phát sinh giữa kỳ theo số ngày lịch còn lại.</p>
+
+                <div class="space-y-2.5">
+                  <div>
+                    <label class="block text-slate-700 font-semibold mb-1">Phí cả năm của Sản phẩm Bổ trợ (VND)</label>
+                    <input type="number" id="calc-rd-annual-prem" value="4800000" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg font-mono bg-white">
+                  </div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label class="block text-slate-700 font-semibold mb-1">Ngày hiệu lực Rider (Inception)</label>
+                      <input type="date" id="calc-rd-start-date" value="2026-10-25" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg font-mono bg-white">
+                    </div>
+                    <div>
+                      <label class="block text-slate-700 font-semibold mb-1">Ngày đến hạn tiếp theo của HĐ chính</label>
+                      <input type="date" id="calc-rd-due-date" value="2027-04-20" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg font-mono bg-white">
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-slate-700 font-semibold mb-1">Phí định kỳ HĐ chính hiện tại (VND)</label>
+                    <input type="number" id="calc-rd-main-prem" value="24000000" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg font-mono bg-white">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Output Box -->
+              <div class="mt-4 p-3.5 bg-white rounded-xl border border-purple-200 shadow-sm space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-slate-500 text-xs">Số ngày bảo vệ giữa kỳ:</span>
+                  <span id="out-rd-days-count" class="font-mono font-bold text-slate-900">177 ngày / 365 ngày</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-slate-500 text-xs">Tỷ lệ phí ngắn hạn (Pro-Rata %):</span>
+                  <span id="out-rd-pro-rata-pct" class="font-mono font-bold text-indigo-700">48.49%</span>
+                </div>
+                <div class="pt-2 border-t border-slate-200 flex items-center justify-between">
+                  <span class="font-extrabold text-slate-900 text-xs">Phí Pro-Rata phải thanh toán ngay:</span>
+                  <span id="out-rd-pro-rata-amt" class="font-mono font-black text-sm text-purple-700">2,327,671 VND</span>
+                </div>
+                <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-slate-700 text-xs">
+                  <span>Hóa đơn gộp kỳ tiếp theo (HĐ Chính + Rider):</span>
+                  <span id="out-rd-next-modal-bill" class="font-mono font-bold text-emerald-700">28,800,000 VND</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Subtab 1: 13 Dates Table -->
+      <div id="subtab-content-tbl-dates" class="master-subtab-view hidden">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <h3 class="font-extrabold text-base text-slate-900">Master Policy Life Cycle Dates & Time Taxonomy</h3>
+            <p class="text-xs text-slate-500">Every contractual event, calculation, and legal right in eBao is bound to these 13 immutable timestamps.</p>
+          </div>
+          <input type="text" id="search-dates-input" placeholder="Search date name, definition, DB field..." class="px-3 py-1.5 text-xs border border-slate-300 rounded-lg w-72 focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div class="table-container">
+          <table class="standard-table" id="table-dates-element">
+            <thead>
+              <tr>
+                <th class="w-12 text-center">#</th>
+                <th>Date Entity</th>
+                <th>Stage</th>
+                <th>Formal PAS Definition</th>
+                <th>System Trigger & Operational Impact</th>
+                <th>eBao DB Column & Table</th>
+                <th class="text-center">PDF Ref</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-dates">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Subtab 2: 21-Day Free-Look Comparison Table -->
+      <div id="subtab-content-tbl-freelook" class="master-subtab-view hidden">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4 flex items-center justify-between">
+          <div>
+            <h3 class="font-extrabold text-base text-slate-900">The 21-Day Free-Look (Cooling-Off) Statutory Rules & Mechanics</h3>
+            <p class="text-xs text-slate-500">Legal comparison between Traditional Products (Endowment/Term) and Investment-Linked Products (ILP/Unit-Linked).</p>
+          </div>
+          <button onclick="openPdfViewer(88)" class="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold rounded-lg text-xs border border-blue-200 flex items-center gap-1.5">
+            <span>📄</span> Open PDF Guide P.88
+          </button>
+        </div>
+        <div class="table-container">
+          <table class="standard-table" id="table-freelook-element">
+            <thead>
+              <tr>
+                <th>Dimension / Rule Element</th>
+                <th>Traditional Products (Endowment / Whole Life / Term)</th>
+                <th>Investment-Linked Products (ILP / Unit-Linked)</th>
+                <th>Operational & Accounting Note</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-freelook">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Subtab 3: CS Alteration Master Taxonomy -->
+      <div id="subtab-content-tbl-alterations" class="master-subtab-view hidden">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <button id="btn-filter-alt-all" class="px-3 py-1 text-xs font-bold rounded-lg bg-blue-600 text-white">All (20)</button>
+            <button id="btn-filter-alt-nonfin" class="px-3 py-1 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700">Non-Financial (8)</button>
+            <button id="btn-filter-alt-fin" class="px-3 py-1 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700">Financial (12)</button>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="text" id="search-alterations-input" placeholder="Search alteration code, name..." class="px-3 py-1.5 text-xs border border-slate-300 rounded-lg w-64 focus:ring-2 focus:ring-blue-500">
+            <button onclick="openPdfViewer(196)" class="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold rounded-lg text-xs border border-blue-200">
+              📄 PDF P.196
+            </button>
+          </div>
+        </div>
+        <div class="table-container">
+          <table class="standard-table" id="table-alterations-element">
+            <thead>
+              <tr>
+                <th class="w-24">Code</th>
+                <th>Alteration Name</th>
+                <th>Type</th>
+                <th>Mandatory Validations & Rules</th>
+                <th class="text-center">Underwriting</th>
+                <th>System & Financial Sub-Ledger Impact</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-alterations">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Subtab 4: Nightly Batch Pipeline Sequence -->
+      <div id="subtab-content-tbl-batch-seq" class="master-subtab-view hidden">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <h3 class="font-extrabold text-base text-slate-900">Exact Chronological Execution Sequence of Nightly EOD/EOM Batch Jobs</h3>
+            <p class="text-xs text-slate-500">Expanded 16-job automated pipeline covering proposals, billing, banking, non-forfeiture, bonuses, valuation, and GL roll.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="text" id="search-batch-seq-input" placeholder="Search job code, name..." class="px-3 py-1.5 text-xs border border-slate-300 rounded-lg w-64 focus:ring-2 focus:ring-blue-500">
+            <button onclick="openPdfViewer(426)" class="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold rounded-lg text-xs border border-blue-200">
+              📄 PDF P.426
+            </button>
+          </div>
+        </div>
+        <div class="table-container">
+          <table class="standard-table" id="table-batch-seq-element">
+            <thead>
+              <tr>
+                <th class="w-12 text-center">Step</th>
+                <th class="w-20">Time</th>
+                <th>Batch Job Code</th>
+                <th>Job Name</th>
+                <th>Frequency</th>
+                <th>Target LOB</th>
+                <th>Prerequisite Dependency</th>
+                <th>Core Function & Affected Tables</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-batch-seq">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- VIEW 3: INTERACTIVE DIAGRAMS & ERD                             -->
+    <!-- ============================================================== -->
+    <section id="view-diagrams" class="tab-view hidden fade-in">
+      <div class="mb-6">
+        <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+          <span>🔀</span> Interactive Pipeline, Database Tables & Master Transactions
+        </h1>
+        <p class="text-xs text-slate-500 mt-1">
+          Explore interactive batch execution, database ERD relations (100% verified syntax), and the comprehensive transaction catalog.
+        </p>
+
+        <!-- Diagrams Subtabs -->
+        <div class="flex items-center gap-2 mt-4 border-b border-slate-200 pb-2 overflow-x-auto text-xs">
+          <button data-diagtab="diag-pipeline" class="diag-subtab-btn px-3 py-1.5 font-bold rounded-lg bg-blue-600 text-white shadow-sm transition-all">
+            ⏱️ Nightly Batch Pipeline Runner
+          </button>
+          <button data-diagtab="diag-tables" class="diag-subtab-btn px-3 py-1.5 font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all">
+            🗄️ Database Tables & ERD Explorer
+          </button>
+          <button data-diagtab="diag-tx" class="diag-subtab-btn px-3 py-1.5 font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all">
+            ⚡ Master Transaction Catalog (81 Tx)
+          </button>
+        </div>
+      </div>
+
+      <!-- Diag Subtab 1: Interactive Nightly Batch Pipeline Runner -->
+      <div id="diag-content-diag-pipeline" class="diagram-subview">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm mb-6">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-4 mb-4">
+            <div>
+              <h3 class="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                <span>⏱️</span> Nightly EOD/EOM Batch Pipeline (22:30 to 05:30)
+              </h3>
+              <p class="text-xs text-slate-500">16 Chronological Batch Jobs with strict DAG dependencies, auto-gating, and database lock controls.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="btn-pipeline-step" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-sm transition-colors flex items-center gap-1.5">
+                <span>▶️</span> Run Next Step
+              </button>
+              <button id="btn-pipeline-fast" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-sm transition-colors flex items-center gap-1.5">
+                <span>⚡</span> Run Full Night Batch
+              </button>
+              <button id="btn-pipeline-reset" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-lg transition-colors">
+                Reset
+              </button>
+            </div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="mb-4">
+            <div class="flex justify-between text-xs text-slate-500 mb-1">
+              <span>Execution Progress</span>
+              <span id="pipeline-progress-text" class="font-mono font-bold text-blue-600">0 / 16 Jobs Completed (0%)</span>
+            </div>
+            <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+              <div id="pipeline-progress-bar" class="bg-blue-600 h-full w-0 transition-all duration-300"></div>
+            </div>
+          </div>
+
+          <!-- Interactive 16-Step Horizontal Timeline Track -->
+          <div class="overflow-x-auto pb-2">
+            <div id="pipeline-steps-track" class="flex gap-2 min-w-[1200px]">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Job Details & Live Terminal Output Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Active Job Inspector -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-3">
+              <div class="flex items-center gap-2">
+                <span id="pipe-job-step-badge" class="font-mono text-xs font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded">STEP 01</span>
+                <span id="pipe-job-time" class="font-mono text-xs text-slate-500">22:30</span>
+              </div>
+              <span id="pipe-job-status-badge" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600">Ready</span>
+            </div>
+            <h4 id="pipe-job-title" class="font-extrabold text-base text-slate-900">JOB_CLEAR_PENDING_PROPOSAL</h4>
+            <p id="pipe-job-desc" class="text-xs text-slate-600 mt-1">Auto-withdraws unfulfilled proposals past 30 days.</p>
+
+            <div class="mt-4 space-y-3 text-xs">
+              <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                <span class="font-bold text-slate-700">Prerequisite Dependency:</span>
+                <span id="pipe-job-prereq" class="text-slate-600 ml-1">System Maintenance Lock Acquired</span>
+              </div>
+              <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                <span class="font-bold text-slate-700">Target Line of Business:</span>
+                <span id="pipe-job-lob" class="text-slate-600 ml-1">All Lines of Business</span>
+              </div>
+              <div>
+                <span class="font-bold text-slate-700 block mb-1">Database Tables Modified:</span>
+                <div id="pipe-job-tables" class="flex flex-wrap gap-1.5">
+                  <!-- Badges populated dynamically -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Terminal Output Console -->
+          <div class="terminal-window p-4 flex flex-col h-80">
+            <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 text-xs">
+              <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+                <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                <span class="text-slate-400 font-mono ml-2">ebao_batch_daemon.log</span>
+              </div>
+              <button id="btn-clear-terminal" class="text-slate-500 hover:text-slate-300 text-[10px]">Clear</button>
+            </div>
+            <div id="terminal-log-output" class="flex-1 overflow-y-auto space-y-1 text-xs font-mono text-emerald-400">
+              <div>[2026-10-20 22:00:00] [SYSTEM] eBao Gemini Batch Console initialized. Ready for nightly EOD run.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Diag Subtab 2: Database Tables & ERD Explorer (100% VALID SYNTAX) -->
+      <div id="diag-content-diag-tables" class="diagram-subview hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <!-- Tables Inventory List (Left col) -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-[650px]">
+            <div class="border-b border-slate-200 pb-3 mb-3">
+              <h3 class="font-extrabold text-sm text-slate-900 uppercase tracking-wider flex items-center justify-between">
+                <span>🗄️ Database Tables (49)</span>
+                <span id="table-filter-count" class="text-xs font-mono font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">49 tables</span>
+              </h3>
+              <input type="text" id="search-tables-input" placeholder="Search table name, PK, FK..." class="mt-2.5 w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <!-- Domain filter pills -->
+            <div class="flex flex-wrap gap-1 pb-2 border-b border-slate-100 text-[11px] mb-2" id="table-domain-pills">
+              <button data-domain="All" class="domain-pill px-2 py-0.5 rounded bg-blue-600 text-white font-semibold">All</button>
+              <button data-domain="Master Setup" class="domain-pill px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600">Master</button>
+              <button data-domain="Product Engine" class="domain-pill px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600">Product</button>
+              <button data-domain="Party Master" class="domain-pill px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600">Party</button>
+              <button data-domain="Policy Core" class="domain-pill px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600">Policy</button>
+              <button data-domain="Underwriting" class="domain-pill px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600">UW</button>
+              <button data-domain="Customer Service" class="domain-pill px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600">CS</button>
+              <button data-domain="Policy Loans" class="domain-pill px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600">Loans</button>
+              <button data-domain="Billing" class="domain-pill px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600">Billing</button>
+              <button data-domain="Claims" class="domain-pill px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600">Claims</button>
+              <button data-domain="Payment" class="domain-pill px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600">Payment</button>
+            </div>
+
+            <!-- Tables list -->
+            <div id="table-items-list" class="flex-1 overflow-y-auto space-y-1.5 pr-1">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <!-- Table Inspector (Right 2 cols) -->
+          <div class="lg:col-span-2 space-y-6">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+              <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span id="inspect-table-name" class="font-mono font-extrabold text-lg text-slate-900">T_POLICY</span>
+                    <span id="inspect-table-category" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Policy Core</span>
+                    <span id="inspect-table-module" class="text-xs font-mono text-slate-500">MOD_02</span>
+                  </div>
+                  <p id="inspect-table-desc" class="text-xs text-slate-500 mt-1">Official inforce insurance contract in System of Record (SOR)</p>
+                </div>
+              </div>
+
+              <!-- Key Fields Grid -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <span class="font-bold text-slate-700 block mb-1">Primary Key (PK):</span>
+                  <span id="inspect-table-pk" class="font-mono text-blue-700 font-semibold bg-white px-2 py-1 rounded border border-slate-200 inline-block">POLICY_ID</span>
+                </div>
+                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <span class="font-bold text-slate-700 block mb-1">Key Foreign Keys (FK):</span>
+                  <span id="inspect-table-fk" class="font-mono text-slate-700 bg-white px-2 py-1 rounded border border-slate-200 inline-block">PROPOSAL_ID, HOLDER_ID -> T_PARTY</span>
+                </div>
+              </div>
+
+              <!-- Relationship Mapping -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 text-xs">
+                <!-- Upstream Parents -->
+                <div class="p-3 rounded-xl border border-emerald-200 bg-emerald-50/40">
+                  <span class="font-bold text-emerald-900 block mb-1.5 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Upstream Parent Tables:
+                  </span>
+                  <div id="inspect-upstream-parents" class="space-y-1 text-slate-700">
+                    <!-- Populated dynamically -->
+                  </div>
+                </div>
+
+                <!-- Downstream Dependents -->
+                <div class="p-3 rounded-xl border border-indigo-200 bg-indigo-50/40">
+                  <span class="font-bold text-indigo-900 block mb-1.5 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-indigo-500"></span> Downstream Child Tables:
+                  </span>
+                  <div id="inspect-downstream-children" class="space-y-1 text-slate-700">
+                    <!-- Populated dynamically -->
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 100% VALID MERMAID ERD FLOWCHART (ZERO PARSE ERRORS) -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+              <h4 class="font-extrabold text-sm text-slate-800 uppercase tracking-wider mb-2 flex items-center gap-2">
+                <span>🔗</span> Verified Cross-Module Entity-Relationship Flow
+              </h4>
+              <div class="mermaid bg-slate-50 p-4 rounded-xl border border-slate-200 overflow-x-auto text-xs">
+flowchart TD
+    classDef main fill:#1e293b,stroke:#3b82f6,stroke-width:2px,color:#fff
+    classDef party fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#fff
+    classDef fin fill:#701a75,stroke:#d946ef,stroke-width:2px,color:#fff
+
+    T_PARTY["T_PARTY (Master Customer)"]:::party --> T_POLICY["T_POLICY (SOR Contract)"]:::main
+    T_POLICY --> T_POLICY_BENEFIT["T_POLICY_BENEFIT"]:::main
+    T_POLICY --> T_POLICY_LOAN["T_POLICY_LOAN (6.5% Interest)"]:::main
+    T_POLICY --> T_BILL_RECEIVABLE["T_BILL_RECEIVABLE"]:::main
+    T_POLICY --> T_CLAIM_CASE["T_CLAIM_CASE"]:::main
+
+    T_CLAIM_BENEFIT_CALC["T_CLAIM_BENEFIT_CALC"]:::main -->|1. Debt Netting| T_POLICY_LOAN
+    T_CLAIM_BENEFIT_CALC -->|2. Settlement Approval| T_CLAIM_SETTLEMENT["T_CLAIM_SETTLEMENT"]:::main
+    T_CLAIM_SETTLEMENT -->|3. Disburse Claim Voucher| T_PAYMENT_VOUCHER["T_PAYMENT_VOUCHER"]:::fin
+    T_POLICY_LOAN -->|Disburse Loan Voucher| T_PAYMENT_VOUCHER
+    T_PAYMENT_VOUCHER -->|Post Balanced Entry| T_SUB_LEDGER_ENTRY["T_SUB_LEDGER_ENTRY (GL)"]:::fin
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Diag Subtab 3: Master Transaction Catalog -->
+      <div id="diag-content-diag-tx" class="diagram-subview hidden">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div class="flex flex-wrap items-center gap-1.5 text-xs">
+            <span class="font-bold text-slate-700 mr-1">Filter Module:</span>
+            <button data-tx-mod="All" class="tx-mod-pill px-2.5 py-1 rounded-lg bg-blue-600 text-white font-bold">All (81)</button>
+            <button data-tx-mod="MOD_02" class="tx-mod-pill px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700">NB (10)</button>
+            <button data-tx-mod="MOD_03" class="tx-mod-pill px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700">UW (10)</button>
+            <button data-tx-mod="MOD_04" class="tx-mod-pill px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700">CS (20)</button>
+            <button data-tx-mod="MOD_05" class="tx-mod-pill px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700">Billing (8)</button>
+            <button data-tx-mod="MOD_06" class="tx-mod-pill px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700">Claims (10)</button>
+            <button data-tx-mod="MOD_07" class="tx-mod-pill px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700">Payment (7)</button>
+            <button data-tx-mod="MOD_08" class="tx-mod-pill px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700">Batch (16)</button>
+          </div>
+          <input type="text" id="search-transactions-input" placeholder="Search tx code, name, entities, impact..." class="px-3 py-1.5 text-xs border border-slate-300 rounded-lg w-72 focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div class="table-container">
+          <table class="standard-table" id="table-transactions-element">
+            <thead>
+              <tr>
+                <th class="w-28">Tx Code</th>
+                <th>Transaction Name</th>
+                <th>Module</th>
+                <th>Category</th>
+                <th>Trigger / Initiator</th>
+                <th>Entities Updated</th>
+                <th>Accounting & Sub-Ledger Impact</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-transactions">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- VIEW 4: EBAO LITE SIMULATOR (8 WORKBENCHES)                     -->
+    <!-- ============================================================== -->
+    <section id="view-simulator" class="tab-view hidden fade-in">
+      <!-- Active Policy Banner -->
+      <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-5 rounded-2xl shadow-lg border border-slate-800 mb-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-mono font-bold bg-blue-500/30 text-blue-300 px-2.5 py-0.5 rounded border border-blue-400/30">INFORCE SOR CONTRACT</span>
+              <span id="sim-policy-no" class="font-mono font-black text-lg text-white">POL-2026-88001</span>
+              <span id="sim-status-badge" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">INFORCE</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-300 mt-2">
+              <span>Life Assured: <b id="sim-insured-name" class="text-white">Nguyen Van An</b></span>
+              <span>DOB: <b id="sim-insured-dob" class="text-white">1990-05-15 (Age 36)</b></span>
+              <span>Plan: <b id="sim-plan-name" class="text-white">Endowment 20-Year (Par)</b></span>
+              <span>Paid-To-Date: <b id="sim-ptd-date" class="text-white font-mono">2027-10-20</b></span>
+            </div>
+          </div>
+          <div class="flex items-center gap-4 bg-slate-800/80 p-3 rounded-xl border border-slate-700/80">
+            <div class="text-right">
+              <div class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Sum Assured</div>
+              <div id="sim-sum-assured" class="text-lg font-black text-blue-400 font-mono">$100,000</div>
+            </div>
+            <div class="h-8 w-px bg-slate-700"></div>
+            <div class="text-right">
+              <div class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Cash Value (GSV)</div>
+              <div id="sim-cash-value" class="text-lg font-black text-emerald-400 font-mono">$24,800</div>
+            </div>
+            <div class="h-8 w-px bg-slate-700"></div>
+            <div class="text-right">
+              <div class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Active Loan Debt</div>
+              <div id="sim-loan-debt" class="text-lg font-black text-rose-400 font-mono">$0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Workbench Tabs (MOD_01 to MOD_08) -->
+      <div class="flex items-center gap-1.5 overflow-x-auto pb-3 mb-6 text-xs">
+        <button data-wb="MOD_01" class="wb-tab-btn px-3 py-2 rounded-xl font-bold border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition-all">
+          ⚙️ MOD_01 Config
+        </button>
+        <button data-wb="MOD_02" class="wb-tab-btn px-3 py-2 rounded-xl font-bold border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition-all">
+          📝 MOD_02 NB & Free-Look
+        </button>
+        <button data-wb="MOD_03" class="wb-tab-btn px-3 py-2 rounded-xl font-bold border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition-all">
+          🩺 MOD_03 UW Rating
+        </button>
+        <button data-wb="MOD_04" class="wb-tab-btn px-3 py-2 rounded-xl font-bold border-2 border-blue-600 bg-blue-600 text-white shadow-sm transition-all">
+          🔄 MOD_04 CS & Loans
+        </button>
+        <button data-wb="MOD_05" class="wb-tab-btn px-3 py-2 rounded-xl font-bold border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition-all">
+          💳 MOD_05 Billing & Grace
+        </button>
+        <button data-wb="MOD_06" class="wb-tab-btn px-3 py-2 rounded-xl font-bold border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition-all">
+          🏥 MOD_06 Claims & Netting
+        </button>
+        <button data-wb="MOD_07" class="wb-tab-btn px-3 py-2 rounded-xl font-bold border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition-all">
+          💰 MOD_07 Payment & GL
+        </button>
+        <button data-wb="MOD_08" class="wb-tab-btn px-3 py-2 rounded-xl font-bold border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition-all">
+          ⏱️ MOD_08 Batch Runner
+        </button>
+      </div>
+
+      <!-- Active Workbench Container -->
+      <div id="workbench-container" class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6">
+        <!-- Workbench contents rendered dynamically -->
+      </div>
+
+      <!-- Financial Chart & Policy Ledger Breakdown -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Chart (Left col) -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+          <h4 class="font-extrabold text-sm text-slate-900 uppercase tracking-wider mb-2">Actuarial Balance & Debt Netting</h4>
+          <div class="flex-1 min-h-[220px]">
+            <canvas id="actuarial-chart"></canvas>
+          </div>
+        </div>
+
+        <!-- Ledger Table (Right 2 cols) -->
+        <div class="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="font-extrabold text-sm text-slate-900 uppercase tracking-wider">Policy Life Cycle Financial Ledger</h4>
+            <span class="text-xs text-slate-500 font-mono">T_SUB_LEDGER_ENTRY</span>
+          </div>
+          <div class="table-container max-h-64">
+            <table class="standard-table" id="ledger-table">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Module</th>
+                  <th>Transaction</th>
+                  <th>Debit / Credit</th>
+                  <th>Amount</th>
+                  <th>Balance</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-ledger">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- VIEW 5: 394 FUNCTIONS MATRIX                                    -->
+    <!-- ============================================================== -->
+    <section id="view-functions" class="tab-view hidden fade-in">
+      <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <span>📑</span> 394 eBao Functions Matrix (Excel v26.04)
+          </h1>
+          <p class="text-xs text-slate-500 mt-1">
+            Complete inventory of all 394 core functions mapped to the 8 standard modules with LOB applicability flags.
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btn-export-matrix-csv" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-sm transition-colors flex items-center gap-1.5">
+            <span>📥</span> Export CSV
+          </button>
+        </div>
+      </div>
+
+      <!-- Filters & Search Bar -->
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+          <select id="matrix-app-filter" class="px-3 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-700 font-semibold">
+            <option value="All">All Apps (8)</option>
+            <option value="NB APP">NB APP (New Business)</option>
+            <option value="UW APP">UW APP (Underwriting)</option>
+            <option value="CS APP">CS APP (Customer Service)</option>
+            <option value="FIN APP - Billing">FIN APP - Billing</option>
+            <option value="FIN APP - Payment">FIN APP - Payment</option>
+            <option value="CLM APP">CLM APP (Claims)</option>
+            <option value="BATCH">BATCH (Batch Console)</option>
+            <option value="COMMON">COMMON (Security & Admin)</option>
+          </select>
+          <select id="matrix-lob-filter" class="px-3 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-700 font-semibold">
+            <option value="All">All LOBs</option>
+            <option value="Trad">Traditional Life</option>
+            <option value="ILP">Unit-Linked (ILP)</option>
+            <option value="Par">Participating</option>
+            <option value="Group">Group Life</option>
+          </select>
+        </div>
+        <input type="text" id="search-matrix-input" placeholder="Search function name, level 1-4..." class="px-3 py-1.5 text-xs border border-slate-300 rounded-lg w-72 focus:ring-2 focus:ring-blue-500">
+      </div>
+
+      <!-- Functions Table -->
+      <div class="table-container">
+        <table class="standard-table" id="table-functions-element">
+          <thead>
+            <tr>
+              <th class="w-16">No.</th>
+              <th>App</th>
+              <th>Level 1</th>
+              <th>Level 2</th>
+              <th>Level 3</th>
+              <th>Level 4 Function Name</th>
+              <th>Description & Actuary/OP Comments</th>
+              <th>LOB Flags</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-matrix">
+            <!-- Populated dynamically with pagination -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="mt-4 flex items-center justify-between text-xs text-slate-500">
+        <span id="matrix-pagination-info">Showing 1 to 25 of 394 functions</span>
+        <div class="flex items-center gap-1.5">
+          <button id="btn-matrix-prev" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 font-semibold disabled:opacity-50">Previous</button>
+          <span id="matrix-page-num" class="font-mono font-bold text-slate-800 px-2">Page 1</span>
+          <button id="btn-matrix-next" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 font-semibold disabled:opacity-50">Next</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- VIEW 6: INSUREFORGE PRODUCT CONFIG STUDIO                      -->
+    <!-- ============================================================== -->
+    <section id="view-config" class="tab-view hidden fade-in">
+      <div class="mb-6">
+        <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+          <span>⚙️</span> InsureForge Product Factory & eBao Core Configuration Studio
+        </h1>
+        <p class="text-xs text-slate-500 mt-1">
+          Configure a new insurance product in 10 standardized steps and export native JSON & XML schema for direct import into eBao Core.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Configurator Form (Left) -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <h3 class="font-extrabold text-base text-slate-900 border-b border-slate-200 pb-3">1. Product Definition & Actuarial Parameters</h3>
+          
+          <div class="grid grid-cols-2 gap-3 text-xs">
+            <div>
+              <label class="font-bold text-slate-700 block mb-1">Product Code</label>
+              <input type="text" id="cfg-prod-code" value="ENDOW_20" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg font-mono">
+            </div>
+            <div>
+              <label class="font-bold text-slate-700 block mb-1">Product Name</label>
+              <input type="text" id="cfg-prod-name" value="Guaranteed Wealth 20-Yr" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg">
+            </div>
+            <div>
+              <label class="font-bold text-slate-700 block mb-1">Line of Business (LOB)</label>
+              <select id="cfg-prod-lob" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg bg-white">
+                <option value="Traditional Endowment">Traditional Endowment</option>
+                <option value="Whole Life">Whole Life</option>
+                <option value="Term Life">Term Life</option>
+                <option value="Investment-Linked (ILP)">Investment-Linked (ILP)</option>
+              </select>
+            </div>
+            <div>
+              <label class="font-bold text-slate-700 block mb-1">Currency</label>
+              <input type="text" id="cfg-prod-currency" value="VND" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg font-mono">
+            </div>
+          </div>
+
+          <h4 class="font-bold text-xs text-slate-900 pt-2 border-t border-slate-100">2. Term, SA & Modal Rules</h4>
+          <div class="grid grid-cols-3 gap-3 text-xs">
+            <div>
+              <label class="font-semibold text-slate-600 block mb-1">Policy Term (Yrs)</label>
+              <input type="number" id="cfg-policy-term" value="20" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg font-mono">
+            </div>
+            <div>
+              <label class="font-semibold text-slate-600 block mb-1">Pay Term (Yrs)</label>
+              <input type="number" id="cfg-pay-term" value="15" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg font-mono">
+            </div>
+            <div>
+              <label class="font-semibold text-slate-600 block mb-1">Max Loan LTV (%)</label>
+              <input type="number" id="cfg-loan-ltv" value="85" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg font-mono">
+            </div>
+          </div>
+
+          <div class="pt-2">
+            <button id="btn-generate-config" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-sm transition-colors flex items-center justify-center gap-2">
+              <span>⚡ Generate eBao Core Schema & XML</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Schema Preview & Download (Right) -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+          <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-3">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-xs text-slate-900 uppercase tracking-wider">Exportable Runtime Schema</span>
+              <span class="font-mono text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold">Valid eBao V26 Schema</span>
+            </div>
+            <button id="btn-copy-schema" class="text-xs font-semibold text-blue-600 hover:text-blue-800">Copy JSON</button>
+          </div>
+          <div class="flex-1 bg-slate-900 rounded-xl p-4 overflow-y-auto font-mono text-xs text-emerald-400 h-96">
+            <pre id="config-schema-preview">Click 'Generate eBao Core Schema' to inspect compiled JSON runtime structure.</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============================================================== -->
+  <!-- BUILT-IN SLIDE-OUT PDF REFERENCE VIEWER DRAWER (517 PAGES)      -->
+  <!-- ============================================================== -->
+  <!-- Dark Backdrop Overlay (Click to close) -->
+  <div id="pdf-viewer-backdrop" style="display: none;" class="hidden fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs transition-opacity" onclick="closePdfViewer()"></div>
+
+  <!-- PDF Slide Drawer (Hidden by default) -->
+  <div id="pdf-viewer-drawer" style="display: none;" class="hidden fixed inset-y-0 right-0 z-50 w-full lg:w-7/12 bg-slate-900 shadow-2xl border-l border-slate-700 flex flex-col">
+    <!-- Top Viewer Controls -->
+    <div class="p-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between text-xs">
+      <div class="flex items-center gap-2">
+        <span class="text-lg">📖</span>
+        <span class="font-bold text-white">eBao Gemini User Guide</span>
+        <span class="text-slate-400 font-mono text-[11px]">(517 Pages)</span>
+      </div>
+
+      <!-- Page Jumper Controls -->
+      <div class="flex items-center gap-2">
+        <span class="text-slate-400">Page:</span>
+        <input type="number" id="pdf-jump-input" min="1" max="517" value="1" class="w-16 px-2 py-1 bg-slate-800 border border-slate-700 rounded text-center text-white font-mono text-xs focus:ring-1 focus:ring-blue-500">
+        <span class="text-slate-500 font-mono">/ 517</span>
+        <button id="btn-pdf-jump" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded text-xs transition-colors">
+          Go
+        </button>
+        <a id="pdf-external-link" href="Gemini_User_Guide.pdf" target="_blank" title="Open in new window" class="ml-1 text-slate-300 hover:text-white px-2 py-1 rounded bg-slate-800 border border-slate-700 text-xs">
+          ↗ Tab
+        </a>
+        <!-- Prominent Close Button -->
+        <button id="btn-close-pdf-viewer" onclick="closePdfViewer()" class="ml-2 px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center gap-1 shadow-sm transition-colors">
+          <span>✕ Close</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Quick Chapter Jump Pills -->
+    <div class="px-3 py-1.5 bg-slate-900 border-b border-slate-800 flex items-center gap-1.5 overflow-x-auto text-[10px] font-mono">
+      <span class="text-slate-500 mr-1">Jump:</span>
+      <button onclick="openPdfViewer(1)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300">P.1 Architecture</button>
+      <button onclick="openPdfViewer(33)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300">P.33 NB</button>
+      <button onclick="openPdfViewer(88)" class="px-2 py-0.5 rounded bg-blue-900/60 text-blue-300 border border-blue-700/50">P.88 Free-Look</button>
+      <button onclick="openPdfViewer(143)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300">P.143 UW</button>
+      <button onclick="openPdfViewer(196)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300">P.196 CS</button>
+      <button onclick="openPdfViewer(232)" class="px-2 py-0.5 rounded bg-emerald-900/60 text-emerald-300 border border-emerald-700/50">P.232 Loans</button>
+      <button onclick="openPdfViewer(304)" class="px-2 py-0.5 rounded bg-purple-900/60 text-purple-300 border border-purple-700/50">P.304 Claims</button>
+      <button onclick="openPdfViewer(342)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300">P.342 Billing</button>
+      <button onclick="openPdfViewer(376)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300">P.376 Payment</button>
+      <button onclick="openPdfViewer(426)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300">P.426 Batch</button>
+    </div>
+
+    <!-- Embedded PDF Iframe (Initially empty src to avoid auto-loading 17.8MB on init) -->
+    <div class="flex-1 bg-slate-950 relative">
+      <iframe id="pdf-viewer-frame" src="" class="w-full h-full border-0"></iframe>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="bg-white border-t border-slate-200 text-slate-500 text-xs py-4">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span class="font-bold text-slate-800">eBao Gemini Life Core PAS & InsureForge Rebuild</span>
+        <span>•</span>
+        <span>517 Pages Verified PDF Reference System</span>
+      </div>
+      <div>Zero-CORS Offline Execution Enabled (Offline Double-Click Ready)</div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
