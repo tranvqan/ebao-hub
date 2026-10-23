@@ -3552,40 +3552,50 @@ window.EBAO_MODULES = [
   {
     "id": "MOD_03",
     "num": "03",
-    "title": "Mod 03: Underwriting (UW APP)",
-    "subtitle": "Risk Assessment, EM Loadings, Exclusions, Decision Engine & Escalation",
+    "title": "Mod 03: Underwriting (UW APP & Risk Decisioning)",
+    "subtitle": "STP Auto-Underwriting, 360° Risk Worksheet, Clinical Rating, Counter-Offers (LCA) & Delegation of Authority",
     "icon": "shield-check",
     "badge": "Risk Evaluation",
-    "page_range": "Pages 143 - 195",
-    "summary": "The Underwriting application provides a centralized risk evaluation workbench handling tasks from New Business, Policy Alterations (CS), and Reinstatements. It evaluates medical, occupational, and financial risk profiles, calculates Extra Mortality (EM) loadings, issues exclusions, tracks query letters, and executes definitive underwriting decisions.",
+    "page_range": "Pages 7-8, 137-192",
+    "summary": "Module 03 Underwriting operates as the core clinical, financial, and occupational risk assessment engine across eBao Gemini Life Core PAS. It provides automated Straight-Through Processing (STP) rule evaluation, a centralized 3-tab Underwriting Main Workbench (Application Info, UW Worksheet with risk aggregation, and Benefit-Level Decisions), clinical medical examination billing and tracking, numerical rating with Extra Mortality percentage and flat loadings, Counter-Offer (LCA) generation with 30-day customer acceptance tracking, and multi-tier Delegation of Authority (DOA) auto-escalation controls.",
     "mermaid_workflow": "graph TD\n    Queue[\"UW Worklist (Task Pool)\"] --> Lock[\"Claim / Lock Task by Underwriter\"]\n    Lock --> Eval[\"Evaluate Medical & Financial Risk\"]\n    Eval --> DecisionChoice{\"Risk Acceptable?\"}\n    DecisionChoice -- Standard Risk --> Standard[\"Standard Accept (0% Loading)\"]\n    DecisionChoice -- Elevated Risk --> Rated[\"Substandard Rating: EM Loading / Extra Premium\"]\n    DecisionChoice -- Specific Hazard --> Exclude[\"Issue Specific Exclusions\"]\n    DecisionChoice -- Uninsurable --> Decline[\"Decline / Postpone\"]\n    Rated --> ClientConsent[\"Issue Counter-Offer Letter\"]\n    Exclude --> ClientConsent\n    ClientConsent -- Accepted --> EnforceUW[\"Submit UW Disposal & Recalculate Premium\"]\n    Standard --> EnforceUW",
     "core_concepts": [
-      {
-        "term": "Centralized UW Workbench",
-        "definition": "A unified interface processing risk tasks across all lines of business and operational channels with full access to historical claims, policies, and prior underwriting decisions."
-      },
-      {
-        "term": "Extra Mortality (EM) / Numerical Rating",
-        "definition": "A quantitative rating system where standard risk is 100%. Elevated risks are represented as +50%, +100%, +150% EM, translating directly into extra premium percentages."
-      },
-      {
-        "term": "Exclusion Clauses",
-        "definition": "Specific endorsements excluding liability for pre-existing medical conditions (e.g. spinal disorders, bilateral cataract) or hazardous hobbies (e.g. scuba diving, aviation)."
-      },
-      {
-        "term": "UW Authority Matrix & Escalation",
-        "definition": "Multi-tiered approval limits where Junior Underwriters can approve up to defined Sum Assured / EM limits, and higher risk cases automatically escalate to Senior or Chief Underwriters."
-      }
+      [
+        {
+          "term": "Benefit-Level Decision Independence",
+          "def": "The underwriting architecture allows evaluating the principal life benefit and each attached rider separately. A base plan can be accepted at standard rates while supplementary riders (CI, Accident, Disability) are loaded, excluded, or declined."
+        },
+        {
+          "term": "Numerical Rating System (Credits & Debits)",
+          "def": "A scientific actuarial risk classification model starting at 100% base mortality, adding debits for impairments (build, cardiovascular, family history, occupation) and subtracting credits for favorable factors, yielding final Extra Mortality percentage."
+        },
+        {
+          "term": "Letter of Conditional Acceptance (LCA / Counter-Offer)",
+          "def": "A formal legal document issued when a policy is accepted with non-standard terms (loading, exclusion, reduced SA). Freezes contract at PENDING_ACCEPTANCE for up to 30 calendar days awaiting customer signature and payment."
+        },
+        {
+          "term": "360° Risk Aggregation (Customer Portfolio View)",
+          "def": "Real-time summation of total inforce, pending, and lapsed Sum Assured held by the Life Assured across all corporate policies to enforce financial underwriting limits and determine clinical exam tiers."
+        },
+        {
+          "term": "Medical Billing & Clinic Fee Reconciliation",
+          "def": "Automated creation of accounts payable invoices (T_MED_BILLING) to compensate contracted hospital/clinic diagnostic networks, with built-in reversal and Free-Look refund clawback controls."
+        }
+      ]
     ],
     "actuary_notes": [
-      "Loading Calculation Types:\n  1. Percentage Loading (EM): Extra Premium = Standard Net Premium * (EM% / 100).\n  2. Per Mille Extra (Flat Rate): Extra Premium = Sum Assured * (Rate / 1000), commonly used for hazardous occupations or temporary post-surgery recovery.\n  3. Age Rating: Treating a 35-year-old insured as age 40 for mortality calculations.",
-      "Reinsurance Cession Triggers: Automatic treaty verification when total sum assured (including existing active policies in force) exceeds company retention limits (e.g. $250,000), routing to Facultative Reinsurance.",
-      "Cash Value Impact: In traditional eBao core implementations, extra premium loadings from EM do not contribute to standard Cash Surrender Values unless specifically configured under participating bonus rules."
+      [
+        "Extra Mortality Formula: Gross Annual Premium = Base Annual Premium * (1 + EM%) + Flat Loading per mille * (Sum Assured / 1,000). Extra mortality ratings accumulate higher surrender cash values and statutory reserves.",
+        "Numerical Rating Calibration: Debits (+25 to +300) represent additional expected mortality compared to standard population tables. Policies rated > +200% EM typically require facultative reinsurance placement.",
+        "Non-Medical Limits Balancing: Non-medical thresholds are calibrated to balance acquisition turnaround speed (STP rate > 75%) against mortality anti-selection risk."
+      ]
     ],
     "op_notes": [
-      "Underwriting Query Letters: Automated generation of medical examination requests (MER), Attending Physician Statements (APS), and financial questionnaires with SLA tracking.",
-      "Task Expiry & Reminder: Pending underwriting tasks have automated reminders at Day 7, Day 14, and automatic cancellation/withdrawal at Day 30 if requirements remain unfulfilled.",
-      "Underwriting Confirmation in CS: When an existing policyholder requests an increase in Sum Assured or addition of a critical illness rider, the CS user submits the case to UW, which returns an approval before the alteration can take effect."
+      [
+        "Centralized Multi-Module Intake: The Underwriting Workbench triages cases from New Business (NB), Customer Service alterations (CS Sum Assured increase, Transfer of Coverage), and Claims contestability referrals.",
+        "Sensitive Underwriting Comments: Comments can be flagged 'Sensitive/Confidential' (hidden from sales agents) or 'Share with Claims' (automatically exposed to Claims Assessors for contestable investigations).",
+        "30-Day LCA Expiration Management: Counter-offers not accepted within 30 calendar days automatically expire with proposal cancellation and initial premium refund."
+      ]
     ],
     "sections": [
       {
@@ -4061,378 +4071,459 @@ window.EBAO_MODULES = [
     "sops": [
       {
         "code": "SOP-UW-01",
-        "title": "Retrieving & Locking Tasks from Underwriting Worklist (Task Pool)",
-        "ui_path": "Main Menu > Underwriting > Work List > Task Pool",
+        "title": "Underwriting Task Retrieval, Worklist Triage & Multi-Module Filtering",
+        "role": "Underwriter (Junior / Senior / Chief)",
+        "objective": "Retrieve, prioritize, and allocate pending underwriting cases across New Business, Customer Service (Alterations), and Claims referral pipelines based on task SLA, authority tier, and risk complexity.",
+        "ui_path": "Underwriting > Work List",
+        "pdf_page": 143,
         "prerequisites": [
-          "User account authorized with Underwriting role profile (Junior, Senior, Chief)",
-          "Proposals or CS alterations referred by Underwriting Rules Engine"
+          "User must hold active underwriting credentials ('ROLE_UW_JUNIOR', 'ROLE_UW_SENIOR', or 'ROLE_UW_CHIEF') in URP.",
+          "Proposal or transaction transferred to Underwriting queue with status 'Waiting for Underwriting' or 'Underwriting in Progress'.",
+          "User's assigned operating branch mapped to policy servicing entity."
         ],
         "steps": [
-          "1. Navigate to Main Menu > Underwriting > Work List.",
-          "2. Click the 'Task Pool' tab to view unassigned underwriting tasks.",
-          "3. In Search Filters, specify Criteria: LOB ('Life/Endowment'), Sum Assured Range, or Referral Reason.",
-          "4. Click Search. Step Result: System displays matching cases ordered by SLA priority.",
-          "5. Select the target case and click 'Claim Task' (or 'Assign to Me'). Step Result: Task status updates from 'Waiting for Underwriting' to 'Underwriting in Progress'. Case locks to your User ID to prevent duplicate concurrent review.",
-          "6. Click the Case Hyperlink to open the Underwriting Worksheet UI."
+          "1. From the left main navigation menu, select Underwriting > Work List. System displays the centralized Underwriting Search Page.",
+          "2. In the Search Criteria area, utilize Quick Search (enter exact Proposal No or Policy No) or click 'More Search' to expand multi-dimensional filters.",
+          "3. Select Underwriting Type: check one or multiple operational sources:\n   - 'New Business' (Pending proposals originating from NB APP)\n   - 'Customer Service' (Sum Assured increase, Rider additions, Transfer of coverage, Reinstatements)\n   - 'Claims' (Contestable claims, non-disclosure investigations, pre-existing condition checks).",
+          "4. Configure Advanced Filter Parameters: Select Registration Date Range (task creation timestamp), Priority Level (Urgent VIP, Standard, Escalated), and Task Status ('Waiting for Underwriting', 'Underwriting in Progress', 'Pending Requirements', 'Escalated').",
+          "5. Filter by Authority Boundary: System automatically enforces row-level security: underwriters only see tasks whose total risk exposure is within their assigned authority tier or cases specifically delegated to them.",
+          "6. Click 'Search'. System queries `T_UW_TASK` and displays matching records with Proposal No, Policyholder, Life Assured, Product Code, Total Sum Assured, Channel, SLA Aging Days, and Current Assignee.",
+          "7. To take ownership of an unassigned case, select the row checkbox and click 'Assign to Me'. System locks the task, updating Assignee to current User ID and status to 'Underwriting in Progress'.",
+          "8. Click the Proposal No hyperlink on the selected row. Step Result: System routes directly to the centralized 3-tab Underwriting Main Workbench."
         ],
         "fields_table": [
           {
-            "name": "Task Pool Category",
+            "name": "Underwriting Type",
+            "type": "Multi-Checkbox",
+            "required": "Yes",
+            "desc": "New Business, Customer Service, or Claims."
+          },
+          {
+            "name": "Proposal / Policy No",
+            "type": "Text (Fuzzy/Exact)",
+            "required": "No",
+            "desc": "Unique contract identifier."
+          },
+          {
+            "name": "Customer Name",
+            "type": "Text",
+            "required": "No",
+            "desc": "Policyholder or Life Assured legal name."
+          },
+          {
+            "name": "Task Status",
             "type": "Select",
             "required": "Yes",
-            "desc": "New Business, Customer Service, Reinstatement, Claims"
+            "desc": "Waiting for UW, UW in Progress, Pending Requirements, Escalated."
           },
           {
-            "name": "Assigned Underwriter",
-            "type": "User ID",
-            "required": "Yes",
-            "desc": "Owner of the active underwriting session"
-          },
-          {
-            "name": "Lock Status",
-            "type": "System Indicator",
-            "required": "Read-only",
-            "desc": "LOCKED by user; released on submit or timeout"
+            "name": "Channel / Agency",
+            "type": "Dropdown",
+            "required": "No",
+            "desc": "Distribution channel (Agency, Bancassurance, Direct)."
           }
         ],
-        "actuary_notes": "Underwriting queues monitor reinsurance treaties: cases exceeding company retention limit automatically trigger treaty notifications.",
-        "op_notes": "If an underwriter does not act on a locked task within 48 hours, supervisor auto-release batch unlocks task back to the pool.",
-        "pdf_page": 148,
         "validation_rules": [
           {
             "ruleId": "VAL-UW-001",
-            "module": "MOD_03",
-            "moduleName": "Underwriting (UW APP)",
-            "lifecyclePhase": "03. Underwriting Assessment",
-            "stage": "STP Auto-Underwriting",
-            "targetEntity": "T_AUTO_UW_LOG",
             "ruleName": "Straight-Through Processing (STP) Eligibility Gating",
-            "condition": "Age <= 45 AND Sum Assured <= Non-Medical Limit AND 100% Negative Health Declaration AND Agent Compliance = 'PASS'.",
+            "condition": "Age <= 45 AND Sum Assured <= Non-Medical Limit AND 100% Clean Health Declaration AND Agent Status = ACTIVE.",
             "severity": "ROUTING",
             "errorCode": "ROUTE_UW_MANUAL_QUEUE",
-            "errorMessage": "Proposal fails STP criteria; escalated to manual Underwriting Workbench.",
-            "systemAction": "Routes task to Senior Underwriter queue with rule discrepancy triggers.",
-            "actuarialBasis": "Filters out elevated mortality/morbidity risks for human clinical judgment.",
+            "systemAction": "Bypasses manual queue if 100% pass; routes to Underwriting Worklist if any rule is triggered.",
+            "actuarialBasis": "Filters standard low-risk mortality profiles for immediate auto-issuance while preserving underwriting capacity for complex risks.",
             "pdfPage": 7
           },
           {
-            "ruleId": "VAL-UW-005",
-            "module": "MOD_03",
-            "moduleName": "Underwriting (UW APP)",
-            "lifecyclePhase": "03. Underwriting Assessment",
-            "stage": "Benefit-Level Underwriting",
-            "targetEntity": "T_POLICY_BENEFIT",
-            "ruleName": "Benefit-Level Decision Independence",
-            "condition": "Underwriting decisions are evaluated at individual benefit level: main plan and each rider evaluated independently.",
-            "severity": "ROUTING",
-            "errorCode": "INFO_UW_BENEFIT_LEVEL_DECISION",
-            "errorMessage": "A rider may be declined or loaded while the base life coverage is accepted at standard rates.",
-            "systemAction": "Updates `T_POLICY_BENEFIT.UW_DECISION` individually for each attached coverage item.",
-            "actuarialBasis": "Enables maximum customer retention by approving viable base life risks even if specialized health riders are uninsurable.",
-            "pdfPage": 193
+            "ruleId": "VAL-UW-003",
+            "ruleName": "Underwriter Authority Limit Worklist Boundary",
+            "condition": "Underwriters cannot retrieve or approve cases exceeding their maximum delegated Sum Assured and EM loading threshold.",
+            "severity": "HARD_STOP",
+            "errorCode": "ERR_UW_EXCEEDS_AUTHORITY",
+            "systemAction": "Displays case in 'View Only' mode or routes to superior's approval pool.",
+            "actuarialBasis": "Prevents unauthorized corporate risk accumulation beyond underwriter competency tier.",
+            "pdfPage": 8
           }
-        ]
+        ],
+        "actuary_notes": "SLA targets are strictly monitored: Standard NB cases have a 24-hour turnaround target, while Medical Referral cases carry a 5-working-day SLA.",
+        "op_notes": "Cases can be bulk-reassigned by Underwriting Supervisors during peak campaign periods to rebalance team workloads."
       },
       {
         "code": "SOP-UW-02",
-        "title": "Comprehensive Risk Assessment & Total Sum at Risk (SAR) Evaluation",
-        "ui_path": "Underwriting > Underwriting Worksheet > Risk Summary Tab",
+        "title": "Comprehensive Risk Estimation via 360° UW Worksheet & Risk Aggregation",
+        "role": "Medical & Financial Underwriter",
+        "objective": "Perform exhaustive multi-dimensional risk assessment reviewing customer lifetime risk aggregation, LIA medical codes, historical claims, and document images.",
+        "ui_path": "Underwriting > Main > Tab 1: UW Worksheet",
+        "pdf_page": 146,
         "prerequisites": [
-          "Underwriting task opened in locked session"
+          "Proposal opened in Underwriting Main Workbench.",
+          "Client identity records matched in Master Person Index (`T_PARTY`)."
         ],
         "steps": [
-          "1. In the Underwriting Worksheet, examine the top header banner displaying Applicant Name, Age, Gender, Occupation, and Main Product.",
-          "2. Click the 'Risk Summary' tab. Step Result: System displays cumulative risk aggregation across the entire life company:\n   - Current Proposal Sum Assured\n   - Existing Inforce Life Policies for same Life Assured\n   - Total Cumulative Sum at Risk (SAR)\n   - Total Critical Illness Exposure across all contracts",
-          "3. Check Customer Watchlist & AML screening alerts in the Compliance banner.",
-          "4. Review Declaration Questionnaire answers: adverse medical or hazardous sports items are highlighted with red flags.",
-          "5. Click 'View Document Attachments' to inspect uploaded Medical Examination Reports (MER), ECG, or blood biochemistry tests.",
-          "6. Record clinical observations in Underwriter Clinical Notes field."
+          "1. In the Underwriting Main Workbench, locate the top Application Information panel. Review key summary metrics: Plan Code, Base Sum Assured, Modal Premium, Payment Mode, Agent Name, and Distribution Channel.",
+          "2. Access Document Management System (DMS): Click the 'Image' hyperlink to open the integrated DMS viewer. Review high-resolution scans of signed application forms, medical questionnaires, and customer identification (CCCD/Passport).",
+          "3. Select the 'UW Worksheet' tab. The system loads 5 integrated clinical and financial risk assessment sections:\n   - Section A: 'Policy Information' (Product structure, coverages, life assured relationship)\n   - Section B: 'Medical / Non-Medical Code Information' (Existing Life Insurance Association LIA impairment codes, adverse registry flags)\n   - Section C: 'Risk Summary & Aggregation' (Total inforce Sum Assured across all policies for this client)\n   - Section D: 'Life Survey & Field Inspection' (Occupational inspection reports, financial questionnaire)\n   - Section E: 'Underwriter Comments History' (Audit trail of all previous underwriter notes).",
+          "4. Review Risk Aggregation: System automatically aggregates total active life coverage across all inforce, pending, and lapsed policies held by the Life Assured in `T_POLICY_BENEFIT`.\n   - If Total Aggregated SA exceeds Non-Medical Limit for attained age, system automatically triggers medical exam requirements.",
+          "5. Review Claims & Customer Service History: Inspect Section C tables showing previous claim payouts (death, disability, hospital cash) and CS alterations on existing policies.",
+          "6. Input Underwriter Internal Remarks: Click the '+ COMMENT' button to log clinical observations. Select Sensitivity flag:\n   - 'Sensitive / Confidential' (Restricted to Underwriting and Legal teams; invisible to sales agents)\n   - 'Share with Claims' (Automatically syndicated to Claims Assessor workbench for future contestability reference).",
+          "7. Step Result: Risk worksheet status advances to 'EVALUATED'. System synthesizes all data points into the numerical rating worksheet."
         ],
         "fields_table": [
           {
-            "name": "Total Sum at Risk (SAR)",
-            "type": "Currency",
-            "required": "Read-only",
-            "desc": "Aggregated life coverage minus cash values across all policies"
-          },
-          {
-            "name": "Existing Policies Count",
-            "type": "Integer",
-            "required": "Read-only",
-            "desc": "Number of inforce policies held by life assured"
-          },
-          {
-            "name": "Clinical Notes",
-            "type": "Rich Text",
+            "name": "Total Aggregated SA",
+            "type": "Currency Display",
             "required": "Yes",
-            "desc": "Underwriter's clinical justification for risk disposal"
+            "desc": "Sum of all active life risks across corporate portfolio."
+          },
+          {
+            "name": "LIA Impairment Code",
+            "type": "Code Display",
+            "required": "No",
+            "desc": "Industry-shared medical adverse registry code."
+          },
+          {
+            "name": "Comment Sensitivity",
+            "type": "Select (Yes/No)",
+            "required": "Yes",
+            "desc": "Controls confidentiality of underwriter notes."
+          },
+          {
+            "name": "Share with Claims",
+            "type": "Checkbox",
+            "required": "No",
+            "desc": "Flags remarks for automatic exposure in Claims Workbench."
           }
         ],
-        "actuary_notes": "Cumulative SAR calculation formula: Total SAR = Sum(Policy_i Death Benefit - Policy_i Cash Value). Triggers financial underwriting if SAR > $500,000.",
-        "op_notes": "High SAR requires financial underwriting proof: tax returns, audited balance sheets for key-man corporate policies.",
-        "pdf_page": 156,
         "validation_rules": [
           {
-            "ruleId": "VAL-UW-001",
-            "module": "MOD_03",
-            "moduleName": "Underwriting (UW APP)",
-            "lifecyclePhase": "03. Underwriting Assessment",
-            "stage": "STP Auto-Underwriting",
-            "targetEntity": "T_AUTO_UW_LOG",
-            "ruleName": "Straight-Through Processing (STP) Eligibility Gating",
-            "condition": "Age <= 45 AND Sum Assured <= Non-Medical Limit AND 100% Negative Health Declaration AND Agent Compliance = 'PASS'.",
-            "severity": "ROUTING",
-            "errorCode": "ROUTE_UW_MANUAL_QUEUE",
-            "errorMessage": "Proposal fails STP criteria; escalated to manual Underwriting Workbench.",
-            "systemAction": "Routes task to Senior Underwriter queue with rule discrepancy triggers.",
-            "actuarialBasis": "Filters out elevated mortality/morbidity risks for human clinical judgment.",
-            "pdfPage": 7
+            "ruleId": "VAL-NB-004",
+            "ruleName": "Proposer Mandatory Annual Income & Financial Limit",
+            "condition": "Total Aggregated Life Sum Assured must be <= Maximum Income Multiple (e.g. 25x Annual Income for Age <= 35).",
+            "severity": "HARD_STOP",
+            "errorCode": "ERR_NB_ANNUAL_INCOME_MANDATORY",
+            "systemAction": "Blocks standard approval; generates Financial Underwriting requirement (Audited Tax Returns).",
+            "actuarialBasis": "Anti-selection and moral hazard prevention: ensures insurance coverage correlates with economic earning power.",
+            "pdfPage": 137
           },
           {
             "ruleId": "VAL-UW-002",
-            "module": "MOD_03",
-            "moduleName": "Underwriting (UW APP)",
-            "lifecyclePhase": "03. Underwriting Assessment",
-            "stage": "Medical Requirements",
-            "targetEntity": "T_UW_REQUIREMENT",
-            "ruleName": "Medical Requirement Completeness Hard Stop",
-            "condition": "All generated medical and non-medical requirements must have Completeness IND = 'Y' or Waived IND = 'Y'.",
+            "ruleName": "Medical Requirement Completeness Prerequisite",
+            "condition": "Underwriter cannot issue final approval while outstanding medical requirements remain unfulfilled.",
             "severity": "HARD_STOP",
             "errorCode": "ERR_UW_PENDING_REQUIREMENTS",
-            "errorMessage": "There are uncompleted required documents or pending medical exams. Cannot approve proposal.",
-            "systemAction": "Disables 'Approve' and 'Issue Policy' buttons on Underwriting Workbench.",
-            "actuarialBasis": "Prevents legally binding policy issuance without verified clinical health parameters.",
+            "systemAction": "Disables 'Approve' button on Decision tab.",
+            "actuarialBasis": "Clinical risk integrity: policy cannot bind insurer without verified medical documentation.",
             "pdfPage": 337
           }
-        ]
+        ],
+        "actuary_notes": "Risk aggregation formulas include 100% of Basic Life SA, 100% of Accelerated CI SA, and 50% of Accidental Death & Dismemberment SA.",
+        "op_notes": "Comments flagged as 'Share with Claims' are legally discoverable during regulatory dispute resolution and must maintain objective clinical tone."
       },
       {
         "code": "SOP-UW-03",
-        "title": "Issuing Medical Requirements, Attending Physician Statements & Query Letters",
-        "ui_path": "Underwriting Worksheet > UW Issues Tab > Generate Query Letter",
+        "title": "Medical & Non-Medical Requirement Issuance, Document Tracking & Clinic Billing",
+        "role": "Underwriting Support Officer / Medical Underwriter",
+        "objective": "Generate clinical medical exam requirements, dispatch attending physician statement (APS) requests, track document receipt completeness, and settle partner clinic examination invoices.",
+        "ui_path": "Underwriting > Main > Tab 2: UW / Proposal Issues & Medical Billing",
+        "pdf_page": 162,
         "prerequisites": [
-          "Underwriter determines medical or financial information is incomplete"
+          "Proposal requires medical examination based on Age/SA grid or positive health declaration.",
+          "Contracted medical provider clinics onboarded in Partner Directory."
         ],
         "steps": [
-          "1. On the Underwriting Worksheet, click the 'UW Issues' tab.",
-          "2. Click 'Add UW Issue' button.",
-          "3. Select Issue Category: 'Medical Requirement', 'Financial Requirement', or 'Administrative Clarification'.",
-          "4. Select Specific Requirement Code: e.g., 'MER_02' (Medical Exam + Fasting Blood Glucose), 'APS_01' (Attending Physician Statement from Treating Hospital).",
-          "5. Specify Due Date (defaults to +30 calendar days from today).",
-          "6. Click 'Generate Query Letter' button. Step Result: System compiles personalized inquiry letter referencing proposal ID, required tests, and accredited panel clinics.",
-          "7. Click 'Send Notification'. System dispatches SMS/email alert to servicing agent and applicant.",
-          "8. Underwriting task status transitions to 'Waiting for Requirements'."
+          "1. From the Underwriting Main page, navigate to 'Tab 2: UW / Proposal Issues'.",
+          "2. System displays automatically generated system issues (e.g., 'Age 48 and SA > $100k triggers Medical Exam Level 2').",
+          "3. To raise manual clinical requirements, click '+ Add Requirement'. Select Requirement Category:\n   - 'MEDICAL_EXAM' (Full Medical Examination by Physician MER)\n   - 'LAB_TEST' (Lipid Profile, Fasting Blood Glucose / HbA1c, Liver Function Test LFT, Resting ECG, HIV Screen)\n   - 'SPECIALIST_REPORT' (Cardiologist Consultation, Exercise Stress Test, Echocardiogram)\n   - 'NON_MEDICAL' (Financial Questionnaire, Hazardous Sports Declaration, Foreign Travel Questionnaire).",
+          "4. Select Preferred Clinic / Panel Provider from contracted medical network dropdown. System auto-populates clinic billing code and fee schedule.",
+          "5. Set Follow-up Expiry Timer: System sets standard 30-day requirement fulfillment window with automated reminder alerts to servicing agent on Day 7, Day 14, and Day 21.",
+          "6. Document Receipt & Completeness Sign-off: When clinic returns medical lab reports:\n   - Open the requirement row, review uploaded lab test values, and update 'Completeness IND' to 'Y - Complete'.\n   - If underwriter determines a test is no longer required due to mitigating factors, select 'Waive' and enter mandatory waiver justification ('Waived IND = Y').",
+          "7. Settle Clinic Examination Invoice (`Underwriting > Medical Billing > Create Medical Billing`):\n   - Select Clinic Name, enter Invoice No, select Policy/Proposal No, input Fee Amount (e.g. $120.00 / 3,000,000 VND), and click 'Confirm'. System creates AP invoice in `T_MED_BILLING`.",
+          "8. Reverse Erroneous Medical Billing: If billing record was created with incorrect fee or clinic, navigate to `Underwriting > Medical Billing > Reverse Medical Billing`, search the billing record, and click 'Reverse' to generate offsetting credit memo."
         ],
         "fields_table": [
           {
-            "name": "Issue Category",
+            "name": "Requirement Category",
             "type": "Select",
             "required": "Yes",
-            "desc": "Medical, Financial, Special Questionnaire"
+            "desc": "Medical Exam, Lab Test, Specialist Report, Non-Medical."
           },
           {
-            "name": "Requirement Code",
-            "type": "Master Code",
-            "required": "Yes",
-            "desc": "Standard clinic examination package code"
+            "name": "Clinic Provider Code",
+            "type": "Select",
+            "required": "Conditional",
+            "desc": "Contracted diagnostic hospital / clinic provider."
           },
           {
-            "name": "SLA Expiration Date",
-            "type": "Date",
+            "name": "Completeness IND",
+            "type": "Select (Y/N)",
             "required": "Yes",
-            "desc": "Deadline before automated cancellation reminder"
+            "desc": "Flags whether laboratory findings are fully received."
+          },
+          {
+            "name": "Waive IND",
+            "type": "Select (Y/N)",
+            "required": "Yes",
+            "desc": "Underwriter formal waiver of mandatory requirement."
+          },
+          {
+            "name": "Clinic Fee Amount",
+            "type": "Currency",
+            "required": "Yes",
+            "desc": "Cost of medical check-up payable to partner clinic."
           }
         ],
-        "actuary_notes": "Medical test packages are budgeted into product acquisition expense allowances; excessive tests on small SA erode product profitability.",
-        "op_notes": "Automated batch checks requirements daily. Reminders are dispatched at Day 7, Day 14. If unfulfilled by Day 30, case auto-withdraws.",
-        "pdf_page": 168,
         "validation_rules": [
           {
-            "ruleId": "VAL-UW-001",
-            "module": "MOD_03",
-            "moduleName": "Underwriting (UW APP)",
-            "lifecyclePhase": "03. Underwriting Assessment",
-            "stage": "STP Auto-Underwriting",
-            "targetEntity": "T_AUTO_UW_LOG",
-            "ruleName": "Straight-Through Processing (STP) Eligibility Gating",
-            "condition": "Age <= 45 AND Sum Assured <= Non-Medical Limit AND 100% Negative Health Declaration AND Agent Compliance = 'PASS'.",
-            "severity": "ROUTING",
-            "errorCode": "ROUTE_UW_MANUAL_QUEUE",
-            "errorMessage": "Proposal fails STP criteria; escalated to manual Underwriting Workbench.",
-            "systemAction": "Routes task to Senior Underwriter queue with rule discrepancy triggers.",
-            "actuarialBasis": "Filters out elevated mortality/morbidity risks for human clinical judgment.",
-            "pdfPage": 7
+            "ruleId": "VAL-NB-006",
+            "ruleName": "Declaration Form Mandatory Response Completeness",
+            "condition": "Every question in the health declaration form must have a recorded answer; positive answers auto-generate requirements.",
+            "severity": "HARD_STOP",
+            "errorCode": "ERR_NB_INCOMPLETE_DECLARATION",
+            "systemAction": "Blocks proposal advancement until all clinical declaration items are resolved.",
+            "actuarialBasis": "Duty of utmost good faith (Uberrimae Fidei) documentation required to legally defend future policy contestability.",
+            "pdfPage": 61
           },
           {
-            "ruleId": "VAL-UW-002",
-            "module": "MOD_03",
-            "moduleName": "Underwriting (UW APP)",
-            "lifecyclePhase": "03. Underwriting Assessment",
-            "stage": "Medical Requirements",
-            "targetEntity": "T_UW_REQUIREMENT",
-            "ruleName": "Medical Requirement Completeness Hard Stop",
-            "condition": "All generated medical and non-medical requirements must have Completeness IND = 'Y' or Waived IND = 'Y'.",
+            "ruleId": "VAL-FL-003",
+            "ruleName": "Medical Examination Cost Recovery on Free-Look",
+            "condition": "All approved medical clinic fees recorded in T_MED_BILLING are deductible from premium refund if customer cancels in Free-Look.",
             "severity": "HARD_STOP",
-            "errorCode": "ERR_UW_PENDING_REQUIREMENTS",
-            "errorMessage": "There are uncompleted required documents or pending medical exams. Cannot approve proposal.",
-            "systemAction": "Disables 'Approve' and 'Issue Policy' buttons on Underwriting Workbench.",
-            "actuarialBasis": "Prevents legally binding policy issuance without verified clinical health parameters.",
-            "pdfPage": 337
+            "errorCode": "ERR_FL_CLAWBACK_EXECUTION",
+            "systemAction": "Automatically deducts accumulated medical billing fees from Free-Look refund voucher.",
+            "actuarialBasis": "Statutory non-forfeiture law: insurer has the right to deduct actual incurred clinical examination costs from refund.",
+            "pdfPage": 483
           }
-        ]
+        ],
+        "actuary_notes": "Medical examination costs are tracked as underwriting expenses; for large sum assured policies, clinic fees are subsidized by reinsurance allowances.",
+        "op_notes": "Requirements not satisfied within 60 calendar days automatically trigger 'Closure Due to Incomplete Requirements' with proposal refund."
       },
       {
         "code": "SOP-UW-04",
-        "title": "Applying Extra Mortality (EM) Loadings, Flat Extras & Exclusions",
-        "ui_path": "Underwriting Worksheet > Make Decision Tab > Rating Panel",
+        "title": "Benefit-Level Underwriting Decisioning, Numerical Rating & Extra Mortality Loading",
+        "role": "Underwriting Specialist / Chief Underwriter",
+        "objective": "Formulate granular underwriting decisions evaluating the main life plan and each attached rider independently, applying numerical mortality ratings, flat extra loadings, or exclusion clauses.",
+        "ui_path": "Underwriting > Main > Tab 3: UW Decision",
+        "pdf_page": 145,
         "prerequisites": [
-          "All medical findings evaluated",
-          "Risk profile deviates from standard 100% mortality"
+          "All mandatory medical and financial requirements completed or waived.",
+          "Client numerical rating debits and credits calculated based on clinical evidence."
         ],
         "steps": [
-          "1. In Underwriting Worksheet, click 'Make Decision' tab.",
-          "2. Under Risk Disposal, select 'Substandard Rating / Accept with Condition'.",
-          "3. In the Benefit Rating Grid, select target benefit (e.g. Main Plan Death Benefit, CI Rider):",
-          "   - Numerical Rating (EM): Enter Extra Mortality percentage (e.g. '+50%' for controlled mild hypertension, '+100%' for moderate cardiovascular risk).",
-          "   - Flat Extra Premium: Enter dollar per thousand loading (e.g. '$3.00 per $1,000 SA') and Duration (e.g. 'Temporary 3 Years' or 'Permanent').",
-          "   - Occupational Loading: Enter Occupational Extra Rate based on hazard class.",
-          "4. In the Exclusions Grid, click 'Add Exclusion':",
-          "   - Select Exclusion Type: 'Medical Condition', 'Geographical Territory', or 'Hazardous Activity'.",
-          "   - Select Exclusion Code: e.g., 'EXCL_SPINE' (Degenerative disc disease of spine), 'EXCL_DIVING' (Scuba diving deeper than 30 meters).",
-          "5. Click 'Recalculate Rated Premium'. Step Result: System displays Old Premium vs Revised Counter-Offer Premium with extra loadings included.",
-          "6. Click 'Save Rating Decisions'."
+          "1. In the Underwriting Main Workbench, navigate to 'Tab 3: UW Decision'.",
+          "2. Review Benefit-Level Decision Hierarchy: The screen displays the Main Coverage item and every attached rider in distinct rows:\n   - Row 1: Main Plan `ENDOW_20` (Life Assured: Nguyen Van An)\n   - Row 2: Accelerated CI Rider `RIDER_CI_01`\n   - Row 3: Accidental Death & Dismemberment `RIDER_ADD_01`\n   - Row 4: Hospital Income Benefit `RIDER_HIB_01`\n   - Row 5: Waiver of Premium `RIDER_WP_01`.",
+          "3. Formulate Independent Decision per Benefit: Underwriters can accept the base life coverage at standard rates while loading or declining specific high-risk riders.",
+          "4. Select Decision Code for each row:\n   - 'STND - Standard Accept' (Standard mortality risk; Base rate 100%)\n   - 'PERC - Extra Mortality Percentage Loading' (Applies percentage debit to base mortality rate, e.g. +50% EM for hypertension, +100% EM for cardiovascular)\n   - 'FLAT - Flat Extra Loading' (Applies fixed cash addition per $1,000 Sum Assured, e.g. $2.50 / mille for commercial aviation)\n   - 'EXCL - Exclusion Clause' (Excludes specific organ, pre-existing condition, or hazardous pursuit from coverage)\n   - 'POST - Postpone' (Defers risk assessment for 3, 6, or 12 months awaiting medical stabilization)\n   - 'DECL - Decline' (Permanent refusal of coverage).",
+          "5. Configure Percentage Loading (EM): Input loading percentage (e.g. '50%'). System recalculates benefit gross premium:\n   `Gross Premium = Base Annual Premium * (1 + 0.50)`.",
+          "6. Configure Flat Extra Loading: Input Flat Rate per Mille (e.g. '$3.00') and duration (e.g. 'First 5 Years' or 'Entire Term'). System computes:\n   `Flat Premium Addition = SA / 1000 * 3.00`.",
+          "7. Configure Exclusion Endorsement: Click 'Add Exclusion'. Select standard exclusion clause from master exclusion library (e.g., 'EX-SPINE: Diseases or injuries of lumbar spine and intervertebral discs').",
+          "8. Click 'Calculate Revised Premium'. Step Result: System executes Product Factory rating microservice, updates total policy modal premium, and displays comparison between original and revised figures.",
+          "9. If all decisions are Standard Accept, underwriter clicks 'Submit Decision'. Case status updates to 'Underwriting Completed' and advances proposal to Policy Issuance.",
+          "10. If any decision involves Loading, Exclusion, or Reduced SA, system automatically generates an LCA (Letter of Conditional Acceptance / Counter-Offer) and sets status to 'Pending LCA'."
         ],
         "fields_table": [
           {
-            "name": "EM Loading Percentage",
-            "type": "Percentage (+25% to +300%)",
-            "required": "Conditional",
-            "desc": "Extra mortality factor added to standard net rate"
+            "name": "Benefit Decision",
+            "type": "Select",
+            "required": "Yes",
+            "desc": "Standard, Percentage Loading, Flat Loading, Exclusion, Postpone, Decline."
           },
           {
-            "name": "Flat Extra Premium",
-            "type": "Currency per Mille",
+            "name": "EM Percentage (%)",
+            "type": "Numeric (+%)",
             "required": "Conditional",
-            "desc": "Fixed extra dollar amount per $1,000 SA"
+            "desc": "Extra mortality debit (+25% to +300%)."
           },
           {
-            "name": "Exclusion Code",
-            "type": "Master Code",
+            "name": "Flat Loading (per mille)",
+            "type": "Numeric ($)",
             "required": "Conditional",
-            "desc": "Specific bodily impairment or hazard excluded from liability"
+            "desc": "Flat cash addition per $1,000 Sum Assured."
+          },
+          {
+            "name": "Flat Loading Duration",
+            "type": "Select",
+            "required": "Conditional",
+            "desc": "Entire Policy Term or Temporary (1 to 10 Years)."
+          },
+          {
+            "name": "Exclusion Clause Code",
+            "type": "Search Select",
+            "required": "Conditional",
+            "desc": "Standard exclusion clause from master registry."
           }
         ],
-        "actuary_notes": "Extra premium calculation: Base Extra = Base Net Premium * (EM / 100). Total Inforcing Premium = Base Standard + Base Extra + Flat Extra * (SA / 1000).",
-        "op_notes": "Exclusion wording prints automatically on Endorsement Schedule page in formal policy contract.",
-        "pdf_page": 179,
         "validation_rules": [
           {
-            "ruleId": "VAL-UW-001",
-            "module": "MOD_03",
-            "moduleName": "Underwriting (UW APP)",
-            "lifecyclePhase": "03. Underwriting Assessment",
-            "stage": "STP Auto-Underwriting",
-            "targetEntity": "T_AUTO_UW_LOG",
-            "ruleName": "Straight-Through Processing (STP) Eligibility Gating",
-            "condition": "Age <= 45 AND Sum Assured <= Non-Medical Limit AND 100% Negative Health Declaration AND Agent Compliance = 'PASS'.",
+            "ruleId": "VAL-UW-005",
+            "ruleName": "Benefit-Level Decision Independence",
+            "condition": "Underwriting decisions must be stored and versioned at individual benefit level in T_POLICY_BENEFIT.",
             "severity": "ROUTING",
-            "errorCode": "ROUTE_UW_MANUAL_QUEUE",
-            "errorMessage": "Proposal fails STP criteria; escalated to manual Underwriting Workbench.",
-            "systemAction": "Routes task to Senior Underwriter queue with rule discrepancy triggers.",
-            "actuarialBasis": "Filters out elevated mortality/morbidity risks for human clinical judgment.",
-            "pdfPage": 7
+            "errorCode": "INFO_UW_BENEFIT_LEVEL_DECISION",
+            "systemAction": "Updates T_POLICY_BENEFIT.UW_DECISION individually for each attached coverage item.",
+            "actuarialBasis": "Enables maximum customer retention by approving viable base life risks even if specialized health riders are uninsurable.",
+            "pdfPage": 193
           },
           {
-            "ruleId": "VAL-UW-002",
-            "module": "MOD_03",
-            "moduleName": "Underwriting (UW APP)",
-            "lifecyclePhase": "03. Underwriting Assessment",
-            "stage": "Medical Requirements",
-            "targetEntity": "T_UW_REQUIREMENT",
-            "ruleName": "Medical Requirement Completeness Hard Stop",
-            "condition": "All generated medical and non-medical requirements must have Completeness IND = 'Y' or Waived IND = 'Y'.",
+            "ruleId": "VAL-PF-003",
+            "ruleName": "Rider Sum Assured & Term Capping",
+            "condition": "If Base Plan Sum Assured is reduced by underwriting decision, attached rider Sum Assured must be automatically trimmed to not exceed base plan SA.",
             "severity": "HARD_STOP",
-            "errorCode": "ERR_UW_PENDING_REQUIREMENTS",
-            "errorMessage": "There are uncompleted required documents or pending medical exams. Cannot approve proposal.",
-            "systemAction": "Disables 'Approve' and 'Issue Policy' buttons on Underwriting Workbench.",
-            "actuarialBasis": "Prevents legally binding policy issuance without verified clinical health parameters.",
-            "pdfPage": 337
+            "errorCode": "ERR_PF_RIDER_EXCEEDS_BASE",
+            "systemAction": "Trims rider SA to match reduced base plan ceiling.",
+            "actuarialBasis": "Anti-selection control: supplementary riders cannot exceed principal life insurance liability.",
+            "pdfPage": 55
           }
-        ]
+        ],
+        "actuary_notes": "Policies rated with Extra Mortality percentage loadings accumulate higher cash surrender values and require higher statutory UPR reserves.",
+        "op_notes": "Exclusion clauses remain permanently attached to the contract and are dynamically queried by Claims Assessors during claim registration."
       },
       {
         "code": "SOP-UW-05",
-        "title": "Executing Underwriting Disposal (Standard, Counter-Offer, Postpone, Decline)",
-        "ui_path": "Underwriting Worksheet > Make Decision Tab > Submit Disposal",
+        "title": "Letter of Conditional Acceptance (LCA / Counter-Offer) Generation & Client Endorsement",
+        "role": "Underwriting Case Manager / Agency Liaison",
+        "objective": "Compile formal Letter of Conditional Acceptance (LCA / Counter-Offer) detailing ratings and exclusions, issue revised benefit illustrations, and process customer acceptance.",
+        "ui_path": "Underwriting > Main > LCA Management",
+        "pdf_page": 160,
         "prerequisites": [
-          "Underwriter decisions formulated and within personal authority limit"
+          "Underwriting decision finalized with non-standard terms (Percentage loading, flat loading, or exclusion).",
+          "Underwriting authority limits validated for LCA submission."
         ],
         "steps": [
-          "1. In Make Decision tab, verify Final Decision Radio Button:\n   - 'Standard Accept': Risk is within standard 100% mortality. No extra loadings.\n   - 'Accept with Rating / Counter-Offer': Extra premium or exclusions applied.\n   - 'Postpone': Risk temporarily uninsurable (e.g. awaiting post-operative recovery 6 months).\n   - 'Decline': Severe risk, uninsurable. Mandatory Adverse Reason Code required.",
-          "2. If counter-offer or decline requires higher sign-off: System displays 'Exceeds Authority Level - Escalated to Senior Underwriter'. Click 'Submit for Escalation'.",
-          "3. If within authority: Enter Final Underwriter Summary Comments.",
-          "4. Click 'Submit Underwriting Disposal' button. Step Result:\n   - Standard Accept: Case automatically transitions to Billing / Initial Collection.\n   - Counter-Offer: System generates Counter-Offer Letter and dispatches to Client/Agent. Proposal status updates to 'Waiting for Counter-Offer Consent'.\n   - Decline: Proposal transitions to 'Declined'. AML/Fraud adverse database updated. Refund voucher for initial deposit generated."
+          "1. On Underwriting Main Decision tab, when non-standard decision is submitted, system displays the 'LCA Generation Panel'.",
+          "2. Review Counter-Offer Terms: The screen synthesizes the counter-offer proposal:\n   - Original Premium vs Revised Premium\n   - Additional Premium Payable (First modal difference)\n   - Special Condition Endorsements and Exclusion Wording\n   - Revised Table of Guaranteed Benefits.",
+          "3. Authority Approval Check: System evaluates whether current user's authority covers the counter-offer terms:\n   - If Within Authority: LCA status updates to 'To Be Print'.\n   - If Beyond Authority: Case is auto-escalated to superior's approval pool with LCA status 'To Be Submitted'.",
+          "4. Generate Official LCA Document: Click 'Print LCA'. System generates official Counter-Offer Letter PDF with corporate legal header, detailed medical explanation, revised quotation schedule, and Client Acceptance Slip.",
+          "5. Dispatch LCA: System transmits electronic notification via SMS/Email to Policyholder and Servicing Agent containing secure portal link to review and sign the counter-offer.",
+          "6. Set Acceptance Validity Timer: Counter-offer remains open for exactly 30 calendar days (`LCA_VALIDITY_DATE = LCA_DATE + 30`).",
+          "7. Process Customer Response:\n   - Option A: Client Accepts: Policyholder signs e-Acceptance form via OTP/biometrics and deposits additional premium difference into bank clearing account.\n   - Option B: Client Declines: Case is closed with status 'Counter-Offer Declined by Customer'; initial premium refund voucher generated.\n   - Option C: 30-Day Expiry: Case lapses automatically with status 'LCA Expired'.",
+          "8. Step Result: Upon confirmed customer acceptance and full premium settlement, LCA status updates to 'LCA Completed'. Case status advances to 'Underwriting Completed', releasing contract for Policy Issuance."
         ],
         "fields_table": [
           {
-            "name": "Final Disposal",
-            "type": "Select",
+            "name": "LCA Reference No",
+            "type": "Read-only Text",
             "required": "Yes",
-            "desc": "Standard Accept, Substandard Accept, Postpone, Decline"
+            "desc": "Unique identifier in T_UW_COUNTER_OFFER."
           },
           {
-            "name": "Postpone Duration",
-            "type": "Integer (Months)",
-            "required": "Conditional",
-            "desc": "Months before applicant may re-apply"
+            "name": "LCA Validity Days",
+            "type": "Numeric (Default 30)",
+            "required": "Yes",
+            "desc": "Statutory offer validity window in calendar days."
           },
           {
-            "name": "Adverse Reason Code",
-            "type": "Master Code",
-            "required": "Conditional",
-            "desc": "Medical or financial justification for decline"
+            "name": "Additional Premium Due",
+            "type": "Currency Display",
+            "required": "Yes",
+            "desc": "Difference between revised modal premium and initial deposit."
+          },
+          {
+            "name": "Client Decision",
+            "type": "Radio",
+            "required": "Yes",
+            "desc": "Accepted, Declined, or Expired."
           }
         ],
-        "actuary_notes": "Decline statistics feed into monthly underwriting experience monitoring reports to detect regional anti-selection clusters.",
-        "op_notes": "Counter-offers have strict statutory validity (typically 21 to 30 days). Client must sign written amendment agreement before policy can be issued.",
-        "pdf_page": 190,
         "validation_rules": [
           {
-            "ruleId": "VAL-UW-001",
-            "module": "MOD_03",
-            "moduleName": "Underwriting (UW APP)",
-            "lifecyclePhase": "03. Underwriting Assessment",
-            "stage": "STP Auto-Underwriting",
-            "targetEntity": "T_AUTO_UW_LOG",
-            "ruleName": "Straight-Through Processing (STP) Eligibility Gating",
-            "condition": "Age <= 45 AND Sum Assured <= Non-Medical Limit AND 100% Negative Health Declaration AND Agent Compliance = 'PASS'.",
-            "severity": "ROUTING",
-            "errorCode": "ROUTE_UW_MANUAL_QUEUE",
-            "errorMessage": "Proposal fails STP criteria; escalated to manual Underwriting Workbench.",
-            "systemAction": "Routes task to Senior Underwriter queue with rule discrepancy triggers.",
-            "actuarialBasis": "Filters out elevated mortality/morbidity risks for human clinical judgment.",
-            "pdfPage": 7
+            "ruleId": "VAL-UW-004",
+            "ruleName": "Counter-Offer Acceptance & Premium Adjustment",
+            "condition": "Policy cannot be issued or inforced while an active Counter-Offer remains in unaccepted or unpaid state.",
+            "severity": "HARD_STOP",
+            "errorCode": "ERR_UW_PENDING_CLIENT_ACCEPTANCE",
+            "systemAction": "Freezes policy status at PENDING_ACCEPTANCE; blocks commit to SOR T_POLICY.",
+            "actuarialBasis": "Contract law: counter-offer constitutes rejection of original proposal; contract only forms upon customer agreement to revised terms.",
+            "pdfPage": 144
           },
           {
-            "ruleId": "VAL-UW-005",
-            "module": "MOD_03",
-            "moduleName": "Underwriting (UW APP)",
-            "lifecyclePhase": "03. Underwriting Assessment",
-            "stage": "Benefit-Level Underwriting",
-            "targetEntity": "T_POLICY_BENEFIT",
-            "ruleName": "Benefit-Level Decision Independence",
-            "condition": "Underwriting decisions are evaluated at individual benefit level: main plan and each rider evaluated independently.",
-            "severity": "ROUTING",
-            "errorCode": "INFO_UW_BENEFIT_LEVEL_DECISION",
-            "errorMessage": "A rider may be declined or loaded while the base life coverage is accepted at standard rates.",
-            "systemAction": "Updates `T_POLICY_BENEFIT.UW_DECISION` individually for each attached coverage item.",
-            "actuarialBasis": "Enables maximum customer retention by approving viable base life risks even if specialized health riders are uninsurable.",
-            "pdfPage": 193
+            "ruleId": "VAL-ISS-001",
+            "ruleName": "First Premium Receipt Allocation Before Enforce",
+            "condition": "Total validated suspense receipts allocated to proposal must exactly equal the revised First Gross Modal Premium.",
+            "severity": "HARD_STOP",
+            "errorCode": "ERR_ISS_UNPAID_FIRST_PREMIUM",
+            "systemAction": "Blocks policy issuance until additional loading premium is fully settled.",
+            "actuarialBasis": "Consideration requirement: coverage cannot commence without full premium funding.",
+            "pdfPage": 21
           }
-        ]
+        ],
+        "actuary_notes": "Statutory commencement date for accepted counter-offers is determined as the later date of LCA signing date or full premium payment receipt date.",
+        "op_notes": "Agents receive automated daily push notifications tracking pending LCA expiration dates to maximize campaign conversion rates."
+      },
+      {
+        "code": "SOP-UW-06",
+        "title": "Delegation of Authority (DOA) Limit Validation & Auto-Escalation Workflow",
+        "role": "Senior Underwriting Manager / Chief Underwriter",
+        "objective": "Enforce institutional governance over maximum underwriter financial exposure, review cases escalated from junior staff, and coordinate reinsurance facultative referrals.",
+        "ui_path": "Underwriting > Task Pool > Escalation Management",
+        "pdf_page": 160,
+        "prerequisites": [
+          "Case escalated due to Sum Assured, EM percentage, or high-risk occupation exceeding lower underwriter authority limit.",
+          "User must hold higher authority tier credentials in URP (`ROLE_UW_SENIOR`, `ROLE_UW_CHIEF`)."
+        ],
+        "steps": [
+          "1. Navigate to Underwriting > Work List. Click 'Task Pool' and select the 'Pending Approval / Escalations' queue.",
+          "2. System displays all cases escalated by junior underwriters or automated business rules. The table lists: Proposal No, Life Assured, Proposed SA, Requested EM Loading, Originating Underwriter, Escalation Trigger Reason, and Escalation Date.",
+          "3. Select the escalated case to open the Escalation Review Dashboard.",
+          "4. Review Escalation Reason: System highlights the specific trigger:\n   - 'SA Exceeds Limit' (e.g. SA is $450,000; Level 1 limit is $100,000)\n   - 'Rating Exceeds Limit' (e.g. EM loading is +150%; Level 2 limit is +100%)\n   - 'Decline Authority' (Only Chief Underwriter can sanction outright risk decline).",
+          "5. Review Junior Underwriter Worksheet & Rationale: Inspect notes, clinical summaries, and preliminary recommendations provided by originating underwriter.",
+          "6. Reinsurance Retention Limit Check: System compares Total Aggregated Life SA against corporate net retention limit ($100,000 / 2.5 Billion VND):\n   - If SA <= Retention Limit: Case is retained 100% internally.\n   - If SA > Retention Limit: Surplus is ceded automatically to Treaty Reinsurance or flagged for Facultative Reinsurance Referral.",
+          "7. Formulate Superior Decision:\n   - 'APPROVE AS RECOMMENDED' (Endorses junior underwriter recommendation)\n   - 'MODIFY DECISION' (Adjusts loading percentage, changes exclusion scope, or requires additional clinical test)\n   - 'RE-ESCALATE' (Forwards to Chief Underwriter or Underwriting Committee for extreme exposures > $1,000,000).",
+          "8. Input Senior Underwriter Sign-off Justification in audit log.",
+          "9. Click 'Submit Approval'. Step Result: Case returns to originating underwriter with status 'Approval Completed' or auto-dispatches LCA directly to customer."
+        ],
+        "fields_table": [
+          {
+            "name": "Escalation Reason",
+            "type": "Read-only Display",
+            "required": "Yes",
+            "desc": "Sum Assured, Loading %, Exclusion complexity, or Decline sanction."
+          },
+          {
+            "name": "Senior Approval Decision",
+            "type": "Radio",
+            "required": "Yes",
+            "desc": "Approve, Modify, or Re-escalate."
+          },
+          {
+            "name": "Reinsurance Arrangement",
+            "type": "Select",
+            "required": "Yes",
+            "desc": "100% Retained, Quota Share Treaty, Surplus Treaty, or Facultative Referral."
+          },
+          {
+            "name": "Approval Audit Justification",
+            "type": "Text Area",
+            "required": "Yes",
+            "desc": "Mandatory rationale recorded in permanent policy governance log."
+          }
+        ],
+        "validation_rules": [
+          {
+            "ruleId": "VAL-UW-003",
+            "ruleName": "Underwriter Financial & Rating Authority Delegation",
+            "condition": "Proposed Sum Assured and EM loading must be within the Underwriter's signed authority matrix limit.",
+            "severity": "HARD_STOP",
+            "errorCode": "ERR_UW_EXCEEDS_AUTHORITY",
+            "systemAction": "Auto-escalates task to Chief Underwriter or Underwriting Committee pool.",
+            "actuarialBasis": "Internal control segregation to avoid unauthorized systemic risk assumption.",
+            "pdfPage": 8
+          },
+          {
+            "ruleId": "VAL-PF-002",
+            "ruleName": "Maturity Age Ceiling Enforcement",
+            "condition": "Underwriters cannot approve cases where entry age + term exceeds maximum product maturity age.",
+            "severity": "HARD_STOP",
+            "errorCode": "ERR_PF_MAX_MATURITY_EXCEEDED",
+            "systemAction": "Hard stop: blocks approval; forces term reduction or proposal decline.",
+            "actuarialBasis": "Mortality tables terminate at maximum attained age; coverage beyond ceiling is mathematically unpriced.",
+            "pdfPage": 27
+          }
+        ],
+        "actuary_notes": "Corporate net retention limits are reviewed annually by the Appointed Actuary and approved by the Board of Directors.",
+        "op_notes": "Cases requiring Facultative Reinsurance referral generate a dedicated electronic slip dispatched via secure reinsurer portal."
       }
     ],
-    "sop_count": 5,
+    "sop_count": 6,
     "interconnections": {
       "module_code": "UW_APP",
       "upstream_sources": [
@@ -4477,7 +4568,7 @@ window.EBAO_MODULES = [
     },
     "pdf_start_page": 143,
     "pdf_end_page": 195,
-    "pdf_chapter": "Chapter 3: Underwriting Workbench (UW APP)",
+    "pdf_chapter": "Chapter 3: Underwriting Workbench & Clinical Risk Assessment",
     "validation_rules": [
       {
         "ruleId": "VAL-UW-001",
@@ -4560,7 +4651,181 @@ window.EBAO_MODULES = [
         "pdfPage": 193
       }
     ],
-    "validation_rules_count": 5
+    "validation_rules_count": 5,
+    "clinical_impairments": [
+      {
+        "id": "IMP-01",
+        "name": "Standard Health (Clean Declaration)",
+        "category": "Standard Risk",
+        "debits": 0,
+        "credits": -10,
+        "emPct": 0,
+        "flatRate": 0,
+        "exclusion": "None",
+        "decision": "STND - Standard Accept",
+        "authTier": "Level 1 Underwriter ($100k)",
+        "desc": "Non-smoker, BMI 21.5, normal blood pressure (115/75), zero personal or family adverse medical history. 100% STP eligible."
+      },
+      {
+        "id": "IMP-02",
+        "name": "Hypertension Stage 1 (Well-Controlled)",
+        "category": "Cardiovascular",
+        "debits": 40,
+        "credits": -15,
+        "emPct": 25,
+        "flatRate": 0,
+        "exclusion": "None",
+        "decision": "PERC - +25% Extra Mortality Loading",
+        "authTier": "Level 1 Underwriter ($100k)",
+        "desc": "BP 138/88 on single monotherapy medication for > 12 months, ECG normal, zero end-organ damage. Rated +25% EM."
+      },
+      {
+        "id": "IMP-03",
+        "name": "Type 2 Diabetes Mellitus (HbA1c 7.8%)",
+        "category": "Metabolic",
+        "debits": 85,
+        "credits": -10,
+        "emPct": 75,
+        "flatRate": 0,
+        "exclusion": "None",
+        "decision": "PERC - +75% Extra Mortality Loading",
+        "authTier": "Level 2 Underwriter ($300k)",
+        "desc": "Diagnosed 3 years ago, oral hypoglycemic agents, microalbuminuria negative, non-smoker. Rated +75% EM with mandatory annual checkup."
+      },
+      {
+        "id": "IMP-04",
+        "name": "Obesity Class II (BMI 35.2 kg/m²)",
+        "category": "Build Impairment",
+        "debits": 60,
+        "credits": -10,
+        "emPct": 50,
+        "flatRate": 0,
+        "exclusion": "None",
+        "decision": "PERC - +50% Extra Mortality Loading",
+        "authTier": "Level 1 Underwriter ($100k)",
+        "desc": "Height 168 cm, Weight 99 kg. Fasting blood glucose normal, lipid panel moderately elevated. Rated +50% EM."
+      },
+      {
+        "id": "IMP-05",
+        "name": "Hazardous Occupation (Commercial Diver)",
+        "category": "Occupational",
+        "debits": 0,
+        "credits": 0,
+        "emPct": 0,
+        "flatRate": 5.0,
+        "exclusion": "Decompression Sickness Waiver",
+        "decision": "FLAT - $5.00 per Mille Flat Loading",
+        "authTier": "Level 2 Underwriter ($300k)",
+        "desc": "Offshore deep-sea commercial diver (> 30 meters depth). Base life accepted with $5.00/mille flat extra loading; Accidental Death & Dismemberment declined."
+      },
+      {
+        "id": "IMP-06",
+        "name": "Chronic Lumbar Disc Herniation (L4-L5)",
+        "category": "Musculoskeletal",
+        "debits": 15,
+        "credits": 0,
+        "emPct": 0,
+        "flatRate": 0,
+        "exclusion": "EX-SPINE (Lumbar Spine & Disc Exclusion)",
+        "decision": "EXCL - Standard Life with Spine Exclusion",
+        "authTier": "Level 1 Underwriter ($100k)",
+        "desc": "Conservative treatment without surgical intervention. Base Life accepted at standard rates; Total & Permanent Disability (TPD) rider issued with Spine Exclusion clause."
+      },
+      {
+        "id": "IMP-07",
+        "name": "Coronary Artery Disease with Stent Placement",
+        "category": "Cardiovascular Critical",
+        "debits": 160,
+        "credits": -10,
+        "emPct": 150,
+        "flatRate": 0,
+        "exclusion": "Riders CI & TPD Declined",
+        "decision": "PERC - +150% Extra Mortality Loading",
+        "authTier": "Level 3 Chief Underwriter ($1M)",
+        "desc": "Single drug-eluting stent placed 18 months ago, asymptomatic, left ventricular ejection fraction 55%. Base life rated +150% EM; Critical Illness rider permanently declined."
+      },
+      {
+        "id": "IMP-08",
+        "name": "Active Malignant Neoplasm (Decline)",
+        "category": "Oncology",
+        "debits": 500,
+        "credits": 0,
+        "emPct": 0,
+        "flatRate": 0,
+        "exclusion": "N/A",
+        "decision": "DECL - Outright Decline",
+        "authTier": "Level 3 Chief Underwriter ($1M)",
+        "desc": "Currently undergoing chemotherapy / radiation therapy. Life risk uninsurable; proposal declined with 100% initial premium refund."
+      }
+    ],
+    "non_medical_grid": [
+      {
+        "ageBand": "Age 18 - 35",
+        "maxNonMed": "$150,000 / 3.75B VND",
+        "examL1": "$150,001 - $300,000",
+        "testsL1": "MER, Urinalysis",
+        "examL2": "> $300,000",
+        "testsL2": "MER, Full Blood Count, Lipids, HbA1c, Resting ECG, HIV"
+      },
+      {
+        "ageBand": "Age 36 - 45",
+        "maxNonMed": "$100,000 / 2.50B VND",
+        "examL1": "$100,001 - $250,000",
+        "testsL1": "MER, Urinalysis, Fasting Glucose",
+        "examL2": "> $250,000",
+        "testsL2": "MER, Blood Profile, Lipids, Resting ECG, Chest X-Ray, HIV"
+      },
+      {
+        "ageBand": "Age 46 - 55",
+        "maxNonMed": "$50,000 / 1.25B VND",
+        "examL1": "$50,001 - $150,000",
+        "testsL1": "MER, Full Blood, Resting ECG",
+        "examL2": "> $150,000",
+        "testsL2": "MER, Complete Blood, HbA1c, Exercise Stress ECG, Urine Cotinine"
+      },
+      {
+        "ageBand": "Age 56 - 65",
+        "maxNonMed": "$20,000 / 500M VND",
+        "examL1": "$20,001 - $75,000",
+        "testsL1": "MER, Full Chemistry, Resting ECG",
+        "examL2": "> $75,000",
+        "testsL2": "Comprehensive Geriatric Profile, Stress Echo, Carotid Ultrasound"
+      }
+    ],
+    "doa_matrix": [
+      {
+        "tier": "Level 1 (Junior UW)",
+        "maxSA": "$100,000 / 2.5B VND",
+        "maxEM": "+50% Extra Mortality",
+        "flatCap": "$2.50 / mille",
+        "exclusionScope": "Standard Single Exclusions",
+        "declineAuth": "No (Escalation Required)"
+      },
+      {
+        "tier": "Level 2 (Senior UW)",
+        "maxSA": "$300,000 / 7.5B VND",
+        "maxEM": "+100% Extra Mortality",
+        "flatCap": "$5.00 / mille",
+        "exclusionScope": "Complex Multiple Exclusions",
+        "declineAuth": "No (Escalation Required)"
+      },
+      {
+        "tier": "Level 3 (Chief UW)",
+        "maxSA": "$1,000,000 / 25B VND",
+        "maxEM": "+200% Extra Mortality",
+        "flatCap": "$10.00 / mille",
+        "exclusionScope": "Non-Standard Legal Clauses",
+        "declineAuth": "Yes (Permanent Sanction)"
+      },
+      {
+        "tier": "Executive / Reinsurance",
+        "maxSA": "> $1,000,000 (Facultative)",
+        "maxEM": "> +200% Extra Mortality",
+        "flatCap": "> $10.00 / mille",
+        "exclusionScope": "Reinsurer Special Treaty Terms",
+        "declineAuth": "Yes (Committee Board)"
+      }
+    ]
   },
   {
     "id": "MOD_04",

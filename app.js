@@ -108,6 +108,10 @@ function initApp() {
     setTimeout(() => {
       renderGlPattern('JE-01');
     }, 50);
+  } else if (mod.id === 'MOD_03') {
+    setTimeout(() => {
+      renderUwImpairmentPattern('IMP-01');
+    }, 50);
   }
 }
 
@@ -601,6 +605,24 @@ function renderModuleDossier(moduleId) {
         </button>
       </div>
     `;
+  } else if (mod.id === 'MOD_03') {
+    milestoneBannerHtml = `
+      <div class="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-2xs">
+        <div class="flex items-center gap-3">
+          <span class="p-2 bg-rose-100 text-rose-800 rounded-lg">${window.getLineIcon ? window.getLineIcon('shield', 'w-5 h-5') : ''}</span>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-rose-900 uppercase font-mono">Quy Tắc Thẩm Định Độc Lập Theo Cấp Quyền Lợi</span>
+              <span class="text-[10px] bg-rose-200 text-rose-900 font-bold px-1.5 py-0.5 rounded">Benefit-Level UW & LCA 30 Ngày</span>
+            </div>
+            <p class="text-xs text-rose-800 mt-0.5">Cơ chế thẩm định rủi ro lâm sàng & tài chính: Quyết định độc lập giữa HĐ chính và từng Rider gắn kèm. Tăng phí tử vong vượt mức (Extra Mortality % Loading), phụ phí cố định (Flat Loading), điều khoản loại trừ (Exclusion) và tự động sinh Thư thỏa thuận tăng phí <b>LCA có hiệu lực 30 ngày</b>.</p>
+          </div>
+        </div>
+        <button onclick="document.getElementById('sec-uw-interactive-engine')?.scrollIntoView({behavior: 'smooth'})" class="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl whitespace-nowrap shadow-sm transition-all">
+          Xem Bộ Tính Phí Thẩm Định Lâm Sàng →
+        </button>
+      </div>
+    `;
   } else if (mod.id === 'MOD_04') {
     milestoneBannerHtml = `
       <div class="mb-6 p-4 rounded-xl bg-purple-50 border border-purple-200 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-2xs">
@@ -686,7 +708,86 @@ function renderModuleDossier(moduleId) {
     </div>
 
 
-    <!-- SPECIALIZED FINANCE & GL WORKBENCH (Only for MOD_07) -->
+    <!-- SPECIALIZED UNDERWRITING WORKBENCH (Only for MOD_03) -->
+    ${mod.id === 'MOD_03' ? `
+      <div id="sec-uw-interactive-engine" class="mb-6 p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-5">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200 pb-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="p-1.5 bg-rose-100 text-rose-700 rounded-lg">${window.getLineIcon ? window.getLineIcon('shield-check', 'w-4 h-4') : ''}</span>
+              <h3 class="font-extrabold text-sm text-slate-900 uppercase tracking-wider">
+                Interactive Clinical Underwriting Decision & Rating Engine Simulator
+              </h3>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Simulate numerical mortality rating, extra mortality loadings, exclusion endorsements, counter-offer (LCA) terms, and delegation of authority checks.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-semibold text-slate-600">Select Clinical Impairment:</span>
+            <select id="sel-uw-impairment" onchange="renderUwImpairmentPattern(this.value)" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-navy">
+              ${(mod.clinical_impairments || []).map(imp => `<option value="${imp.id}">${imp.id}: ${imp.name}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+
+        <!-- Dynamic Clinical Rating & Counter-Offer Box -->
+        <div id="uw-impairment-detail-box" class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+          <!-- Populated by renderUwImpairmentPattern() -->
+        </div>
+
+        <!-- Non-Medical Limits & Delegation of Authority Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 text-xs pt-2">
+          <!-- Non-Medical Limits Table -->
+          <div class="p-3.5 bg-slate-50/70 rounded-xl border border-slate-200 space-y-2">
+            <span class="font-bold text-slate-900 uppercase tracking-wider text-[11px] block flex items-center gap-1.5">
+              <span>🩺</span> Non-Medical Underwriting Limits & Clinical Exam Tiers (P.149):
+            </span>
+            <div class="overflow-x-auto">
+              <table class="w-full text-[11px] text-left border-collapse">
+                <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                  <tr>
+                    <th class="p-1.5">Age Band</th>
+                    <th class="p-1.5">Max Non-Med SA</th>
+                    <th class="p-1.5">Mandatory Lab Tests</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 bg-white">
+                  ${(mod.non_medical_grid || []).map(g => `
+                    <tr>
+                      <td class="p-1.5 font-bold text-slate-900">${g.ageBand}</td>
+                      <td class="p-1.5 font-mono text-emerald-700 font-bold">${g.maxNonMed}</td>
+                      <td class="p-1.5 text-slate-600">${g.testsL2}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Delegation of Authority (DOA) Matrix -->
+          <div class="p-3.5 bg-slate-50/70 rounded-xl border border-slate-200 space-y-2">
+            <span class="font-bold text-slate-900 uppercase tracking-wider text-[11px] block flex items-center gap-1.5">
+              <span>⚖️</span> Delegation of Authority (DOA) Underwriting Limits (P.8, P.160):
+            </span>
+            <div class="space-y-1.5 text-[11px]">
+              ${(mod.doa_matrix || []).map(d => `
+                <div class="p-2 bg-white rounded-lg border border-slate-100 space-y-1 shadow-2xs">
+                  <div class="flex items-center justify-between">
+                    <span class="font-mono font-bold text-brand-navy">${d.tier}</span>
+                    <span class="font-bold text-slate-900">${d.maxSA}</span>
+                  </div>
+                  <div class="flex items-center justify-between text-[10px] text-slate-600">
+                    <span>Max Rating: <b class="text-rose-700">${d.maxEM}</b></span>
+                    <span>Flat Cap: <b class="text-amber-700">${d.flatCap}</b></span>
+                    <span>Decline Auth: <b class="${d.declineAuth.startsWith('Yes') ? 'text-red-600' : 'text-slate-500'}">${d.declineAuth}</b></span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+    ` : ''}
+
     ${mod.id === 'MOD_07' ? `
       <div id="sec-gl-interactive-engine" class="mb-6 p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-5">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200 pb-3">
@@ -2584,3 +2685,118 @@ function renderGlPattern(patternId) {
   `;
 }
 window.renderGlPattern = renderGlPattern;
+
+
+// ==============================================================
+// 4H. RENDER UNDERWRITING IMPAIRMENT SIMULATOR
+// ==============================================================
+function renderUwImpairmentPattern(impId) {
+  const box = document.getElementById('uw-impairment-detail-box');
+  if (!box || !window.EBAO_MODULES) return;
+
+  const mod03 = window.EBAO_MODULES.find(m => m.id === 'MOD_03');
+  if (!mod03 || !mod03.clinical_impairments) return;
+
+  const imp = mod03.clinical_impairments.find(i => i.id === impId) || mod03.clinical_impairments[0];
+
+  // Base assumptions
+  const baseSA = 100000;
+  const basePremium = 4800;
+  let revisedPremium = basePremium;
+  let extraMortalityAmount = 0;
+  let flatExtraAmount = 0;
+
+  if (imp.emPct > 0) {
+    extraMortalityAmount = basePremium * (imp.emPct / 100);
+    revisedPremium += extraMortalityAmount;
+  }
+  if (imp.flatRate > 0) {
+    flatExtraAmount = (baseSA / 1000) * imp.flatRate;
+    revisedPremium += flatExtraAmount;
+  }
+
+  const numericalRatingTotal = 100 + imp.debits + imp.credits;
+
+  box.innerHTML = `
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
+      <div class="flex items-center gap-2">
+        <span class="font-mono text-xs font-bold text-white bg-rose-700 px-2 py-0.5 rounded shadow-2xs">${imp.id}</span>
+        <span class="font-extrabold text-xs text-slate-900">${imp.name}</span>
+        <span class="text-[10px] font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">${imp.category}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-[10px] font-mono font-bold bg-purple-50 text-purple-700 px-2 py-0.5 rounded border border-purple-200">Required Authority: ${imp.authTier}</span>
+      </div>
+    </div>
+
+    <!-- Rating & Premium Calculation Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+      <!-- Numerical Rating Box -->
+      <div class="p-3 bg-white rounded-lg border border-slate-200 shadow-2xs space-y-1">
+        <span class="font-bold text-[11px] text-slate-500 uppercase tracking-wider block">Numerical Rating System</span>
+        <div class="flex items-center justify-between text-xs">
+          <span>Base Standard:</span>
+          <span class="font-mono font-bold text-slate-800">100%</span>
+        </div>
+        <div class="flex items-center justify-between text-xs text-rose-700">
+          <span>Clinical Debits (+):</span>
+          <span class="font-mono font-bold">+${imp.debits}%</span>
+        </div>
+        <div class="flex items-center justify-between text-xs text-emerald-700">
+          <span>Favorable Credits (-):</span>
+          <span class="font-mono font-bold">${imp.credits}%</span>
+        </div>
+        <div class="border-t border-slate-200 pt-1 flex items-center justify-between text-xs font-extrabold">
+          <span>Total Mortality:</span>
+          <span class="font-mono text-rose-800">${numericalRatingTotal}%</span>
+        </div>
+      </div>
+
+      <!-- Rating Decisions -->
+      <div class="p-3 bg-white rounded-lg border border-slate-200 shadow-2xs space-y-1">
+        <span class="font-bold text-[11px] text-slate-500 uppercase tracking-wider block">Underwriting Decision</span>
+        <div class="text-xs font-bold text-slate-900">${imp.decision}</div>
+        <div class="text-[11px] text-slate-600">
+          <span>EM Loading: </span><b class="text-rose-700">+${imp.emPct}%</b>
+        </div>
+        <div class="text-[11px] text-slate-600">
+          <span>Flat Loading: </span><b class="text-amber-700">$${imp.flatRate.toFixed(2)} / mille</b>
+        </div>
+        <div class="text-[11px] text-slate-600">
+          <span>Exclusion: </span><b class="text-purple-700">${imp.exclusion}</b>
+        </div>
+      </div>
+
+      <!-- Counter-Offer (LCA) Premium Impact -->
+      <div class="p-3 bg-white rounded-lg border border-slate-200 shadow-2xs space-y-1">
+        <span class="font-bold text-[11px] text-slate-500 uppercase tracking-wider block">Counter-Offer (LCA) Premium</span>
+        <div class="flex items-center justify-between text-xs">
+          <span>Base Annual Premium:</span>
+          <span class="font-mono text-slate-700">$${basePremium.toLocaleString()}</span>
+        </div>
+        <div class="flex items-center justify-between text-xs text-rose-700">
+          <span>Extra Mortality Loading:</span>
+          <span class="font-mono">+$${extraMortalityAmount.toLocaleString()}</span>
+        </div>
+        <div class="flex items-center justify-between text-xs text-amber-700">
+          <span>Flat Extra Premium:</span>
+          <span class="font-mono">+$${flatExtraAmount.toLocaleString()}</span>
+        </div>
+        <div class="border-t border-slate-200 pt-1 flex items-center justify-between text-xs font-extrabold text-brand-navy">
+          <span>Revised Annual Premium:</span>
+          <span class="font-mono text-sm">$${revisedPremium.toLocaleString()}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Clinical Case Details & Legal Rationale -->
+    <div class="p-3 bg-white rounded-lg border border-slate-200 text-xs space-y-1 leading-relaxed">
+      <div class="font-bold text-slate-900 flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-rose-600"></span>
+        <span>Hồ Sơ Y Khoa & Căn Cứ Thẩm Định:</span>
+      </div>
+      <p class="text-slate-600 pl-3">${imp.desc}</p>
+    </div>
+  `;
+}
+window.renderUwImpairmentPattern = renderUwImpairmentPattern;
