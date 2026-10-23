@@ -617,8 +617,8 @@ function renderModuleDossier(moduleId) {
             <p class="text-xs text-emerald-800 mt-0.5">Thời hạn 21 ngày cân nhắc (Free-Look) kích hoạt <b>ngay khi khách hàng ký nhận bàn giao (DELIVERY_DATE / e-ACK)</b>, không tính từ ngày phát hành (Issue Date). Hoàn 100% phí (trừ phí y tế) và thu hồi 100% hoa hồng đại lý.</p>
           </div>
         </div>
-        <button onclick="jumpToMilestone('card-ms-freelook')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl whitespace-nowrap shadow-sm transition-all">
-          Xem Chi Tiết Mốc 21 Ngày →
+        <button onclick="document.getElementById('sec-nb-interactive-engine')?.scrollIntoView({behavior: 'smooth'})" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl whitespace-nowrap shadow-sm transition-all">
+          Mở Bàn Làm Việc New Business & Bộ Tính Free-Look 21 Ngày →
         </button>
       </div>
     `;
@@ -752,6 +752,37 @@ function renderModuleDossier(moduleId) {
         <!-- Dynamic Container for Active Sub-mode -->
         <div id="arc-simulator-content" class="space-y-4">
           <!-- Populated dynamically by renderArcSimulator() -->
+        </div>
+      </div>
+    ` : ''}
+
+    <!-- SPECIALIZED NEW BUSINESS WORKBENCH (Only for MOD_02) -->
+    ${mod.id === 'MOD_02' ? `
+      <div id="sec-nb-interactive-engine" class="mb-6 p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-5">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200 pb-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="p-1.5 bg-emerald-100 text-emerald-700 rounded-lg">${window.getLineIcon ? window.getLineIcon('clipboard-check', 'w-4 h-4') : ''}</span>
+              <h3 class="font-extrabold text-sm text-slate-900 uppercase tracking-wider">
+                Interactive New Business Workbench & 21-Day Free-Look Simulator
+              </h3>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Giả lập chu trình tiếp nhận hồ sơ 6 giai đoạn (Reception -> Data Entry -> Verification -> UW Routing -> Suspense Match -> Enforce SOR) và bộ kiểm soát 21 ngày cân nhắc luật định (Circular 67/2023/TT-BTC).</p>
+          </div>
+          <!-- Sub-mode Tabs -->
+          <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
+            <button id="btn-nb-tab-lifecycle" onclick="renderNbSimulator('lifecycle')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-emerald-900 shadow-2xs">
+              6-Stage NB Lifecycle & STP
+            </button>
+            <button id="btn-nb-tab-freelook" onclick="renderNbSimulator('freelook')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
+              21-Day Free-Look & Settlement
+            </button>
+          </div>
+        </div>
+
+        <!-- Dynamic Container for Active Sub-mode -->
+        <div id="nb-simulator-content" class="space-y-4">
+          <!-- Populated dynamically by renderNbSimulator() -->
         </div>
       </div>
     ` : ''}
@@ -973,6 +1004,10 @@ function renderModuleDossier(moduleId) {
   if (mod.id === 'MOD_01') {
     setTimeout(() => {
       if (window.renderArcSimulator) renderArcSimulator('factory');
+    }, 50);
+  } else if (mod.id === 'MOD_02') {
+    setTimeout(() => {
+      if (window.renderNbSimulator) renderNbSimulator('lifecycle');
     }, 50);
   } else if (mod.id === 'MOD_07') {
     setTimeout(() => {
@@ -3367,3 +3402,460 @@ window.onArcGarmentChange = onArcGarmentChange;
 window.onArcTenantChange = onArcTenantChange;
 window.onArcTxOutcomeChange = onArcTxOutcomeChange;
 window.runArcPipelineSimulation = runArcPipelineSimulation;
+
+// ============================================================================
+// MODULE 02: NEW BUSINESS & POLICY ISSUANCE INTERACTIVE SIMULATOR
+// ============================================================================
+
+window.NB_SIM_STATE = {
+  currentTab: 'lifecycle',
+  currentStageIndex: 0, // 0 to 6
+  routingPath: 'STP', // STP vs MANUAL_UW
+  proposalNo: 'PROP-2026-88902',
+  policyNo: 'POL-VN-2026-00412',
+  channel: 'AGENCY', // AGENCY, BANCA, BROKER, DIRECT
+  agentCode: 'AG-88219 (Sacom Agency HCM - Active)',
+  policyholderName: 'Nguyễn Văn A (CMND 079085012345)',
+  lifeAssuredName: 'Nguyễn Văn B (Con ruột, 10 tuổi)',
+  planName: 'Sacom Bảo Gia Phúc 20Y',
+  sumAssured: 500000000,
+  periodicPremium: 19250000,
+  suspenseBalance: 19250000,
+  // Free-Look state
+  flIssueDate: '2026-10-01',
+  flDeliveryDate: '2026-10-05',
+  flDaysElapsed: 8,
+  flGrossPremium: 19250000,
+  flMedExpense: 1200000,
+  flFycRate: 40 // 40%
+};
+
+const NB_LIFECYCLE_STEPS = [
+  { index: 0, code: 'RECEPTION', name: '01. Reception', status: 'Waiting for Data Entry', badge: 'bg-blue-100 text-blue-800', desc: 'Tiếp nhận hồ sơ, kiểm tra đại lý và sinh mã Proposal No. / Policy No.' },
+  { index: 1, code: 'DATA_ENTRY', name: '02. Data Entry', status: 'Data Entry in Progress', badge: 'bg-amber-100 text-amber-800', desc: 'Nhập thông tin Bên mua, NĐBH, Người thụ hưởng 100%, câu hỏi y tế & chọn Rider.' },
+  { index: 2, code: 'VERIFICATION', name: '03. Verification', status: 'Waiting for Verification', badge: 'bg-purple-100 text-purple-800', desc: 'Maker-Checker kiểm soát độc lập tính hợp lệ của hồ sơ, đối soát AML & PEP.' },
+  { index: 3, code: 'UW_ROUTING', name: '04. Underwriting', status: 'Waiting for Underwriting', badge: 'bg-rose-100 text-rose-800', desc: 'Động cơ Auto-UW phân luồng: Chấp nhận STP tự động hoặc Chuyển bàn thẩm định thủ công.' },
+  { index: 4, code: 'SUSPENSE', name: '05. Payment Suspense', status: 'Pending Issue', badge: 'bg-yellow-100 text-yellow-800', desc: 'Đối soát khớp thu phí đầu tiên 100% và treo tại tài khoản Suspense GL 2211.' },
+  { index: 5, code: 'ENFORCE', name: '06. Enforcing & Issue', status: 'Issued / Inforce', badge: 'bg-emerald-100 text-emerald-800', desc: 'Kích hoạt lệnh Enforce, chuyển bảng SOR (t_pol_policy), xuất e-Policy PDF.' },
+  { index: 6, code: 'DELIVERY', name: '07. Delivery & e-ACK', status: 'Delivered (Free-Look Active)', badge: 'bg-teal-100 text-teal-800', desc: 'Khách hàng ký nhận e-ACK và kích hoạt đếm ngược 21 ngày cân nhắc luật định.' }
+];
+
+function renderNbSimulator(mode) {
+  if (mode) window.NB_SIM_STATE.currentTab = mode;
+  const tab = window.NB_SIM_STATE.currentTab;
+
+  const btnLifecycle = document.getElementById('btn-nb-tab-lifecycle');
+  const btnFreelook = document.getElementById('btn-nb-tab-freelook');
+  const container = document.getElementById('nb-simulator-content');
+  if (!container) return;
+
+  if (tab === 'lifecycle') {
+    if (btnLifecycle) btnLifecycle.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-emerald-900 shadow-2xs';
+    if (btnFreelook) btnFreelook.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900';
+    renderNbLifecycleView(container);
+  } else {
+    if (btnLifecycle) btnLifecycle.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900';
+    if (btnFreelook) btnFreelook.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-emerald-900 shadow-2xs';
+    renderNbFreelookView(container);
+  }
+}
+
+function renderNbLifecycleView(container) {
+  const state = window.NB_SIM_STATE;
+  const currentStep = NB_LIFECYCLE_STEPS[state.currentStageIndex];
+
+  container.innerHTML = `
+    <!-- Top Step Indicator Flow -->
+    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 overflow-x-auto">
+      <div class="flex items-center min-w-[650px] justify-between gap-1">
+        ${NB_LIFECYCLE_STEPS.map((s, idx) => {
+          const isDone = idx < state.currentStageIndex;
+          const isCurrent = idx === state.currentStageIndex;
+          let circleBg = 'bg-slate-200 text-slate-600';
+          let borderClass = 'border-transparent';
+          if (isDone) circleBg = 'bg-emerald-600 text-white';
+          if (isCurrent) circleBg = 'bg-blue-600 text-white ring-4 ring-blue-100';
+
+          return `
+            <div class="flex items-center gap-1.5 flex-1">
+              <div class="flex flex-col items-center flex-1 cursor-pointer" onclick="jumpNbStage(${idx})">
+                <div class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${circleBg} transition-all">
+                  ${isDone ? '✓' : idx + 1}
+                </div>
+                <span class="text-[10px] font-bold mt-1 text-center truncate max-w-[80px] ${isCurrent ? 'text-blue-900 font-extrabold' : isDone ? 'text-emerald-800' : 'text-slate-500'}">${s.name}</span>
+              </div>
+              ${idx < NB_LIFECYCLE_STEPS.length - 1 ? `<div class="h-0.5 flex-1 ${isDone ? 'bg-emerald-500' : 'bg-slate-200'}"></div>` : ''}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+
+    <!-- Active Stage Detail & Action Controls -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <!-- Left: Active Stage Checklist & Live Data (7 cols) -->
+      <div class="lg:col-span-7 p-4 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2">
+          <div class="flex items-center gap-2">
+            <span class="font-mono text-xs font-bold px-2 py-0.5 rounded ${currentStep.badge}">${currentStep.code}</span>
+            <span class="text-xs font-extrabold text-slate-900 uppercase">${currentStep.name}</span>
+          </div>
+          <span class="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
+            Trạng thái: ${currentStep.status}
+          </span>
+        </div>
+
+        <p class="text-xs text-slate-600 leading-relaxed">${currentStep.desc}</p>
+
+        <!-- Dynamic Snapshot Data Card -->
+        <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-2 text-xs">
+          <span class="font-bold text-[10px] text-slate-500 uppercase tracking-wider block">Dữ Liệu Hồ Sơ Thực Tế (Runtime Proposal Envelope)</span>
+          <div class="grid grid-cols-2 gap-2 text-[11px]">
+            <div><span class="text-slate-500">Mã Proposal:</span> <b class="font-mono text-blue-900">${state.proposalNo}</b></div>
+            <div><span class="text-slate-500">Mã Policy (Dự kiến):</span> <b class="font-mono text-indigo-900">${state.policyNo}</b></div>
+            <div><span class="text-slate-500">Đại lý:</span> <span class="font-semibold text-slate-800">${state.agentCode}</span></div>
+            <div><span class="text-slate-500">Bên mua (PH):</span> <span class="font-semibold text-slate-800">${state.policyholderName}</span></div>
+            <div><span class="text-slate-500">Người được BH:</span> <span class="font-semibold text-slate-800">${state.lifeAssuredName}</span></div>
+            <div><span class="text-slate-500">Sản phẩm chính:</span> <span class="font-semibold text-emerald-800">${state.planName}</span></div>
+            <div><span class="text-slate-500">Số tiền bảo hiểm:</span> <b class="font-mono text-slate-900">${state.sumAssured.toLocaleString()} VND</b></div>
+            <div><span class="text-slate-500">Phí định kỳ:</span> <b class="font-mono text-rose-800">${state.periodicPremium.toLocaleString()} VND</b></div>
+          </div>
+        </div>
+
+        <!-- Stage Specific Interactive Options -->
+        ${state.currentStageIndex === 3 ? `
+          <div class="p-3 bg-rose-50 border border-rose-200 rounded-lg space-y-2">
+            <span class="font-bold text-xs text-rose-900 block">Tùy Chọn Phân Luồng Thẩm Định (UW Routing Path):</span>
+            <div class="flex items-center gap-3 text-xs">
+              <label class="flex items-center gap-1.5 cursor-pointer">
+                <input type="radio" name="nb-uw-path" value="STP" ${state.routingPath === 'STP' ? 'checked' : ''} onchange="onNbRoutingChange('STP')" class="accent-emerald-600">
+                <span class="font-bold text-emerald-800">Straight-Through Processing (STP Tự Động)</span>
+              </label>
+              <label class="flex items-center gap-1.5 cursor-pointer">
+                <input type="radio" name="nb-uw-path" value="MANUAL_UW" ${state.routingPath === 'MANUAL_UW' ? 'checked' : ''} onchange="onNbRoutingChange('MANUAL_UW')" class="accent-rose-600">
+                <span class="font-bold text-rose-800">Referral Bàn Thẩm Định (Khám Y Tế / LCA)</span>
+              </label>
+            </div>
+            <p class="text-[10px] text-slate-600">Nếu chọn STP, hồ sơ sẽ được phát hành tự động mà không cần thẩm định viên phê duyệt thủ công.</p>
+          </div>
+        ` : ''}
+
+        ${state.currentStageIndex === 4 ? `
+          <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg space-y-2">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-yellow-900">Khớp Thu Phí Đầu Tiên (Suspense Allocation):</span>
+              <span class="font-mono font-bold text-emerald-700">Đã khớp 100%</span>
+            </div>
+            <div class="flex items-center justify-between text-[11px] text-slate-700">
+              <span>Tài khoản Treo (GL 2211 - First Premium Suspense):</span>
+              <b class="font-mono text-slate-900">${state.suspenseBalance.toLocaleString()} VND</b>
+            </div>
+            <p class="text-[10px] text-slate-600">Phí thu đầu tiên đã khớp hoàn toàn với phí định kỳ yêu cầu. Đủ điều kiện kích hoạt lệnh Enforce.</p>
+          </div>
+        ` : ''}
+
+        <!-- Control Buttons -->
+        <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+          <button onclick="resetNbLifecycle()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition-all">
+            Khởi Tạo Lại (Reset)
+          </button>
+          <div class="flex items-center gap-2">
+            ${state.currentStageIndex > 0 ? `
+              <button onclick="jumpNbStage(${state.currentStageIndex - 1})" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition-all">
+                ← Quay Lại
+              </button>
+            ` : ''}
+            <button onclick="advanceNbStage()" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-sm transition-all flex items-center gap-1.5">
+              <span>${state.currentStageIndex === 6 ? 'Hoàn Tất Chu Trình' : 'Tiếp Tục Bước Kế Tiếp →'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Audit Terminal Log (5 cols) -->
+      <div class="lg:col-span-5 p-4 bg-slate-900 text-white rounded-xl shadow-md space-y-2 font-mono text-xs flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <span class="text-xs font-bold text-emerald-400">NB Event Audit Log & SOR Sync</span>
+            <span class="text-[10px] text-slate-400">PA BS Engine</span>
+          </div>
+          <div id="nb-lifecycle-terminal" class="text-[11px] text-slate-300 space-y-1.5 max-h-72 overflow-y-auto pt-2">
+            <p class="text-slate-400">// Nhật ký chuyển trạng thái hồ sơ qua các giai đoạn...</p>
+          </div>
+        </div>
+
+        <div class="pt-2 border-t border-slate-800 text-[10px] text-slate-400 flex items-center justify-between">
+          <span>SOR Table: <b>t_pol_policy</b></span>
+          <span class="text-emerald-400 font-bold">${state.currentStageIndex >= 5 ? '● INFORCE' : '○ PENDING'}</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  renderNbLifecycleLog();
+}
+
+function renderNbLifecycleLog() {
+  const terminal = document.getElementById('nb-lifecycle-terminal');
+  if (!terminal) return;
+  const state = window.NB_SIM_STATE;
+
+  terminal.innerHTML = '';
+  const log = (msg, color = 'text-slate-300') => {
+    const p = document.createElement('p');
+    p.className = `${color} leading-relaxed`;
+    p.textContent = msg;
+    terminal.appendChild(p);
+  };
+
+  log(`[SYSTEM] Initialized Proposal Engine for ${state.proposalNo}`, 'text-blue-400 font-bold');
+  if (state.currentStageIndex >= 0) {
+    log(`[STAGE 01] Reception: Servicing Agent ${state.agentCode} verified active. Proposal No generated.`, 'text-sky-300');
+  }
+  if (state.currentStageIndex >= 1) {
+    log(`[STAGE 02] Data Entry: Policyholder & Insured insurable interest matched. Beneficiary share balanced 100%.`, 'text-yellow-300');
+  }
+  if (state.currentStageIndex >= 2) {
+    log(`[STAGE 03] Verification: Maker-Checker approval submitted. AML & PEP screening passed.`, 'text-purple-300');
+  }
+  if (state.currentStageIndex >= 3) {
+    if (state.routingPath === 'STP') {
+      log(`[STAGE 04] Underwriting: STP Rule Engine passed! Clean medical history, Auto-accepted without manual review.`, 'text-emerald-400 font-bold');
+    } else {
+      log(`[STAGE 04] Underwriting: Non-medical limit exceeded. Proposal routed to Underwriting Workbench for Senior UW assessment.`, 'text-rose-400 font-bold');
+    }
+  }
+  if (state.currentStageIndex >= 4) {
+    log(`[STAGE 05] Payment: Virtual Account deposit ${state.periodicPremium.toLocaleString()} VND received. Allocated to Suspense GL 2211.`, 'text-amber-300 font-bold');
+  }
+  if (state.currentStageIndex >= 5) {
+    log(`[STAGE 06] Enforce: PA BS executed 2PC Global Commit. Policy ${state.policyNo} persisted into SOR t_pol_policy. e-Policy PDF generated.`, 'text-emerald-300 font-bold');
+  }
+  if (state.currentStageIndex >= 6) {
+    log(`[STAGE 07] Delivery: Customer confirmed e-ACK delivery receipt. Statutory 21-Day Free-Look countdown started!`, 'text-teal-300 font-bold');
+  }
+  terminal.scrollTop = terminal.scrollHeight;
+}
+
+function advanceNbStage() {
+  if (window.NB_SIM_STATE.currentStageIndex < 6) {
+    window.NB_SIM_STATE.currentStageIndex++;
+  } else {
+    window.NB_SIM_STATE.currentStageIndex = 0;
+  }
+  renderNbSimulator('lifecycle');
+}
+
+function jumpNbStage(idx) {
+  window.NB_SIM_STATE.currentStageIndex = idx;
+  renderNbSimulator('lifecycle');
+}
+
+function resetNbLifecycle() {
+  window.NB_SIM_STATE.currentStageIndex = 0;
+  window.NB_SIM_STATE.routingPath = 'STP';
+  renderNbSimulator('lifecycle');
+}
+
+function onNbRoutingChange(val) {
+  window.NB_SIM_STATE.routingPath = val;
+  renderNbLifecycleLog();
+}
+
+function renderNbFreelookView(container) {
+  const state = window.NB_SIM_STATE;
+
+  container.innerHTML = `
+    <!-- Free-Look Regulations Alert Banner -->
+    <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span class="p-1 bg-emerald-200 text-emerald-900 rounded font-bold font-mono text-[10px]">THÔNG TƯ 67/2023/TT-BTC</span>
+        <span><b>Quy tắc 21 Ngày Cân Nhắc:</b> Kích hoạt từ ngày khách hàng ký nhận bàn giao hợp đồng (e-ACK Delivery Date), không tính từ ngày phát hành (Issue Date).</span>
+      </div>
+      <span class="text-[10px] font-mono font-bold bg-white px-2 py-0.5 rounded border border-emerald-300 text-emerald-800">Điều 35 Luật KDBH 2022</span>
+    </div>
+
+    <!-- Free-Look Interactive Dashboard -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <!-- Input Parameters (5 cols) -->
+      <div class="lg:col-span-5 p-4 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+          <span class="font-bold text-xs text-slate-900 uppercase">Thông Số Bàn Giao & Phí</span>
+          <span class="text-[10px] font-mono text-slate-400">T_POL_DELIVERY</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Ngày phát hành (Issue Date):</label>
+            <input type="date" value="${state.flIssueDate}" id="inp-fl-issue" onchange="onNbFreelookInputChange('flIssueDate', this.value)" class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono">
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Ngày ký nhận bàn giao (e-ACK):</label>
+            <input type="date" value="${state.flDeliveryDate}" id="inp-fl-delivery" onchange="onNbFreelookInputChange('flDeliveryDate', this.value)" class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono font-bold text-emerald-800">
+          </div>
+        </div>
+
+        <!-- Days Elapsed Slider -->
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="text-slate-600 font-medium">Số ngày đã trôi qua kể từ ngày nhận:</span>
+            <span id="txt-fl-days" class="font-mono font-bold text-blue-900">${state.flDaysElapsed} ngày</span>
+          </div>
+          <input type="range" min="1" max="30" value="${state.flDaysElapsed}" id="inp-fl-days" oninput="onNbFreelookInputChange('flDaysElapsed', this.value)" class="w-full accent-blue-600 cursor-pointer">
+          <div class="flex justify-between text-[10px] text-slate-400">
+            <span>Ngày 1 (Nhận bàn giao)</span>
+            <span class="font-bold text-emerald-700">Ngày 21 (Hết hạn luật định)</span>
+            <span>Ngày 30</span>
+          </div>
+        </div>
+
+        <!-- Gross Premium -->
+        <div>
+          <label class="block text-[11px] font-medium text-slate-600 mb-1">Phí bảo hiểm thực nộp (Gross Premium):</label>
+          <input type="number" step="1000000" value="${state.flGrossPremium}" id="inp-fl-premium" onchange="onNbFreelookInputChange('flGrossPremium', this.value)" class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono font-bold text-slate-900">
+        </div>
+
+        <!-- Medical Expense -->
+        <div>
+          <label class="block text-[11px] font-medium text-slate-600 mb-1">Chi phí khám sức khỏe DNBH đã chi (Med Fee):</label>
+          <input type="number" step="100000" value="${state.flMedExpense}" id="inp-fl-med" onchange="onNbFreelookInputChange('flMedExpense', this.value)" class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono font-bold text-rose-700">
+          <span class="text-[10px] text-slate-400">Được phép khấu trừ theo quy định của Bộ Tài chính</span>
+        </div>
+      </div>
+
+      <!-- Output Settlement Dashboard (7 cols) -->
+      <div class="lg:col-span-7 p-4 bg-slate-900 text-white rounded-xl shadow-md space-y-4 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Kết Quả Đối Soát Thời Hạn & Hoàn Phí 21 Ngày</span>
+            <span id="fl-status-badge" class="text-[10px] font-mono px-2 py-0.5 rounded font-bold">CALCULATING</span>
+          </div>
+
+          <!-- Dynamic Output Container -->
+          <div id="fl-output-calculation-box" class="pt-3 space-y-3">
+            <!-- Populated dynamically by calculateNbFreelook() -->
+          </div>
+        </div>
+
+        <!-- GL Reversal Entry Preview -->
+        <div id="fl-gl-reversal-box" class="pt-3 border-t border-slate-800 text-xs space-y-1.5 font-mono text-[11px]">
+          <!-- Populated dynamically by calculateNbFreelook() -->
+        </div>
+      </div>
+    </div>
+  `;
+
+  calculateNbFreelook();
+}
+
+function onNbFreelookInputChange(field, val) {
+  if (field === 'flDaysElapsed') {
+    window.NB_SIM_STATE.flDaysElapsed = parseInt(val) || 1;
+    const txt = document.getElementById('txt-fl-days');
+    if (txt) txt.textContent = `${window.NB_SIM_STATE.flDaysElapsed} ngày`;
+  } else if (field === 'flIssueDate') {
+    window.NB_SIM_STATE.flIssueDate = val;
+  } else if (field === 'flDeliveryDate') {
+    window.NB_SIM_STATE.flDeliveryDate = val;
+  } else if (field === 'flGrossPremium') {
+    window.NB_SIM_STATE.flGrossPremium = parseFloat(val) || 0;
+  } else if (field === 'flMedExpense') {
+    window.NB_SIM_STATE.flMedExpense = parseFloat(val) || 0;
+  }
+  calculateNbFreelook();
+}
+
+function calculateNbFreelook() {
+  const state = window.NB_SIM_STATE;
+  const outBox = document.getElementById('fl-output-calculation-box');
+  const glBox = document.getElementById('fl-gl-reversal-box');
+  const badge = document.getElementById('fl-status-badge');
+  if (!outBox) return;
+
+  const days = state.flDaysElapsed;
+  const isWithinFreeLook = days <= 21;
+  const daysLeft = Math.max(0, 21 - days);
+  const gross = state.flGrossPremium;
+  const med = state.flMedExpense;
+  const netRefund = Math.max(0, gross - med);
+  const clawbackFyc = gross * (state.flFycRate / 100);
+
+  if (badge) {
+    if (isWithinFreeLook) {
+      badge.className = 'text-[10px] font-mono px-2 py-0.5 rounded font-bold bg-emerald-900/60 text-emerald-300 border border-emerald-500';
+      badge.textContent = `CÒN ${daysLeft} NGÀY CÂN NHẮC`;
+    } else {
+      badge.className = 'text-[10px] font-mono px-2 py-0.5 rounded font-bold bg-rose-900/60 text-rose-300 border border-rose-500';
+      badge.textContent = `QUÁ HẠN ${days - 21} NGÀY (HẾT HIỆU LỰC HỦY)`;
+    }
+  }
+
+  outBox.innerHTML = `
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+      <div class="p-2.5 bg-slate-800 rounded-lg">
+        <span class="text-[10px] text-slate-400 block">Số ngày đã nhận HĐ:</span>
+        <span class="font-mono font-bold ${isWithinFreeLook ? 'text-yellow-400' : 'text-rose-400'} text-sm">${days} / 21 ngày</span>
+      </div>
+      <div class="p-2.5 bg-slate-800 rounded-lg">
+        <span class="text-[10px] text-slate-400 block">Chi phí y tế khấu trừ:</span>
+        <span class="font-mono font-bold text-rose-400 text-sm">-${Math.round(med).toLocaleString()} VND</span>
+      </div>
+      <div class="p-2.5 bg-slate-800 rounded-lg col-span-2 sm:col-span-1">
+        <span class="text-[10px] text-slate-400 block">Thu hồi hoa hồng (100% FYC):</span>
+        <span class="font-mono font-bold text-purple-300 text-sm">${Math.round(clawbackFyc).toLocaleString()} VND</span>
+      </div>
+    </div>
+
+    <!-- Highlighted Settlement Result Box -->
+    <div class="p-3 ${isWithinFreeLook ? 'bg-emerald-950/80 border-emerald-600/50' : 'bg-slate-800/80 border-slate-700'} border rounded-xl flex items-center justify-between">
+      <div>
+        <span class="text-[10px] ${isWithinFreeLook ? 'text-emerald-300' : 'text-slate-400'} uppercase font-bold tracking-wider block">
+          ${isWithinFreeLook ? 'Số Tiền Thực Hoàn Cho Khách Hàng (Net Refund)' : 'Quyền Lợi Hủy Bỏ Hợp Đồng'}
+        </span>
+        <span class="text-xs text-slate-300">
+          ${isWithinFreeLook ? 'Công thức: Phí thực nộp - Chi phí khám y khoa hợp lệ' : 'Hợp đồng chính thức xác lập hiệu lực không thể hủy hoàn phí'}
+        </span>
+      </div>
+      <span class="font-mono text-xl font-extrabold ${isWithinFreeLook ? 'text-emerald-400' : 'text-slate-500'}">
+        ${isWithinFreeLook ? `${Math.round(netRefund).toLocaleString()} VND` : '0 VND (Theo CSV)'}
+      </span>
+    </div>
+  `;
+
+  if (glBox) {
+    if (isWithinFreeLook) {
+      glBox.innerHTML = `
+        <div class="flex items-center justify-between text-slate-400 pb-1">
+          <span class="font-bold text-slate-300 uppercase tracking-wide">Bút Toán Đảo Sổ Phụ GL Khi Hủy 21 Ngày (Module 07 Sync)</span>
+          <span class="text-[10px] text-emerald-400">Auto-Generated</span>
+        </div>
+        <div class="space-y-1 text-slate-300 bg-slate-950 p-2.5 rounded-lg border border-slate-800">
+          <div class="flex justify-between"><span>Nợ TK 4111 (Doanh thu phí khai thác giảm):</span> <span class="text-yellow-400 font-bold">${Math.round(gross).toLocaleString()} VND</span></div>
+          <div class="flex justify-between"><span>Có TK 1111 (Tiền hoàn trả khách hàng):</span> <span class="text-emerald-400 font-bold">${Math.round(netRefund).toLocaleString()} VND</span></div>
+          <div class="flex justify-between"><span>Có TK 6211 (Thu hồi chi phí y tế đã chi):</span> <span class="text-rose-400 font-bold">${Math.round(med).toLocaleString()} VND</span></div>
+          <div class="flex justify-between border-t border-slate-800 pt-1 text-purple-300">
+            <span>Nợ TK 1388 (Thu hồi hoa hồng đại lý FYC) / Có TK 6411:</span>
+            <span class="font-bold">${Math.round(clawbackFyc).toLocaleString()} VND</span>
+          </div>
+        </div>
+      `;
+    } else {
+      glBox.innerHTML = `
+        <div class="p-2.5 bg-slate-800/80 rounded-lg text-slate-400 text-center">
+          <span>Hợp đồng đã vượt qua mốc 21 ngày cân nhắc. <b>Mọi yêu cầu chấm dứt hợp đồng sau mốc này sẽ được xử lý theo Giá trị hoàn lại (Surrender Cash Value) tại Module 05.</b></span>
+        </div>
+      `;
+    }
+  }
+}
+
+// Make functions globally available
+window.renderNbSimulator = renderNbSimulator;
+window.renderNbLifecycleView = renderNbLifecycleView;
+window.renderNbFreelookView = renderNbFreelookView;
+window.advanceNbStage = advanceNbStage;
+window.jumpNbStage = jumpNbStage;
+window.resetNbLifecycle = resetNbLifecycle;
+window.onNbRoutingChange = onNbRoutingChange;
+window.onNbFreelookInputChange = onNbFreelookInputChange;
+window.calculateNbFreelook = calculateNbFreelook;
