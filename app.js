@@ -671,8 +671,8 @@ function renderModuleDossier(moduleId) {
             <p class="text-xs text-amber-800 mt-0.5">Tiến trình 60 ngày gia hạn: Bảo hiểm 100% hiệu lực, gửi thông báo nhắc phí ngày 30 và cảnh báo ngày 45. Đúng 23:59:59 ngày thứ 60, hệ thống tự động kiểm tra Net Cash Value: <b>Thực hiện APL (Vay đóng phí) hoặc Mất hiệu lực (Auto-Lapse)</b>.</p>
           </div>
         </div>
-        <button onclick="jumpToMilestone('card-ms-grace')" class="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg whitespace-nowrap shadow-sm transition-all">
-          Xem Chi Tiết Mốc 60 Ngày & APL →
+        <button onclick="document.getElementById('sec-bcp-interactive-engine')?.scrollIntoView({behavior: 'smooth'})" class="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg whitespace-nowrap shadow-sm transition-all">
+          Mở Bàn Làm Việc Billing & Bộ Tính Grace Period 60 Ngày →
         </button>
       </div>
     `;
@@ -901,6 +901,37 @@ function renderModuleDossier(moduleId) {
       </div>
     ` : ''}
 
+    <!-- SPECIALIZED BILLING, COLLECTION & PAYMENT WORKBENCH (Only for MOD_05) -->
+    ${mod.id === 'MOD_05' ? `
+      <div id="sec-bcp-interactive-engine" class="mb-6 p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-5">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200 pb-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="p-1.5 bg-amber-100 text-amber-800 rounded-lg">${window.getLineIcon ? window.getLineIcon('clock', 'w-4 h-4') : ''}</span>
+              <h3 class="font-extrabold text-sm text-slate-900 uppercase tracking-wider">
+                Interactive Billing, Collection & 60-Day Grace Engine Simulator
+              </h3>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Giả lập chu trình 60 ngày gia hạn đóng phí luật định (Điều 37 Luật KDBH 2022), các mốc nhắc phí ngày 30, cảnh báo ngày 45, quyết định nửa đêm EOD Cutoff (APL vs Auto-Lapse) và đối soát tài khoản treo Suspense GL 2211.</p>
+          </div>
+          <!-- Sub-mode Tabs -->
+          <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
+            <button id="btn-bcp-tab-grace" onclick="renderBcpSimulator('grace')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-amber-900 shadow-2xs">
+              60-Day Grace & APL Decision
+            </button>
+            <button id="btn-bcp-tab-collection" onclick="renderBcpSimulator('collection')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
+              Collection Allocation & Suspense GL 2211
+            </button>
+          </div>
+        </div>
+
+        <!-- Dynamic Container for Active Sub-mode -->
+        <div id="bcp-simulator-content" class="space-y-4">
+          <!-- Populated dynamically by renderBcpSimulator() -->
+        </div>
+      </div>
+    ` : ''}
+
     ${mod.id === 'MOD_07' ? `
       <div id="sec-gl-interactive-engine" class="mb-6 p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-5">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200 pb-3">
@@ -1054,6 +1085,10 @@ function renderModuleDossier(moduleId) {
   } else if (mod.id === 'MOD_03') {
     setTimeout(() => {
       if (window.renderUwImpairmentPattern) renderUwImpairmentPattern('IMP-01');
+    }, 50);
+  } else if (mod.id === 'MOD_05') {
+    setTimeout(() => {
+      if (window.renderBcpSimulator) renderBcpSimulator('grace');
     }, 50);
   }
 }
@@ -4460,3 +4495,479 @@ window.onCsMidtermRiderChange = onCsMidtermRiderChange;
 window.onCsMidtermDateChange = onCsMidtermDateChange;
 window.onCsMidtermTypeChange = onCsMidtermTypeChange;
 window.calculateCsMidtermProRata = calculateCsMidtermProRata;
+
+// ============================================================================
+// MODULE 05: BILLING, COLLECTION & PAYMENT INTERACTIVE SIMULATOR
+// ============================================================================
+
+window.BCP_SIM_STATE = {
+  currentTab: 'grace',
+  // Grace Period Engine State
+  dueDate: '2026-10-01',
+  modalPremium: 19250000,
+  graceDaysElapsed: 32, // Default: Day 32 in Grace
+  guaranteedCsv: 35000000,
+  existingLoanDebt: 5000000,
+  aplAllowed: true,
+  // Collection Allocation State
+  collectionChannel: 'VIRTUAL_ACCOUNT', // VIRTUAL_ACCOUNT, DIRECT_DEBIT, COUNTER_CASH
+  receivedAmount: 19250000,
+  collectionMatchStatus: 'MATCHED' // MATCHED, UNDERFUNDED, UNMATCHED
+};
+
+function renderBcpSimulator(mode) {
+  if (mode) window.BCP_SIM_STATE.currentTab = mode;
+  const tab = window.BCP_SIM_STATE.currentTab;
+
+  const btnGrace = document.getElementById('btn-bcp-tab-grace');
+  const btnCol = document.getElementById('btn-bcp-tab-collection');
+  const container = document.getElementById('bcp-simulator-content');
+  if (!container) return;
+
+  if (tab === 'grace') {
+    if (btnGrace) btnGrace.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-amber-900 shadow-2xs';
+    if (btnCol) btnCol.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900';
+    renderBcpGraceView(container);
+  } else {
+    if (btnGrace) btnGrace.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900';
+    if (btnCol) btnCol.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-amber-900 shadow-2xs';
+    renderBcpCollectionView(container);
+  }
+}
+
+function renderBcpGraceView(container) {
+  const state = window.BCP_SIM_STATE;
+
+  container.innerHTML = `
+    <!-- Top Regulations Banner -->
+    <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span class="p-1 bg-amber-200 text-amber-900 rounded font-bold font-mono text-[10px]">ĐIỀU 37 LUẬT KDBH 2022</span>
+        <span><b>Thời Gian Gia Hạn Đóng Phí 60 Ngày:</b> Hợp đồng giữ nguyên hiệu lực bảo vệ 100%. Nếu tử vong trong thời gian này, bồi thường đầy đủ sau khi trừ phí nợ. Đến 23:59:59 ngày thứ 60: APL hoặc Mất hiệu lực (Lapsed).</span>
+      </div>
+      <span class="text-[10px] font-mono font-bold bg-white px-2 py-0.5 rounded border border-amber-300 text-amber-800">Job: JOB_GRACE_PERIOD_EVAL</span>
+    </div>
+
+    <!-- Grace Engine Interactive Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <!-- Input Parameters (5 cols) -->
+      <div class="lg:col-span-5 p-4 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+          <span class="font-bold text-xs text-slate-900 uppercase">Thông Số Hóa Đơn & Giá Trị Hoàn Lại</span>
+          <span class="text-[10px] font-mono text-slate-400">T_POL_POLICY</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Ngày đến hạn (Due Date):</label>
+            <input type="date" value="${state.dueDate}" id="inp-bcp-due" onchange="onBcpGraceInputChange('dueDate', this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono font-bold text-slate-800">
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Phí định kỳ phải đóng:</label>
+            <input type="number" step="1000000" value="${state.modalPremium}" id="inp-bcp-prem" onchange="onBcpGraceInputChange('modalPremium', this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono font-bold text-amber-800">
+          </div>
+        </div>
+
+        <!-- Grace Days Slider -->
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="text-slate-600 font-medium">Số ngày gia hạn đã trôi qua (Grace Days):</span>
+            <span id="txt-bcp-grace-days" class="font-mono font-bold text-blue-900">${state.graceDaysElapsed} ngày</span>
+          </div>
+          <input type="range" min="0" max="65" value="${state.graceDaysElapsed}" id="inp-bcp-days" oninput="onBcpGraceInputChange('graceDaysElapsed', this.value)" class="w-full accent-amber-600 cursor-pointer">
+          <div class="flex justify-between text-[10px] text-slate-400">
+            <span>Ngày 0 (Due)</span>
+            <span class="text-yellow-700 font-semibold">Ngày 30 (Nhắc 1)</span>
+            <span class="text-rose-700 font-semibold">Ngày 45 (Cảnh báo 2)</span>
+            <span class="text-purple-700 font-bold">Ngày 60 (Cutoff)</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Giá trị hoàn lại gốc (CSV):</label>
+            <input type="number" step="5000000" value="${state.guaranteedCsv}" id="inp-bcp-csv" onchange="onBcpGraceInputChange('guaranteedCsv', this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono">
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Dư nợ vay hợp đồng hiện tại:</label>
+            <input type="number" step="1000000" value="${state.existingLoanDebt}" id="inp-bcp-debt" onchange="onBcpGraceInputChange('existingLoanDebt', this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono text-rose-700">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-medium text-slate-600 mb-1">Điều khoản Tự động tạm ứng đóng phí (APL):</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="onBcpGraceInputChange('aplAllowed', true)" class="py-1.5 text-xs font-bold rounded-lg border transition-all ${state.aplAllowed ? 'bg-amber-600 text-white border-amber-600 shadow-2xs' : 'bg-slate-50 text-slate-700 border-slate-200'}">
+              Bật tính năng APL (Truyền thống)
+            </button>
+            <button onclick="onBcpGraceInputChange('aplAllowed', false)" class="py-1.5 text-xs font-bold rounded-lg border transition-all ${!state.aplAllowed ? 'bg-rose-600 text-white border-rose-600 shadow-2xs' : 'bg-slate-50 text-slate-700 border-slate-200'}">
+              Tắt APL (Tử kỳ / ILP / Hết CSV)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Output Dashboard & Midnight EOD Decision (7 cols) -->
+      <div class="lg:col-span-7 p-4 bg-slate-900 text-white rounded-xl shadow-md space-y-4 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Trạng Thái Gia Hạn & Quyết Định Nửa Đêm EOD</span>
+            <span id="bcp-grace-status-badge" class="text-[10px] font-mono px-2 py-0.5 rounded font-bold">MONITORING</span>
+          </div>
+
+          <div id="bcp-grace-output-box" class="pt-3 space-y-3">
+            <!-- Populated dynamically by calculateBcpGrace() -->
+          </div>
+        </div>
+
+        <!-- Claim in Grace Protection & GL Entry Box -->
+        <div id="bcp-grace-claim-box" class="pt-3 border-t border-slate-800 text-xs space-y-1.5 font-mono text-[11px]">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </div>
+  `;
+
+  calculateBcpGrace();
+}
+
+function onBcpGraceInputChange(field, val) {
+  if (field === 'graceDaysElapsed') {
+    window.BCP_SIM_STATE.graceDaysElapsed = parseInt(val) || 0;
+    const txt = document.getElementById('txt-bcp-grace-days');
+    if (txt) txt.textContent = `${window.BCP_SIM_STATE.graceDaysElapsed} ngày`;
+  } else if (field === 'modalPremium' || field === 'guaranteedCsv' || field === 'existingLoanDebt') {
+    window.BCP_SIM_STATE[field] = parseFloat(val) || 0;
+  } else if (field === 'aplAllowed') {
+    window.BCP_SIM_STATE.aplAllowed = val;
+    renderBcpSimulator('grace');
+    return;
+  } else {
+    window.BCP_SIM_STATE[field] = val;
+  }
+  calculateBcpGrace();
+}
+
+function calculateBcpGrace() {
+  const state = window.BCP_SIM_STATE;
+  const outBox = document.getElementById('bcp-grace-output-box');
+  const claimBox = document.getElementById('bcp-grace-claim-box');
+  const badge = document.getElementById('bcp-grace-status-badge');
+  if (!outBox) return;
+
+  const days = state.graceDaysElapsed;
+  const prem = state.modalPremium;
+  const netCsv = Math.max(0, state.guaranteedCsv - state.existingLoanDebt);
+  const daysLeft = Math.max(0, 60 - days);
+
+  let statusText = '';
+  let statusBadgeClass = '';
+  let decisionTitle = '';
+  let decisionDesc = '';
+
+  if (days < 30) {
+    statusText = 'BÌNH THƯỜNG (TRONG KỲ GIA HẠN)';
+    statusBadgeClass = 'bg-blue-900/60 text-blue-300 border border-blue-500';
+    decisionTitle = 'Đang trong Thời hạn Gia hạn Đóng phí (Grace Period Active)';
+    decisionDesc = 'Hợp đồng bảo vệ 100% quyền lợi. Chưa đến hạn gửi thông báo nhắc nhở đợt 1.';
+  } else if (days < 45) {
+    statusText = 'ĐÃ GỬI NHẮC PHÍ LẦN 1 (DAY 30)';
+    statusBadgeClass = 'bg-yellow-900/60 text-yellow-300 border border-yellow-500';
+    decisionTitle = 'Đã Phát Hành Thông Báo Nhắc Phí Lần 1 (NOTICE_PREM_REMIND_1)';
+    decisionDesc = 'Hệ thống đã tự động gửi SMS & Email nhắc khách hàng thanh toán phí tái tục kèm link VietQR.';
+  } else if (days <= 60) {
+    statusText = 'CẢNH BÁO MẤT HIỆU LỰC (DAY 45)';
+    statusBadgeClass = 'bg-rose-900/60 text-rose-300 border border-rose-500';
+    decisionTitle = 'Cảnh Báo Nguy Cơ Mất Hiệu Lực Lần 2 (NOTICE_PREM_WARNING_FINAL)';
+    decisionDesc = `Còn ${daysLeft} ngày trước mốc cắt giờ Midnight EOD. Đại lý phục vụ và CS trực tiếp liên hệ khách hàng.`;
+  } else {
+    // Days > 60: Midnight Cutoff Reached
+    if (state.aplAllowed && netCsv >= prem) {
+      statusText = 'ĐÃ KÍCH HOẠT APL (VAY ĐÓNG PHÍ)';
+      statusBadgeClass = 'bg-purple-900/60 text-purple-300 border border-purple-500';
+      decisionTitle = 'Tự Động Kích Hoạt Quyền Chọn APL (Automatic Premium Loan)';
+      decisionDesc = 'Net CSV đủ điều kiện. Tự động tạm ứng phí từ CSV để đóng phí tái tục, hợp đồng tiếp tục INFORCE_APL!';
+    } else {
+      statusText = 'ĐÃ MẤT HIỆU LỰC (AUTO-LAPSE)';
+      statusBadgeClass = 'bg-red-900/60 text-red-300 border border-red-500';
+      decisionTitle = 'Hợp Đồng Chính Thức Bị Mất Hiệu Lực (LAPSED) Lúc 23:59:59 Ngày 60';
+      decisionDesc = 'Không đủ Net CSV để thực hiện APL. Chấm dứt trách nhiệm bảo vệ; bắt đầu cửa sổ 24 tháng khôi phục.';
+    }
+  }
+
+  if (badge) {
+    badge.className = `text-[10px] font-mono px-2 py-0.5 rounded font-bold ${statusBadgeClass}`;
+    badge.textContent = statusText;
+  }
+
+  outBox.innerHTML = `
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+      <div class="p-2.5 bg-slate-800 rounded-lg">
+        <span class="text-[10px] text-slate-400 block">Số ngày gia hạn:</span>
+        <span class="font-mono font-bold ${days <= 60 ? 'text-yellow-400' : 'text-rose-400'} text-sm">${days} / 60 ngày</span>
+      </div>
+      <div class="p-2.5 bg-slate-800 rounded-lg">
+        <span class="text-[10px] text-slate-400 block">Giá trị hoàn lại ròng (Net CSV):</span>
+        <span class="font-mono font-bold text-emerald-400 text-sm">${Math.round(netCsv).toLocaleString()} VND</span>
+      </div>
+      <div class="p-2.5 bg-slate-800 rounded-lg col-span-2 sm:col-span-1">
+        <span class="text-[10px] text-slate-400 block">Số ngày còn lại:</span>
+        <span class="font-mono font-bold text-white text-sm">${daysLeft} ngày</span>
+      </div>
+    </div>
+
+    <!-- Highlighted Decision Box -->
+    <div class="p-3 bg-slate-800/90 border border-slate-700 rounded-xl space-y-1">
+      <div class="font-bold text-sm text-amber-300">${decisionTitle}</div>
+      <p class="text-xs text-slate-300 leading-relaxed">${decisionDesc}</p>
+    </div>
+  `;
+
+  if (claimBox) {
+    if (days <= 60) {
+      const claimSa = 500000000;
+      const netClaim = claimSa - prem;
+      claimBox.innerHTML = `
+        <div class="flex items-center justify-between text-slate-400 pb-1">
+          <span class="font-bold text-emerald-400 uppercase tracking-wide">Quy Tắc Bảo Vệ Bồi Thường Trong 60 Ngày Gia Hạn (P.350)</span>
+          <span class="text-[10px] text-emerald-400 font-bold">100% HIỆU LỰC</span>
+        </div>
+        <div class="space-y-1 text-slate-300 bg-slate-950 p-2.5 rounded-lg border border-slate-800">
+          <div class="flex justify-between"><span>Số tiền bảo hiểm tử vong cam kết:</span> <span class="text-white font-bold">${claimSa.toLocaleString()} VND</span></div>
+          <div class="flex justify-between text-rose-400"><span>Cấn trừ phí bảo hiểm chưa nộp:</span> <span class="font-bold">-${prem.toLocaleString()} VND</span></div>
+          <div class="flex justify-between border-t border-slate-800 pt-1 text-emerald-400 font-bold">
+            <span>Số tiền thực chi trả cho Người thụ hưởng:</span>
+            <span>${netClaim.toLocaleString()} VND</span>
+          </div>
+        </div>
+      `;
+    } else {
+      if (state.aplAllowed && netCsv >= prem) {
+        claimBox.innerHTML = `
+          <div class="flex items-center justify-between text-slate-400 pb-1">
+            <span class="font-bold text-purple-400 uppercase tracking-wide">Hạch Toán Khoản Vay APL Tự Động (GL Sync)</span>
+            <span class="text-[10px] text-purple-300 font-bold">INFORCE_APL</span>
+          </div>
+          <div class="space-y-1 text-slate-300 bg-slate-950 p-2.5 rounded-lg border border-slate-800">
+            <div class="flex justify-between"><span>Nợ TK 1288 (Khoản vay hợp đồng APL):</span> <span class="text-yellow-400 font-bold">${prem.toLocaleString()} VND</span></div>
+            <div class="flex justify-between"><span>Có TK 4111 (Doanh thu phí tái tục):</span> <span class="text-emerald-400 font-bold">${prem.toLocaleString()} VND</span></div>
+            <p class="text-[10px] text-slate-400 pt-1">Hợp đồng tiếp tục được bảo vệ đến kỳ đóng phí tiếp theo. Lãi suất tính gộp 6.5%/năm.</p>
+          </div>
+        `;
+      } else {
+        claimBox.innerHTML = `
+          <div class="p-2.5 bg-red-950/80 rounded-lg text-rose-300 border border-red-800 text-center">
+            <span>Hợp đồng đã chính thức mất hiệu lực. <b>Mọi sự kiện bảo hiểm phát sinh từ thời điểm này sẽ bị từ chối chi trả bồi thường.</b> Khách hàng có 24 tháng để làm thủ tục khôi phục (Reinstatement) tại Module 04.</span>
+          </div>
+        `;
+      }
+    }
+  }
+}
+
+function renderBcpCollectionView(container) {
+  const state = window.BCP_SIM_STATE;
+
+  container.innerHTML = `
+    <!-- Top Direct Debit / Suspense Header -->
+    <div class="p-3 bg-blue-50 rounded-xl border border-blue-200 text-xs text-blue-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span class="p-1 bg-blue-200 text-blue-900 rounded font-bold font-mono text-[10px]">SUSPENSE GL 2211</span>
+        <span><b>Quy tắc Quản lý Tài khoản Treo Thu Phí:</b> Mọi khoản thu vào đều ghi Có TK 2211. Chỉ khi phân bổ khớp 100% với hóa đơn mới chuyển sang Có TK 4111 (Doanh thu phí) và nâng PTD.</span>
+      </div>
+      <span class="text-[10px] font-mono font-bold bg-white px-2 py-0.5 rounded border border-blue-300 text-blue-800">P.359-368 Gemini User Guide</span>
+    </div>
+
+    <!-- Collection Intake Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <!-- Input Controls (5 cols) -->
+      <div class="lg:col-span-5 p-4 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+          <span class="font-bold text-xs text-slate-900 uppercase">Kênh Thu Tiền & Số Tiền Thực Nhận</span>
+          <span class="text-[10px] font-mono text-slate-400">T_BCP_COLLECTION</span>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-medium text-slate-600 mb-1">Kênh thu tiền (Intake Channel):</label>
+          <select id="sel-bcp-channel" onchange="onBcpColChannelChange(this.value)" class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg p-2 font-bold text-slate-800">
+            <option value="VIRTUAL_ACCOUNT" ${state.collectionChannel === 'VIRTUAL_ACCOUNT' ? 'selected' : ''}>Virtual Account (VietQR / NAPAS 247 Instant)</option>
+            <option value="DIRECT_DEBIT" ${state.collectionChannel === 'DIRECT_DEBIT' ? 'selected' : ''}>Direct Debit Clearing Batch File (Ngân hàng đối tác)</option>
+            <option value="COUNTER_CASH" ${state.collectionChannel === 'COUNTER_CASH' ? 'selected' : ''}>Tiền mặt / Thẻ POS tại Quầy CS (Manual Cashier)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-medium text-slate-600 mb-1">Số tiền thực nộp (Amount Received):</label>
+          <input type="number" step="1000000" value="${state.receivedAmount}" id="inp-bcp-amt" onchange="onBcpColAmtChange(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono font-bold text-slate-900">
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-medium text-slate-600 mb-1">Kịch bản đối soát (Matching Scenario):</label>
+          <div class="grid grid-cols-3 gap-1.5">
+            <button onclick="onBcpColMatchScenario('MATCHED')" class="py-1.5 text-center text-xs font-bold rounded-lg border transition-all ${state.collectionMatchStatus === 'MATCHED' ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-slate-50 text-slate-700 border-slate-200'}">
+              Khớp 100%<br/><span class="text-[9px] font-normal opacity-90">(Chuẩn hóa)</span>
+            </button>
+            <button onclick="onBcpColMatchScenario('UNDERFUNDED')" class="py-1.5 text-center text-xs font-bold rounded-lg border transition-all ${state.collectionMatchStatus === 'UNDERFUNDED' ? 'bg-amber-600 text-white border-amber-600 shadow-2xs' : 'bg-slate-50 text-slate-700 border-slate-200'}">
+              Thiếu tiền<br/><span class="text-[9px] font-normal opacity-90">(Dưới kỳ phí)</span>
+            </button>
+            <button onclick="onBcpColMatchScenario('UNMATCHED')" class="py-1.5 text-center text-xs font-bold rounded-lg border transition-all ${state.collectionMatchStatus === 'UNMATCHED' ? 'bg-rose-600 text-white border-rose-600 shadow-2xs' : 'bg-slate-50 text-slate-700 border-slate-200'}">
+              Sai cú pháp<br/><span class="text-[9px] font-normal opacity-90">(Unmatched Pool)</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-xs space-y-1">
+          <div class="flex justify-between"><span>Số hợp đồng đích:</span> <b class="font-mono text-slate-800">POL-2026-88001</b></div>
+          <div class="flex justify-between"><span>Mức phí kỳ yêu cầu:</span> <b class="font-mono text-slate-800">19,250,000 VND</b></div>
+          <div class="flex justify-between"><span>Kỳ đóng phí PTD:</span> <span class="font-mono text-slate-500">2026-10-01 -> 2027-10-01</span></div>
+        </div>
+      </div>
+
+      <!-- Live Settlement Output (7 cols) -->
+      <div class="lg:col-span-7 p-4 bg-slate-900 text-white rounded-xl shadow-md space-y-4 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-sky-400">Kết Quả Phân Bổ Tiền & Cập Nhật PTD</span>
+            <span id="bcp-col-status-badge" class="text-[10px] font-mono px-2 py-0.5 rounded font-bold">SETTLING</span>
+          </div>
+
+          <div id="bcp-col-output-box" class="pt-3 space-y-3">
+            <!-- Computed dynamically in calculateBcpCollection() -->
+          </div>
+        </div>
+
+        <!-- GL Voucher Sync Preview -->
+        <div id="bcp-col-gl-box" class="pt-3 border-t border-slate-800 text-xs space-y-1.5 font-mono text-[11px]">
+          <!-- Computed dynamically -->
+        </div>
+      </div>
+    </div>
+  `;
+
+  calculateBcpCollection();
+}
+
+function onBcpColChannelChange(val) {
+  window.BCP_SIM_STATE.collectionChannel = val;
+}
+
+function onBcpColAmtChange(val) {
+  window.BCP_SIM_STATE.receivedAmount = parseFloat(val) || 0;
+  calculateBcpCollection();
+}
+
+function onBcpColMatchScenario(status) {
+  window.BCP_SIM_STATE.collectionMatchStatus = status;
+  if (status === 'UNDERFUNDED') {
+    window.BCP_SIM_STATE.receivedAmount = 10000000; // less than 19.25M
+  } else if (status === 'MATCHED') {
+    window.BCP_SIM_STATE.receivedAmount = 19250000;
+  }
+  renderBcpSimulator('collection');
+}
+
+function calculateBcpCollection() {
+  const state = window.BCP_SIM_STATE;
+  const outBox = document.getElementById('bcp-col-output-box');
+  const glBox = document.getElementById('bcp-col-gl-box');
+  const badge = document.getElementById('bcp-col-status-badge');
+  if (!outBox) return;
+
+  const required = 19250000;
+  const received = state.receivedAmount;
+
+  if (state.collectionMatchStatus === 'MATCHED' && received >= required) {
+    if (badge) {
+      badge.className = 'text-[10px] font-mono px-2 py-0.5 rounded font-bold bg-emerald-900/60 text-emerald-300 border border-emerald-500';
+      badge.textContent = 'SETTLED & PTD ADVANCED';
+    }
+
+    outBox.innerHTML = `
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <div class="p-2.5 bg-slate-800 rounded-lg">
+          <span class="text-[10px] text-slate-400 block">Số tiền nộp khớp:</span>
+          <span class="font-mono font-bold text-emerald-400 text-sm">${received.toLocaleString()} VND</span>
+        </div>
+        <div class="p-2.5 bg-slate-800 rounded-lg">
+          <span class="text-[10px] text-slate-400 block">Ngày PTD mới:</span>
+          <span class="font-mono font-bold text-sky-400 text-sm">2027-10-01 (+1 Năm)</span>
+        </div>
+      </div>
+
+      <div class="p-3 bg-emerald-950/80 border border-emerald-600/50 rounded-xl space-y-1">
+        <span class="text-xs font-bold text-emerald-300 uppercase block">Thanh Toán Phí Tái Tục Hoàn Tất 100%</span>
+        <p class="text-xs text-slate-300">Tiền đã được tự động phân bổ từ tài khoản Suspense sang Doanh thu phí bảo hiểm. Hợp đồng giữ vững trạng thái INFORCE chuẩn, hóa đơn chuyển sang PAID.</p>
+      </div>
+    `;
+
+    if (glBox) {
+      glBox.innerHTML = `
+        <div class="flex items-center justify-between text-slate-400 pb-1">
+          <span class="font-bold text-slate-300 uppercase tracking-wide">Bút Toán Sổ Phụ GL Thu Phí Tái Tục (Module 07 Sync)</span>
+          <span class="text-[10px] text-emerald-400">Clearing Complete</span>
+        </div>
+        <div class="space-y-1 text-slate-300 bg-slate-950 p-2.5 rounded-lg border border-slate-800">
+          <div class="flex justify-between"><span>[Bước 1] Nợ TK 1111 (Tiền gửi NH) / Có TK 2211 (Suspense):</span> <span class="font-bold text-yellow-400">${received.toLocaleString()} VND</span></div>
+          <div class="flex justify-between border-t border-slate-800 pt-1 text-emerald-400 font-bold">
+            <span>[Bước 2] Nợ TK 2211 (Xóa Suspense) / Có TK 4111 (Doanh thu phí):</span>
+            <span>${received.toLocaleString()} VND</span>
+          </div>
+        </div>
+      `;
+    }
+  } else if (state.collectionMatchStatus === 'UNDERFUNDED' || received < required) {
+    if (badge) {
+      badge.className = 'text-[10px] font-mono px-2 py-0.5 rounded font-bold bg-amber-900/60 text-amber-300 border border-amber-500';
+      badge.textContent = 'UNDERFUNDED SUSPENSE';
+    }
+
+    outBox.innerHTML = `
+      <div class="p-3 bg-amber-950/80 border border-amber-600/50 rounded-xl space-y-1.5">
+        <span class="text-xs font-bold text-amber-300 uppercase block">Số Tiền Nộp Chưa Đủ Tròn Kỳ Phí (${received.toLocaleString()} / ${required.toLocaleString()} VND)</span>
+        <p class="text-xs text-slate-300">Quy tắc VAL-BCP-005: Tiền được giữ tạm tại Renewal Suspense GL 2211. <b>Hệ thống KHÔNG nâng ngày PTD</b> và hợp đồng vẫn tiếp tục tính số ngày gia hạn (Grace Period) cho đến khi nộp đủ số tiền còn thiếu.</p>
+      </div>
+    `;
+
+    if (glBox) {
+      glBox.innerHTML = `
+        <div class="text-slate-400 text-[11px] flex justify-between items-center bg-slate-950 p-2.5 rounded-lg border border-slate-800">
+          <span>Ghi nhận tạm: <b>Nợ TK 1111 / Có TK 2211 (Treo Suspense: ${received.toLocaleString()} VND)</b></span>
+          <span class="text-amber-400 font-bold">Chờ nộp thêm</span>
+        </div>
+      `;
+    }
+  } else {
+    // UNMATCHED
+    if (badge) {
+      badge.className = 'text-[10px] font-mono px-2 py-0.5 rounded font-bold bg-rose-900/60 text-rose-300 border border-rose-500';
+      badge.textContent = 'ROUTED TO UNMATCHED POOL';
+    }
+
+    outBox.innerHTML = `
+      <div class="p-3 bg-rose-950/80 border border-rose-600/50 rounded-xl space-y-1.5">
+        <span class="text-xs font-bold text-rose-300 uppercase block">Khoản Tiền Chuyển Khoản Sai Cú Pháp / Không Nhận Diện Được Hợp Đồng</span>
+        <p class="text-xs text-slate-300">Quy tắc SOP-BCP-05: Khoản tiền ${received.toLocaleString()} VND được gom vào Bể thu chưa khớp (Unmatched Collection Pool). Chuyên viên kế toán BCP sẽ sử dụng Smart Search để tra soát và gán thủ công.</p>
+      </div>
+    `;
+
+    if (glBox) {
+      glBox.innerHTML = `
+        <div class="text-slate-400 text-[11px] flex justify-between items-center bg-slate-950 p-2.5 rounded-lg border border-slate-800">
+          <span>Hạch toán: <b>Nợ TK 1111 / Có TK 2211 (Sub-account: Unmatched Pool)</b></span>
+          <span class="text-rose-400 font-bold">Chờ tra soát (P.366)</span>
+        </div>
+      `;
+    }
+  }
+}
+
+// Make functions globally available
+window.renderBcpSimulator = renderBcpSimulator;
+window.renderBcpGraceView = renderBcpGraceView;
+window.renderBcpCollectionView = renderBcpCollectionView;
+window.onBcpGraceInputChange = onBcpGraceInputChange;
+window.calculateBcpGrace = calculateBcpGrace;
+window.onBcpColChannelChange = onBcpColChannelChange;
+window.onBcpColAmtChange = onBcpColAmtChange;
+window.onBcpColMatchScenario = onBcpColMatchScenario;
+window.calculateBcpCollection = calculateBcpCollection;

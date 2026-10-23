@@ -8365,46 +8365,24 @@ window.EBAO_MODULES = [
   {
     "id": "MOD_05",
     "num": "05",
-    "title": "Mod 05: Billing & Collection",
-    "subtitle": "Billing Schedules, Direct Debit, Grace Period Management & Suspense Matching",
+    "title": "Mod 05: Billing, Collection & Payment (BCP APP)",
+    "subtitle": "Automated Billing Notices, Direct Debit Clearing, Suspense Allocation, 60-Day Grace Engine & APL Execution",
     "icon": "credit-card",
     "badge": "Revenue Collection",
     "page_range": "Pages 342 - 375",
-    "summary": "The Billing & Collection application manages ongoing recurring premium collection. It generates automated billing notices in advance of due dates, orchestrates direct debit file exchanges with clearing banks, monitors grace period aging (30-60 days), handles manual payment receipts, and manages suspense ledger accounts for unmatched receipts.",
+    "summary": "Phân hệ Lập Hóa đơn, Thu phí và Chi trả (Billing, Collection & Payment - BCP APP). Quản lý toàn bộ chu trình dòng tiền thu phí tái tục (Renewal Premium), tạo hóa đơn và thông báo nhắc phí tự động (T-30 ngày), kết nối các kênh thu phí đa dạng (Direct Debit ngân hàng, Thẻ tín dụng tự động, Mã định danh thanh toán ảo Virtual Account VietQR/NAPAS), quản lý tài khoản trung gian Suspense GL 2211, xử lý đối soát tệp trả về (Bank Return File Clearing), vận hành động cơ 60 ngày gia hạn đóng phí (60-Day Statutory Grace Period Engine) với các mốc nhắc phí ngày 30 và cảnh báo nguy cơ ngày 45, tự động kích hoạt quyền chọn Tự động Tạm ứng Đóng phí (Automatic Premium Loan - APL) khi đủ giá trị hoàn lại, hoặc chuyển trạng thái Hợp đồng Mất Hiệu Lực (Midnight Auto-Lapse) tại thời điểm 23:59:59 của ngày thứ 60.",
     "mermaid_workflow": "graph LR\n    Schedule[\"Billing Schedule Engine\"] --> Notice[\"Generate Premium Notice (T-30 Days)\"]\n    Notice --> DueDate[\"Policy Due Date\"]\n    DueDate --> CollectMode{\"Payment Channel\"}\n    CollectMode -- Direct Debit --> DDFile[\"Generate Bank Direct Debit File\"]\n    DDFile --> BankReturn[\"Process Bank Return / Settlement\"]\n    CollectMode -- Manual / Wire --> Counter[\"Manual Collection Entry\"]\n    BankReturn -- Success --> Apply[\"Apply Premium & Advance Paid-To-Date\"]\n    Counter -- Matched --> Apply\n    BankReturn -- Fail --> Grace[\"Grace Period Counter (Days 1 to 60)\"]\n    Grace -- Unpaid at Day 60 --> BatchTrigger[\"Batch Trigger: APL or Auto-Lapse (Module 08)\"]",
     "core_concepts": [
-      {
-        "term": "Paid-to-Date (PTD)",
-        "definition": "The exact date up to which premiums have been fully settled, serving as the benchmark for billing notices, grace period countdowns, and cash value calculations."
-      },
-      {
-        "term": "Grace Period",
-        "definition": "A statutory duration (typically 30 to 60 days following premium due date) during which coverage remains fully in force even if premium has not yet been collected."
-      },
-      {
-        "term": "Suspense Account (Unallocated Ledger)",
-        "definition": "A temporary clearing ledger holding unidentified, overpaid, or partial funds received from bank transfers until operations users manually match them to specific policy billing items."
-      },
-      {
-        "term": "Direct Debit Cycle",
-        "definition": "Automated batch process extracting all active direct-debit policies due within the billing cycle window, generating standardized clearing files (NACHA, GIRO, BACS)."
-      },
-      {
-        "term": "60-Day Premium Grace Period & Midnight Decision Engine",
-        "definition": "Statutory 60-day grace period starting post-Due Date. Coverage remains 100% active. At Day 60 midnight, batch evaluates Net Cash Value: If Net CV >= Modal Premium -> APL Loan drawn (INFORCE_APL); else -> Auto-Lapse (LAPSED)."
-      }
+      "Chu trình Quản lý Hóa đơn & Thu phí Khép kín (BCP Lifecycle): Lập lịch hóa đơn (Billing Schedule T-30) -> Trích nợ ngân hàng (Direct Debit Batch) -> Đối soát tệp thanh toán (Bank Clearing Return File) -> Phân bổ tài khoản treo (Suspense Allocation) -> Cập nhật ngày đến hạn Paid-To-Date (PTD).",
+      "Động cơ 60 Ngày Gia hạn Đóng phí (60-Day Statutory Grace Engine): Áp dụng theo Điều 37 Luật Kinh doanh Bảo hiểm số 08/2022/QH15. Trong suốt 60 ngày gia hạn, hợp đồng hoàn toàn giữ nguyên hiệu lực bảo vệ 100%. Nếu xảy ra sự kiện bảo hiểm trong thời gian này, doanh nghiệp chi trả đầy đủ quyền lợi sau khi cấn trừ kỳ phí chưa nộp.",
+      "Tiến trình Gửi Thông báo Nhắc phí Đa tầng (Tiered Reminder Notices): Cấu hình qua bảng tham số PremiumReminderNoticeDays. Tự động kích hoạt: Lần 1 (Ngày đến hạn Due Date - 30 ngày), Lần 2 (Tại ngày Due Date), Nhắc gia hạn (Grace Day 30), và Cảnh báo nguy cơ mất hiệu lực cuối cùng (Grace Day 45).",
+      "Quyết định Nửa đêm Ngày Thứ 60 (Midnight EOD Cutoff Decision): Đúng 23:59:59 của ngày thứ 60 gia hạn, tiến trình EOD Batch kiểm tra Net CSV: Nếu Net CSV >= Phí định kỳ, tự động kích hoạt APL (Vay đóng phí từ CSV, tính lãi 6.5%/năm); nếu Net CSV không đủ, tự động chuyển hợp đồng sang trạng thái LAPSED.",
+      "Kiến trúc Tài khoản Treo Trung gian (Suspense Hierarchy - GL 2211): Phân chia thành General Suspense, NB Suspense, Renewal Suspense, CS Suspense. Tiền nộp vào được ghi Có TK 2211; chỉ khi phân bổ thành công mới chuyển sang Nợ TK 2211 / Có TK 4111 (Doanh thu phí bảo hiểm).",
+      "Bể Thu Tiền Chưa Khớp (Unmatched Collection Pool): Các giao dịch chuyển tiền thiếu thông tin hợp đồng hoặc sai số hợp đồng được gom vào Unmatched Pool, chờ chuyên viên kế toán BCP thực hiện tra soát và gán thủ công.",
+      "Chi trả Quyền lợi & Hủy Lệnh Chi (Disbursement & Cancel Payment): Quản lý lệnh chi tiền (Lump Sum hoặc Installments) cho chi trả bồi thường, hoàn phí giải ước, chi trả bảo tức hoặc giải ngân vay hợp đồng, hỗ trợ quy trình Maker-Checker trước khi phát lệnh qua cổng ngân hàng."
     ],
-    "actuary_notes": [
-      "Modal Factor Loading: Modal factors compensate for lost interest and administrative billing expenses. Total collected annually under monthly frequency is higher: Total = 12 * (Annual Premium * 0.088) = 1.056 * Annual Premium (5.6% modal loading).",
-      "Unearned Premium Reserve (UPR): Premiums collected in advance past valuation date must be deferred on balance sheets as unearned reserves.",
-      "Grace Period Claim Valuation: If death or critical illness occurs during the grace period, the full claim is payable, but the outstanding overdue premium is deducted from the claim settlement amount.",
-      "APL Loan Mechanics: When APL triggers, loan interest accrues daily at compound annual rate (e.g. 6.5%). If accumulated loan debt equals cash value, policy terminates under non-forfeiture."
-    ],
-    "op_notes": [
-      "Direct Debit Retries: Standard practice defines up to 2 retry attempts across 14-day intervals before marking direct debit as failed and sending urgent grace lapse warnings to client.",
-      "Suspense Clearing Rules: Automated matching rules attempt matching by Policy Number, National ID, and exact payment amount. Residual items require manual operational review.",
-      "Billing Freeze: Policies with active pending claims or major financial alterations are automatically locked from regular billing runs to prevent incorrect debiting."
-    ],
+    "actuary_notes": "Từ góc độ Định phí & Dòng tiền, tiến trình Billing & Grace Period là mạch máu quyết định Tỷ lệ Duy trì Hợp đồng (Persistency Rate K1, K2). Cơ chế APL đóng vai trò cứu cánh tài chính giúp duy trì hiệu lực hợp đồng cho khách hàng mà không làm suy giảm Quỹ dự phòng toán học, bởi khoản tạm ứng đóng phí được xem là một khoản cho vay sinh lời với lãi suất quy định (6.5%/năm). Tuy nhiên, nếu khoản vay APL cộng dồn vượt quá Giá trị hoàn lại ròng, hợp đồng sẽ rơi vào trạng thái 'APL Lapsed', chấm dứt hoàn toàn trách nhiệm bảo vệ và trích lập dự phòng của doanh nghiệp.",
+    "op_notes": "Về mặt Vận hành Công nghệ, hệ thống BCP xử lý tệp thanh toán theo chuẩn định dạng ngân hàng đối tác (NAPAS, Vietcombank, Sacombank, BIDV). Khi thực hiện trích nợ tự động (Direct Debit), hệ thống khóa trường BILLING_STATUS = 'IN_COLLECTION' để tránh trích nợ trùng lặp. Tiến trình EOD Batch chạy vào ban đêm sử dụng thuật toán song song hóa (Multi-threading) để quét và xử lý hàng triệu hợp đồng đến hạn đóng phí hoặc hết hạn 60 ngày gia hạn chỉ trong vòng dưới 30 phút.",
     "sections": [
       {
         "heading": "1. Billing Run & Notice Generation",
@@ -8752,288 +8730,584 @@ window.EBAO_MODULES = [
     "function_count": 18,
     "sops": [
       {
-        "code": "SOP-BIL-01",
-        "title": "Scheduling & Generating Automated Premium Billing Notices (T-30 Days)",
-        "ui_path": "Main Menu > Finance > Billing > Billing Console > Schedule Billing Run",
-        "prerequisites": [
-          "Policies in 'INFORCE' status with upcoming due dates within window"
-        ],
-        "steps": [
-          "1. Navigate to Main Menu > Finance > Billing > Billing Console.",
-          "2. Click 'Schedule Billing Run' tab.",
-          "3. Set Billing Cut-off Date (typically T+30 days ahead of current business date).",
-          "4. Select Target Lines of Business ('Life / Traditional Endowment').",
-          "5. Select Target Servicing Branches ('All Branches').",
-          "6. Click 'Execute Billing Scan'. Step Result: System queries SOR for all inforce policies whose Paid-To-Date falls between current date and cut-off date.",
-          "7. System generates open Billing Receivable items (Bills) with unique Bill ID, Modal Due Amount, and Statutory Due Date.",
-          "8. Select Notification Output: Check 'Electronic Billing Notice (SMS/Email)' and 'Physical Notice Batch'.",
-          "9. Click 'Generate & Dispatch Notices'. Step Result: Premium notices transmitted to policyholders with payment QR codes and banking instructions."
-        ],
-        "fields_table": [
-          {
-            "name": "Billing Cut-Off Window",
-            "type": "Date Range",
-            "required": "Yes",
-            "desc": "Typically 15 to 30 days in advance of due date"
-          },
-          {
-            "name": "Modal Bill Amount",
-            "type": "Currency",
-            "required": "Read-only",
-            "desc": "Standard modal premium plus any extra loadings"
-          }
-        ],
-        "actuary_notes": "Billing generation establishes accounts receivable in sub-ledger: Dr. Premium Receivable / Cr. Gross Written Premium.",
-        "op_notes": "Policies with pending claims, active surrenders, or legal disputes are automatically excluded from billing runs via system freeze flags.",
+        "code": "SOP-BCP-01",
+        "title": "Premium Billing Schedule, Due Date Calculation & Automated Reminder Notice Dispatch",
+        "role": "Billing Operations Specialist",
+        "objective": "Quản lý lịch lập hóa đơn phí tái tục, tính toán ngày đến hạn (Due Date) theo định kỳ đóng phí và tự động kích hoạt tiến trình gửi Thông báo nhắc phí (T-30 ngày).",
+        "ui_path": "Billing > Billing Query & Billing Schedule Configuration",
         "pdf_page": 346,
-        "validation_rules": [
-          {
-            "ruleId": "VAL-BIL-001",
-            "module": "MOD_05",
-            "moduleName": "Billing & Collection",
-            "lifecyclePhase": "06. Billing & Grace Period",
-            "stage": "Renewal Extraction",
-            "targetEntity": "T_BILLING_SCHEDULE",
-            "ruleName": "Advance Billing Notice Generation (T-30 Days)",
-            "condition": "Renewal bills extracted exactly 30 calendar days prior to Next Due Date (`DUE_DATE`).",
-            "severity": "ROUTING",
-            "errorCode": "INFO_BIL_EXTRACTION_SUCCESS",
-            "errorMessage": "Renewal notice generated and dispatched via SMS/Email/Portal.",
-            "systemAction": "Creates Account Receivable (AR) record in `T_AR_INVOICE`.",
-            "actuarialBasis": "Smooth operational cash flow intake and timely statutory premium notice delivery.",
-            "pdfPage": 344
-          },
-          {
-            "ruleId": "VAL-BIL-003",
-            "module": "MOD_05",
-            "moduleName": "Billing & Collection",
-            "lifecyclePhase": "06. Billing & Grace Period",
-            "stage": "Day 60 Expiration",
-            "targetEntity": "T_POLICY",
-            "ruleName": "Grace Expiration Gating: APL vs Auto-Lapse",
-            "condition": "At 23:59:59 on Day 60, system checks Net Cash Value: If Net CV >= Overdue Premium -> APL; Else -> LAPSE.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_BIL_GRACE_LAPSE_TRIGGER",
-            "errorMessage": "Grace period expired without payment. Automatic non-forfeiture decision executed by batch engine.",
-            "systemAction": "Updates policy status to `INFORCE_APL` or `LAPSED`; locks billing collection.",
-            "actuarialBasis": "Actuarial reserve preservation: insurer cannot maintain unbacked risk reserve after grace exhaustion without collateral.",
-            "pdfPage": 344
-          }
-        ]
-      },
-      {
-        "code": "SOP-BIL-02",
-        "title": "Generating Direct Debit Bank Extraction Batches (GIRO / ACH / BACS)",
-        "ui_path": "Finance > Billing > Direct Debit > Batch Extraction",
         "prerequisites": [
-          "Open bills generated for policies registered with direct debit bank accounts"
+          "Hợp đồng đang có hiệu lực (INFORCE) với trạng thái đóng phí định kỳ (Regular Premium).",
+          "Cấu hình bảng tham số PremiumReminderNoticeDays đã được thiết lập hợp lệ trên MC.",
+          "Cổng gửi thông báo đa kênh (SMS Gateway, Email Service, Zalo ZNS) đang hoạt động bình thường."
         ],
         "steps": [
-          "1. Navigate to Finance > Billing > Direct Debit.",
-          "2. Select Clearing Bank (e.g. Sacombank, Vietcombank, Standard Chartered).",
-          "3. Select Billing Cycle Due Date.",
-          "4. Click 'Extract Direct Debit Batch'. Step Result: System compiles all open bills for policyholders holding verified bank accounts at selected clearing bank.",
-          "5. Verify Batch Summary: Displays Record Count (e.g. 1,420 policies) and Total Debit Amount (e.g. $845,000 USD).",
-          "6. Click 'Generate Clearing File'. System outputs standard electronic banking format (ISO 20022 pain.008 or bank-specific fixed-width text file).",
-          "7. Transmit file to clearing bank via secure SFTP host connection. Batch status marks as 'Sent to Bank - Awaiting Settlement'."
+          "1. From the main menu, navigate to Billing > Billing Schedule Configuration.",
+          "2. System automatically scans policies whose Paid-To-Date (PTD) equals Current Date + 30 days.",
+          "3. Verify that the calculated Next Due Date matches the policy's modal frequency (Annual, Semi-Annual, Quarterly, Monthly).",
+          "4. Inspect billing generation batch job 'JOB_BILLING_GENERATE'. System extracts modal installment amounts.",
+          "5. System triggers the first billing reminder notice (T-30 Notice) containing Policy No, Insured Name, Premium Amount, Due Date, and VietQR Dynamic Payment Link.",
+          "6. System updates BILLING_STATUS to 'NOTICE_SENT' and records notice dispatch timestamp in t_bcp_notice_log.",
+          "7. For Direct Debit / Credit Card policies, system flags the record as 'ELIGIBLE_FOR_AUTO_EXTRACTION'."
         ],
         "fields_table": [
           {
-            "name": "Clearing Bank Code",
-            "type": "Select",
-            "required": "Yes",
-            "desc": "Partner bank processing direct debits"
-          },
-          {
-            "name": "Batch Total Amount",
-            "type": "Currency",
-            "required": "Read-only",
-            "desc": "Aggregated sum of all debit instructions in batch"
-          },
-          {
-            "name": "Export File Format",
-            "type": "Select",
-            "required": "Yes",
-            "desc": "ISO 20022 XML, CSV, NACHA, Bank Fixed Width"
-          }
-        ],
-        "actuary_notes": "Direct debit collections have lowest lapse rates and highest persistency; actuaries build lower expense assumptions into direct-debit products.",
-        "op_notes": "If bank rejects file due to formatting errors, operator can use 'Cancel & Re-extract Batch' tool.",
-        "pdf_page": 355,
-        "validation_rules": [
-          {
-            "ruleId": "VAL-BIL-001",
-            "module": "MOD_05",
-            "moduleName": "Billing & Collection",
-            "lifecyclePhase": "06. Billing & Grace Period",
-            "stage": "Renewal Extraction",
-            "targetEntity": "T_BILLING_SCHEDULE",
-            "ruleName": "Advance Billing Notice Generation (T-30 Days)",
-            "condition": "Renewal bills extracted exactly 30 calendar days prior to Next Due Date (`DUE_DATE`).",
-            "severity": "ROUTING",
-            "errorCode": "INFO_BIL_EXTRACTION_SUCCESS",
-            "errorMessage": "Renewal notice generated and dispatched via SMS/Email/Portal.",
-            "systemAction": "Creates Account Receivable (AR) record in `T_AR_INVOICE`.",
-            "actuarialBasis": "Smooth operational cash flow intake and timely statutory premium notice delivery.",
-            "pdfPage": 344
-          }
-        ]
-      },
-      {
-        "code": "SOP-BIL-03",
-        "title": "Importing Bank Clearing Return Files & Processing Automated Settlements",
-        "ui_path": "Finance > Billing > Direct Debit > Import Clearing Return",
-        "prerequisites": [
-          "Return settlement file received from clearing bank"
-        ],
-        "steps": [
-          "1. Navigate to Finance > Billing > Direct Debit > Import Return File.",
-          "2. Click 'Choose File' and select bank settlement file (e.g. 'SETTLE_SACOM_20261020.txt').",
-          "3. Click 'Upload & Validate'. System parses file and verifies record count against original extraction batch.",
-          "4. System segments records into:\n   - Success Transactions (Bank Code 00 - Funds debited successfully)\n   - Failed Transactions (Bank Code 51 - Insufficient Funds, Code 04 - Account Closed).",
-          "5. Click 'Process Settlements':\n   - For Success items: Gemini automatically applies premium, advances policy Paid-To-Date by 1 billing period, and clears billing receivable in sub-ledger.\n   - For Failed items: System logs failure reason code, leaves bill open, and initiates Grace Period aging counter.",
-          "6. Click 'Export Settlement Report' for accounting reconciliation."
-        ],
-        "fields_table": [
-          {
-            "name": "Bank Return Code",
-            "type": "String",
-            "required": "Read-only",
-            "desc": "Bank transaction status: 00 = Success, 51 = Insufficient funds"
-          },
-          {
-            "name": "Settled Amount",
-            "type": "Currency",
-            "required": "Read-only",
-            "desc": "Total funds deposited into insurance company clearing account"
-          }
-        ],
-        "actuary_notes": "Advancing Paid-To-Date updates unearned premium reserves and resets policy lapse risk scores in actuarial monitoring feeds.",
-        "op_notes": "Failed direct debit policies automatically trigger automated SMS: 'Direct debit unsuccessful due to insufficient funds. Please deposit funds within 14 days'.",
-        "pdf_page": 368,
-        "validation_rules": [
-          {
-            "ruleId": "VAL-BIL-001",
-            "module": "MOD_05",
-            "moduleName": "Billing & Collection",
-            "lifecyclePhase": "06. Billing & Grace Period",
-            "stage": "Renewal Extraction",
-            "targetEntity": "T_BILLING_SCHEDULE",
-            "ruleName": "Advance Billing Notice Generation (T-30 Days)",
-            "condition": "Renewal bills extracted exactly 30 calendar days prior to Next Due Date (`DUE_DATE`).",
-            "severity": "ROUTING",
-            "errorCode": "INFO_BIL_EXTRACTION_SUCCESS",
-            "errorMessage": "Renewal notice generated and dispatched via SMS/Email/Portal.",
-            "systemAction": "Creates Account Receivable (AR) record in `T_AR_INVOICE`.",
-            "actuarialBasis": "Smooth operational cash flow intake and timely statutory premium notice delivery.",
-            "pdfPage": 344
-          },
-          {
-            "ruleId": "VAL-BIL-002",
-            "module": "MOD_05",
-            "moduleName": "Billing & Collection",
-            "lifecyclePhase": "06. Billing & Grace Period",
-            "stage": "Grace Period Counting",
-            "targetEntity": "T_POLICY",
-            "ruleName": "60-Day Grace Period Inforce Continuity",
-            "condition": "During Grace Days 1 through 60, policy remains 100% inforce with full death and rider claim coverage.",
-            "severity": "INFORMATIONAL",
-            "errorCode": "INFO_BIL_GRACE_ACTIVE",
-            "errorMessage": "Policy is in Grace Period. Claim occurring during this window is fully payable minus overdue premium.",
-            "systemAction": "Suppresses lapse trigger; dispatches overdue reminders on Day 30 and Day 50.",
-            "actuarialBasis": "Article 37 Insurance Business Law: mandatory 60-day grace protection for periodical premium payment policies.",
-            "pdfPage": 342
-          }
-        ]
-      },
-      {
-        "code": "SOP-BIL-04",
-        "title": "60-Day Premium Grace Period Management, Reminder Dispatches & Midnight Auto-Lapse / APL Decision Engine",
-        "ui_path": "Main Menu > Billing & Collection > Grace Period Portfolio Monitor > Aging Console",
-        "prerequisites": [
-          "Modal Premium Due Date has passed without full premium settlement",
-          "Open T_BILL_RECEIVABLE record exists with status 'UNPAID'"
-        ],
-        "steps": [
-          "1. Open Billing & Collection > Grace Period Portfolio Monitor.",
-          "2. Daily Batch Job JOB_GRACE_AGING (01:15 AM) increments Unpaid Grace Days Counter (Day 1 to 60) for all policies where System Date > Premium Due Date.",
-          "3. System maintains full coverage: If a death, disability, or medical claim occurs during Grace Days 1-60, claim is approved and payable (net of unpaid overdue premium).",
-          "4. Day 30 Automated Milestone: System triggers NOTICE_PREM_REMIND_1 dispatching SMS, Email, and Customer App notification with direct payment gateway link.",
-          "5. Day 45 Automated Milestone: System triggers NOTICE_PREM_WARNING_FINAL via registered mail and urgent SMS warning of impending contract termination / APL loan.",
-          "6. Day 60 Midnight Cutoff (23:59:59): Nightly Batch Jobs JOB_APL_EXEC and JOB_AUTO_LAPSE_TRAD execute decision engine:\n   - Calculates Net Cash Value = Gross Cash Value - Loan Principal - Accrued Interest.\n   - Branch A (Net CV >= Unpaid Modal Premium): Executes APL. Draws policy loan, pays modal bill, advances PTD by 1 modal term, transitions status to 'INFORCE_APL', and begins daily compound loan interest.\n   - Branch B (Net CV < Unpaid Modal Premium): Executes Auto-Lapse. Sets Sum Assured to 0, terminates all riders, transitions status to 'LAPSED', and initializes 2-Year Statutory Reinstatement Countdown."
-        ],
-        "fields_table": [
-          {
-            "name": "Policy Number",
+            "field": "POLICY_NO",
             "type": "String",
             "required": "Yes",
-            "desc": "Inforce contract in past-due status"
+            "default": "N/A",
+            "description": "Số hợp đồng bảo hiểm đến hạn đóng phí"
           },
           {
-            "name": "Premium Due Date",
+            "field": "NEXT_DUE_DATE",
             "type": "Date",
+            "required": "System",
+            "default": "N/A",
+            "description": "Ngày đến hạn đóng phí định kỳ tiếp theo"
+          },
+          {
+            "field": "BILLING_AMOUNT",
+            "type": "Decimal",
+            "required": "System",
+            "default": "0",
+            "description": "Số tiền phí bảo hiểm định kỳ phải đóng"
+          },
+          {
+            "field": "MODAL_FREQUENCY",
+            "type": "Enum",
+            "required": "System",
+            "default": "ANNUAL",
+            "description": "Định kỳ đóng phí: ANNUAL, SEMI, QUARTER, MONTH"
+          },
+          {
+            "field": "NOTICE_CHANNEL",
+            "type": "Enum",
             "required": "Yes",
-            "desc": "Contractual modal due date"
-          },
-          {
-            "name": "Grace Days Elapsed",
-            "type": "Integer (1-60)",
-            "required": "Auto",
-            "desc": "Current days past due date"
-          },
-          {
-            "name": "Net Cash Value",
-            "type": "Currency",
-            "required": "Auto",
-            "desc": "Gross CV minus outstanding debt & interest"
-          },
-          {
-            "name": "Day 60 Execution Decision",
-            "type": "Evaluation",
-            "required": "Auto",
-            "desc": "APL Loan Draw vs Contract Auto-Lapse"
+            "default": "EMAIL_SMS",
+            "description": "Kênh gửi thông báo: EMAIL_SMS, ZALO_ZNS, POSTAL_MAIL"
           }
         ],
-        "actuary_notes": "Statutory 60-day window protects policyholder equity. APL preserves mortality coverage using cash value as collateral.",
-        "op_notes": "Once lapsed, revival within 24 months requires full reinstatement underwriting (Declaration of Good Health) and back-premium payment.",
-        "pdf_page": 368,
         "validation_rules": [
           {
-            "ruleId": "VAL-BIL-002",
-            "module": "MOD_05",
-            "moduleName": "Billing & Collection",
-            "lifecyclePhase": "06. Billing & Grace Period",
-            "stage": "Grace Period Counting",
-            "targetEntity": "T_POLICY",
-            "ruleName": "60-Day Grace Period Inforce Continuity",
-            "condition": "During Grace Days 1 through 60, policy remains 100% inforce with full death and rider claim coverage.",
-            "severity": "INFORMATIONAL",
-            "errorCode": "INFO_BIL_GRACE_ACTIVE",
-            "errorMessage": "Policy is in Grace Period. Claim occurring during this window is fully payable minus overdue premium.",
-            "systemAction": "Suppresses lapse trigger; dispatches overdue reminders on Day 30 and Day 50.",
-            "actuarialBasis": "Article 37 Insurance Business Law: mandatory 60-day grace protection for periodical premium payment policies.",
-            "pdfPage": 342
+            "code": "VAL-BCP-01-A",
+            "rule": "Hợp đồng đã đóng phí đủ thời hạn đóng phí (PPT reached) không được tạo hóa đơn thu phí mới."
           },
           {
-            "ruleId": "VAL-BIL-003",
-            "module": "MOD_05",
-            "moduleName": "Billing & Collection",
-            "lifecyclePhase": "06. Billing & Grace Period",
-            "stage": "Day 60 Expiration",
-            "targetEntity": "T_POLICY",
-            "ruleName": "Grace Expiration Gating: APL vs Auto-Lapse",
-            "condition": "At 23:59:59 on Day 60, system checks Net Cash Value: If Net CV >= Overdue Premium -> APL; Else -> LAPSE.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_BIL_GRACE_LAPSE_TRIGGER",
-            "errorMessage": "Grace period expired without payment. Automatic non-forfeiture decision executed by batch engine.",
-            "systemAction": "Updates policy status to `INFORCE_APL` or `LAPSED`; locks billing collection.",
-            "actuarialBasis": "Actuarial reserve preservation: insurer cannot maintain unbacked risk reserve after grace exhaustion without collateral.",
-            "pdfPage": 344
+            "code": "VAL-BCP-01-B",
+            "rule": "Không phát hành thông báo đóng phí đối với hợp đồng đang ở trạng thái WAIVED (Được miễn đóng phí)."
           }
-        ]
+        ],
+        "actuary_notes": "Thông báo nhắc phí gửi đúng thời điểm T-30 ngày giúp nâng cao tỷ lệ thu phí đúng hạn và ổn định dòng tiền tái đầu tư.",
+        "op_notes": "Mã QR động trong thông báo thu phí tự động điền sẵn số hợp đồng và số tiền giúp loại trừ sai sót do người nộp chuyển khoản nhầm."
+      },
+      {
+        "code": "SOP-BCP-02",
+        "title": "Direct Debit Clearing Batch File Generation & Bank Dispatch (GIRO / ACH / NAPAS)",
+        "role": "Clearing Operations Specialist",
+        "objective": "Khởi tạo và xuất tệp trích nợ tự động định kỳ (Direct Debit Batch Extraction) gửi tới các ngân hàng đối tác hoặc cổng thanh toán quốc gia NAPAS.",
+        "ui_path": "Billing > Direct Debit > Batch Extraction Workbench",
+        "pdf_page": 355,
+        "prerequisites": [
+          "Hợp đồng đã đăng ký ủy quyền trích nợ tự động (Direct Debit Mandate) có trạng thái VERIFIED.",
+          "Tài khoản ngân hàng của khách hàng hợp lệ và liên kết với ngân hàng đối tác hỗ trợ thu hộ.",
+          "Ngày trích nợ nằm trong cửa sổ thời gian khấu trừ (Clearing Window: T-5 ngày đến T+0)."
+        ],
+        "steps": [
+          "1. Navigate to Billing > Direct Debit > Batch Extraction.",
+          "2. Select Target Bank (e.g. Sacombank, Vietcombank, BIDV, NAPAS Portal).",
+          "3. Set Extraction Date Range and click 'Query Eligible Policies'. System filters all policies due for collection.",
+          "4. Review Total Records and Aggregate Batch Amount.",
+          "5. Click 'Generate Batch File'. System formats data into bank-compliant format (CSV, TXT Fixed-width, XML ISO 20022).",
+          "6. System updates BILLING_STATUS of extracted policies to 'IN_COLLECTION' to prevent duplicate extraction.",
+          "7. Download encrypted batch file and upload to Bank SFTP Server / Clearing Gateway.",
+          "8. System logs Batch ID (e.g. DD-SCB-20261023-01) and transitions state to 'Awaiting Bank Response'."
+        ],
+        "fields_table": [
+          {
+            "field": "BATCH_ID",
+            "type": "String",
+            "required": "System",
+            "default": "N/A",
+            "description": "Mã lô trích nợ tự động duy nhất"
+          },
+          {
+            "field": "CLEARING_BANK_CODE",
+            "type": "String",
+            "required": "Yes",
+            "default": "N/A",
+            "description": "Mã ngân hàng xử lý thanh toán bù trừ"
+          },
+          {
+            "field": "TOTAL_RECORDS",
+            "type": "Integer",
+            "required": "System",
+            "default": "0",
+            "description": "Tổng số lượng hợp đồng trong tệp trích nợ"
+          },
+          {
+            "field": "TOTAL_AMOUNT",
+            "type": "Decimal",
+            "required": "System",
+            "default": "0",
+            "description": "Tổng số tiền đề nghị trích nợ trong lô"
+          },
+          {
+            "field": "EXTRACTION_DATE",
+            "type": "Date",
+            "required": "System",
+            "default": "CURRENT_DATE",
+            "description": "Ngày xuất tệp thanh toán bù trừ"
+          }
+        ],
+        "validation_rules": [
+          {
+            "code": "VAL-BCP-02-A",
+            "rule": "Một hợp đồng không được xuất hiện trong 2 tệp trích nợ đang cùng ở trạng thái 'IN_COLLECTION'."
+          },
+          {
+            "code": "VAL-BCP-02-B",
+            "rule": "Tài khoản ngân hàng chưa được xác minh ủy quyền (Mandate Unverified) không được đưa vào tệp trích nợ."
+          }
+        ],
+        "actuary_notes": "Thu phí tự động qua Direct Debit có tỷ lệ duy trì hợp đồng cao hơn 18-25% so với phương thức thanh toán thủ công.",
+        "op_notes": "Nếu tệp trích nợ bị lỗi kỹ thuật, sử dụng tính năng 'Rollback Batch Extraction' để hoàn trả trạng thái hợp đồng trước khi xuất lại."
+      },
+      {
+        "code": "SOP-BCP-03",
+        "title": "Importing Bank Clearing Return Files, Virtual Account Auto-Reconciliation & Settlement",
+        "role": "Reconciliation Accountant",
+        "objective": "Nạp tệp kết quả trích nợ từ ngân hàng (Bank Return File), tự động đối soát các khoản thu thành công/thất bại, phân bổ tài khoản treo và cập nhật ngày PTD.",
+        "ui_path": "Collection > Batch Upload & Auto-Reconciliation",
+        "pdf_page": 364,
+        "prerequisites": [
+          "Tệp kết quả trích nợ đã được tải về từ cổng thanh toán của ngân hàng đối tác.",
+          "Tệp có đầy đủ mã kết quả phản hồi (Return Code: 00 = Success, 51 = Insufficient Funds, 14 = Invalid Card, etc.).",
+          "Tài khoản trung gian Suspense GL 2211 đang hoạt động bình thường."
+        ],
+        "steps": [
+          "1. Navigate to Collection > Batch Upload. Select Bank Code and upload return file.",
+          "2. Click 'Process Clearing File'. The Reconciliation Engine parses records line-by-line:",
+          "   a. Matches Policy No and Proposal ID against active billing records.",
+          "   b. Checks Return Code from bank.",
+          "3. For Successful Records (Code 00):",
+          "   a. System creates a Collection Record in t_bcp_collection.",
+          "   b. Automatically applies funds to clear Renewal Premium.",
+          "   c. Advances Paid-To-Date (PTD) to the next due cycle.",
+          "   d. Generates GL Journal Entry: Dr GL 1111 (Bank Cash) / Cr GL 4111 (Premium Revenue).",
+          "4. For Failed Records (e.g. Insufficient Funds):",
+          "   a. System records failure reason code.",
+          "   b. Policy remains in Grace Period; triggers SMS retry notice to customer.",
+          "5. View Reconciliation Summary Dashboard: Total Processed, Success Count, Failed Count, Matched Amount.",
+          "6. Click 'Confirm Batch Settlement' to commit transaction to SOR."
+        ],
+        "fields_table": [
+          {
+            "field": "FILE_NAME",
+            "type": "String",
+            "required": "Yes",
+            "default": "N/A",
+            "description": "Tên tệp tin kết quả đối soát ngân hàng"
+          },
+          {
+            "field": "SUCCESS_COUNT",
+            "type": "Integer",
+            "required": "System",
+            "default": "0",
+            "description": "Số lượng giao dịch trừ tiền thành công"
+          },
+          {
+            "field": "FAILED_COUNT",
+            "type": "Integer",
+            "required": "System",
+            "default": "0",
+            "description": "Số lượng giao dịch trừ tiền thất bại"
+          },
+          {
+            "field": "TOTAL_CLEARED_AMT",
+            "type": "Decimal",
+            "required": "System",
+            "default": "0",
+            "description": "Tổng số tiền thực thu thành công chuyển vào sổ cái"
+          }
+        ],
+        "validation_rules": [
+          {
+            "code": "VAL-BCP-03-A",
+            "rule": "Tệp đối soát đã nạp thành công không được nạp lại lần thứ 2 để chống ghi nhận trùng lặp thu phí."
+          },
+          {
+            "code": "VAL-BCP-03-B",
+            "rule": "Chênh lệch giữa số tiền ngân hàng báo có và tổng số tiền hạch toán trên Core phải bằng đúng 0 VND."
+          }
+        ],
+        "actuary_notes": "Tự động cập nhật PTD ngay khi ngân hàng báo có giúp bảo đảm quyền lợi bảo hiểm liên tục, không bị gián đoạn do độ trễ báo cáo.",
+        "op_notes": "Đối với các lỗi tài khoản không đủ số dư (Code 51), hệ thống tự động lập lịch trích nợ lại lần 2 sau 3 ngày làm việc."
+      },
+      {
+        "code": "SOP-BCP-04",
+        "title": "Manual Collection Entry & Suspense Allocation (NB, Renewal, CS, Top-Up)",
+        "role": "Cashier / Collection Officer",
+        "objective": "Ghi nhận thu tiền phí bảo hiểm thủ công tại quầy (tiền mặt, máy POS, chuyển khoản trực tiếp) và phân bổ tiền vào tài khoản treo nghiệp vụ tương ứng.",
+        "ui_path": "Collection > Manual Collection > Receive Collection",
+        "pdf_page": 359,
+        "prerequisites": [
+          "Chứng từ nộp tiền hợp lệ (Ủy nhiệm chi, Phiếu nộp tiền ngân hàng, Biên lai POS).",
+          "Số tiền thực tế đã ghi có vào tài khoản ngân hàng của Công ty Bảo hiểm.",
+          "Xác định được mã số hợp đồng hoặc mã hồ sơ yêu cầu bảo hiểm của khách hàng."
+        ],
+        "steps": [
+          "1. From main menu, navigate to Collection > Manual Collection > Receive Collection.",
+          "2. Input Policy Number or Proposal Number. System loads policyholder and current debt details.",
+          "3. In the Collection Details section, enter Collection Date, Currency (VND), and Amount Received.",
+          "4. Select Collection Method: Cash at Counter, Bank Transfer, POS Card Swipe.",
+          "5. Select Target Cash Bank Account (e.g. Sacombank Operating Account).",
+          "6. In the Allocation Type section, allocate received funds:",
+          "   a. First Premium (NB Suspense)",
+          "   b. Renewal Premium (Renewal Suspense)",
+          "   c. Top-Up Premium (Unit-Linked Fund Investment)",
+          "   d. Policy Loan Repayment (Principal + Interest)",
+          "   e. Mid-term Alteration Short Premium (CS Suspense)",
+          "7. Click 'Allocate Funds'. System validates whether the amount satisfies modal requirement.",
+          "8. Click Save. System generates Official Collection Receipt (Biên nhận thu tiền điện tử) and posts to GL 2211."
+        ],
+        "fields_table": [
+          {
+            "field": "RECEIPT_NO",
+            "type": "String",
+            "required": "System",
+            "default": "N/A",
+            "description": "Số biên nhận thu tiền điện tử tự sinh"
+          },
+          {
+            "field": "COLLECTION_AMOUNT",
+            "type": "Decimal",
+            "required": "Yes",
+            "default": "N/A",
+            "description": "Số tiền thực tế thu từ khách hàng"
+          },
+          {
+            "field": "ALLOCATION_TYPE",
+            "type": "Enum",
+            "required": "Yes",
+            "default": "RENEWAL",
+            "description": "Loại phân bổ: NB, RENEWAL, TOPUP, LOAN_REPAY, CS"
+          },
+          {
+            "field": "PAYMENT_METHOD",
+            "type": "Enum",
+            "required": "Yes",
+            "default": "BANK_TRANSFER",
+            "description": "Phương thức thu: CASH, BANK_TRANSFER, POS"
+          },
+          {
+            "field": "BANK_TRANS_REF",
+            "type": "String",
+            "required": "Conditional",
+            "default": "N/A",
+            "description": "Mã giao dịch ngân hàng / FT code"
+          }
+        ],
+        "validation_rules": [
+          {
+            "code": "VAL-BCP-04-A",
+            "rule": "Số tiền phân bổ thu phí định kỳ không được thấp hơn mức phí tối thiểu của kỳ đóng phí."
+          },
+          {
+            "code": "VAL-BCP-04-B",
+            "rule": "Thu hoàn trả khoản vay hợp đồng bắt buộc phân bổ thanh toán lãi vay trước khi giảm gốc vay."
+          }
+        ],
+        "actuary_notes": "Phân bổ chính xác nguồn thu vào từng loại phí giúp tách bạch rõ ràng dòng tiền giữa quỹ chủ hợp đồng và quỹ cổ đông.",
+        "op_notes": "Biên nhận thu tiền điện tử kèm mã tra cứu tra soát được gửi ngay qua SMS và Email cho khách hàng."
+      },
+      {
+        "code": "SOP-BCP-05",
+        "title": "Suspense Account Management, Unmatched Pool & Balance Transfer",
+        "role": "Senior BCP Accountant",
+        "objective": "Quản trị bể tiền chưa khớp (Unmatched Collection Pool), thực hiện đối soát thủ công các khoản tiền chuyển sai cú pháp và chuyển tiền giữa các tài khoản treo.",
+        "ui_path": "Collection > Unmatched Pool & Suspense Transfer",
+        "pdf_page": 366,
+        "prerequisites": [
+          "Danh sách các giao dịch báo có trong sao kê ngân hàng nhưng chưa khớp với bất kỳ hợp đồng nào trên hệ thống.",
+          "Yêu cầu tra soát hoặc thư xác nhận của khách hàng/ngân hàng về thông tin hợp đồng đích.",
+          "Quyền kế toán xử lý tài khoản treo trên BCP."
+        ],
+        "steps": [
+          "1. Navigate to Collection > Unmatched Collection Pool.",
+          "2. System lists all orphaned cash inflows (Trạng thái: UNMATCHED).",
+          "3. Select an unmatched transaction. Review Payer Name, Bank Remittance Remark, and Timestamp.",
+          "4. Use Smart Search to locate the intended Policy Number or Proposal ID by customer name / citizen ID.",
+          "5. Once policy is verified, select 'Assign Collection to Policy'.",
+          "6. System transfers funds from Unmatched Suspense into Policy Renewal Suspense (GL 2211).",
+          "7. If customer overpaid (Dư tiền), select 'Transfer Excess Suspense to APA' (Tài khoản Phí đóng trước - Advance Premium Account).",
+          "8. If customer requests a refund of excess money, initiate 'Suspense Refund Requisition' to return money to customer's bank account."
+        ],
+        "fields_table": [
+          {
+            "field": "UNMATCHED_TX_ID",
+            "type": "String",
+            "required": "System",
+            "default": "N/A",
+            "description": "Mã giao dịch treo chưa khớp duy nhất"
+          },
+          {
+            "field": "REMITTANCE_REMARK",
+            "type": "String",
+            "required": "System",
+            "default": "N/A",
+            "description": "Nội dung chuyển khoản trên sổ phụ ngân hàng"
+          },
+          {
+            "field": "TARGET_POLICY_NO",
+            "type": "String",
+            "required": "Yes",
+            "default": "N/A",
+            "description": "Số hợp đồng được gán sau khi tra soát thành công"
+          },
+          {
+            "field": "SUSPENSE_ACTION",
+            "type": "Enum",
+            "required": "Yes",
+            "default": "APPLY_TO_POLICY",
+            "description": "Hành động: APPLY_TO_POLICY, TRANSFER_APA, REFUND_CUSTOMER"
+          }
+        ],
+        "validation_rules": [
+          {
+            "code": "VAL-BCP-05-A",
+            "rule": "Mọi khoản tiền trong Unmatched Pool quá 90 ngày chưa xác định được nguồn gốc bắt buộc chuyển vào tài khoản tiền gửi chờ xử lý tuân thủ quy định kiểm toán."
+          },
+          {
+            "code": "VAL-BCP-05-B",
+            "rule": "Lệnh hoàn trả tiền treo (Suspense Refund) bắt buộc phải chuyển về đúng tài khoản ngân hàng đã chuyển tiền đến."
+          }
+        ],
+        "actuary_notes": "Giảm thiểu tiền treo chưa khớp giúp phản ánh trung thực quy mô phí thu thực tế và tránh làm sai lệch tỷ lệ duy trì hợp đồng.",
+        "op_notes": "Hàng tuần kế toán BCP xuất báo cáo Unmatched Aging Report gửi các chi nhánh để liên hệ khách hàng xác minh cú pháp."
+      },
+      {
+        "code": "SOP-BCP-06",
+        "title": "60-Day Premium Grace Period Tracking, Reminders (Day 30, 45) & EOD Auto-Lapse",
+        "role": "Core Batch Supervisor / Customer Retention Lead",
+        "objective": "Vận hành và giám sát động cơ 60 ngày gia hạn đóng phí luật định (Điều 37 Luật KDBH 2022), tự động gửi nhắc phí và kích hoạt quyết định mất hiệu lực tại EOD ngày thứ 60.",
+        "ui_path": "Billing > Grace Period Monitor & Batch Control Center",
+        "pdf_page": 350,
+        "prerequisites": [
+          "Hợp đồng đã quá ngày đến hạn đóng phí (Due Date) mà chưa nhận đủ phí bảo hiểm định kỳ.",
+          "Tiến trình EOD Batch hàng đêm (Job 'JOB_GRACE_PERIOD_EVAL') được lên lịch kích hoạt đúng 00:00:00 hàng ngày.",
+          "Các mẫu thông báo nhắc nhở ngày 30 và cảnh báo ngày 45 đã được cấu hình trong Template Engine."
+        ],
+        "steps": [
+          "1. Daily at 00:00:00, Batch Job evaluates all policies past Due Date. Computes Grace Days Elapsed = Current System Date - Due Date.",
+          "2. If Grace Days Elapsed <= 60:",
+          "   a. Policy remains fully INFORCE with 100% protection benefits intact.",
+          "   b. If Grace Days = 30: System dispatches 'NOTICE_PREM_REMIND_1' (Thông báo Nhắc phí Lần 1).",
+          "   c. If Grace Days = 45: System dispatches 'NOTICE_PREM_WARNING_FINAL' (Cảnh báo Nguy cơ Mất Hiệu Lực Lần 2).",
+          "3. At 23:59:59 of Grace Day 60 (Statutory Cutoff):",
+          "   System executes the Non-Forfeiture Evaluation Engine:",
+          "   a. Checks if Policy allows Automatic Premium Loan (APL_ALLOWED = TRUE) and Net CSV >= Modal Premium.",
+          "   b. If YES: Triggers SOP-BCP-07 to execute APL Loan (Status -> INFORCE_APL).",
+          "   c. If NO (Term Life or CSV < Premium): Transitions Policy Status to 'LAPSED' (Mất Hiệu Lực).",
+          "4. If Policy becomes LAPSED: Recurring billing schedule is suspended; 24-month Reinstatement countdown begins.",
+          "5. Dispatches Formal Policy Lapse Notice to Policyholder and Agent."
+        ],
+        "fields_table": [
+          {
+            "field": "DUE_DATE",
+            "type": "Date",
+            "required": "System",
+            "default": "N/A",
+            "description": "Ngày đến hạn đóng phí của hợp đồng"
+          },
+          {
+            "field": "GRACE_DAYS_ELAPSED",
+            "type": "Integer",
+            "required": "System",
+            "default": "0",
+            "description": "Số ngày gia hạn đã trôi qua (0 đến 60 ngày)"
+          },
+          {
+            "field": "GRACE_CUTOFF_DATE",
+            "type": "Date",
+            "required": "System",
+            "default": "DUE_DATE + 60",
+            "description": "Thời điểm chốt hạn 60 ngày gia hạn đóng phí"
+          },
+          {
+            "field": "NOTICE_STATUS",
+            "type": "Enum",
+            "required": "System",
+            "default": "ACTIVE",
+            "description": "Trạng thái thông báo: ACTIVE, REMIND_1_SENT, FINAL_WARNING_SENT, LAPSED"
+          }
+        ],
+        "validation_rules": [
+          {
+            "code": "VAL-BCP-06-A",
+            "rule": "Trong thời gian 60 ngày gia hạn, quyền lợi bảo vệ giữ nguyên 100%; nghiêm cấm từ chối bồi thường vì lý do chưa đóng phí."
+          },
+          {
+            "code": "VAL-BCP-06-B",
+            "rule": "Nếu sự kiện bảo hiểm tử vong/thương tật xảy ra trong 60 ngày gia hạn, quyền lợi bồi thường được chi trả đầy đủ sau khi khấu trừ kỳ phí chưa nộp."
+          },
+          {
+            "code": "VAL-BCP-06-C",
+            "rule": "Thời điểm chuyển Lapsed là thời điểm kết thúc ngày thứ 60 (23:59:59); không được chuyển sớm trước hạn luật định."
+          }
+        ],
+        "actuary_notes": "Quy định 60 ngày gia hạn là quyền lợi luật định bảo vệ khách hàng tránh mất quyền lợi bảo hiểm do biến cố tài chính tạm thời.",
+        "op_notes": "Đội ngũ Dịch vụ khách hàng chủ động gọi điện hỗ trợ khách hàng từ ngày 45 đến ngày 55 để tối ưu hóa tỷ lệ giữ hợp đồng."
+      },
+      {
+        "code": "SOP-BCP-07",
+        "title": "Non-Forfeiture Automatic Premium Loan (APL) Execution & CSV Depletion",
+        "role": "Actuarial Operations / Core Batch Engine",
+        "objective": "Tự động trích tiền từ Giá trị hoàn lại ròng để đóng phí bảo hiểm (APL) vào nửa đêm ngày thứ 60, duy trì hiệu lực hợp đồng liên tục cho khách hàng.",
+        "ui_path": "Billing > Non-Forfeiture Engine > APL Processing",
+        "pdf_page": 373,
+        "prerequisites": [
+          "Hợp đồng đã quá 60 ngày gia hạn đóng phí mà khách hàng chưa thanh toán phí định kỳ.",
+          "Hợp đồng có điều khoản phi hủy bỏ hiệu lực (APL) được kích hoạt.",
+          "Giá trị hoàn lại ròng (Net CSV) tại ngày thứ 60 lớn hơn hoặc bằng mức phí định kỳ phải đóng."
+        ],
+        "steps": [
+          "1. At Grace Day 60 Cutoff, APL Engine queries current policy financial attributes:",
+          "   Net CSV = Guaranteed CSV + Accumulated Bonuses - Existing Loan Principal - Accrued Interest.",
+          "2. Engine compares: Is Net CSV >= Modal Premium Due?",
+          "3. If Condition is met, Engine initiates Automatic Premium Loan:",
+          "   a. Creates a Loan Record under APL Category: Principal = Modal Premium Amount.",
+          "   b. Sets APL Interest Rate = 6.5%/year (compounded daily).",
+          "   c. Allocates loan amount to clear Renewal Premium debt.",
+          "   d. Advances Paid-To-Date (PTD) to the next due cycle.",
+          "   e. Updates Policy Status to 'INFORCE_APL'.",
+          "4. Generates GL Journal Entry: Dr GL 1288 (Khoản vay hợp đồng APL) / Cr GL 4111 (Doanh thu phí tái tục).",
+          "5. Generates and dispatches 'Notice of Automatic Premium Loan' informing policyholder of loan balance and daily interest.",
+          "6. If in subsequent cycles Net CSV becomes insufficient for another full modal premium, system executes Partial APL or transitions to APL_LAPSED."
+        ],
+        "fields_table": [
+          {
+            "field": "APL_LOAN_AMOUNT",
+            "type": "Decimal",
+            "required": "System",
+            "default": "0",
+            "description": "Số tiền phí bảo hiểm được tạm ứng tự động"
+          },
+          {
+            "field": "NET_CSV_BEFORE_APL",
+            "type": "Decimal",
+            "required": "System",
+            "default": "0",
+            "description": "Giá trị hoàn lại ròng trước khi tạm ứng"
+          },
+          {
+            "field": "NET_CSV_AFTER_APL",
+            "type": "Decimal",
+            "required": "System",
+            "default": "0",
+            "description": "Giá trị hoàn lại ròng còn lại sau khi tạm ứng"
+          },
+          {
+            "field": "APL_INTEREST_RATE",
+            "type": "Decimal(4,3)",
+            "required": "System",
+            "default": "0.065",
+            "description": "Lãi suất vay APL tính theo năm (6.5%/năm)"
+          }
+        ],
+        "validation_rules": [
+          {
+            "code": "VAL-BCP-07-A",
+            "rule": "Nếu Net CSV < Phí định kỳ, không được thực hiện APL toàn phần; hệ thống tự động chuyển sang APL Lapsed."
+          },
+          {
+            "code": "VAL-BCP-07-B",
+            "rule": "Lãi vay APL được tính dồn hàng ngày và tự động vốn hóa vào nợ gốc vào mỗi ngày kỷ niệm hợp đồng."
+          },
+          {
+            "code": "VAL-BCP-07-C",
+            "rule": "Khách hàng có thể hoàn trả khoản vay APL bất kỳ lúc nào để khôi phục lại giá trị hoàn lại của hợp đồng."
+          }
+        ],
+        "actuary_notes": "APL bảo vệ quyền lợi bảo hiểm liên tục cho khách hàng trong khi vẫn bảo toàn an toàn quỹ dự phòng nghiệp vụ thông qua tài sản đảm bảo CSV.",
+        "op_notes": "Hệ thống tự động theo dõi số dư CSV còn lại sau mỗi lần APL và gửi cảnh báo khi số dư chỉ còn đủ cho 1 kỳ phí kế tiếp."
+      },
+      {
+        "code": "SOP-BCP-08",
+        "title": "Outbound Disbursement Processing (Lump Sum, Installments) & Payment Cancellation",
+        "role": "Disbursement Specialist / Cashier",
+        "objective": "Quản lý và thực hiện các lệnh chi trả tiền ra bên ngoài (Disbursement): Hoàn phí 21 ngày Free-Look, bồi thường, giải ước, giải ngân vay hợp đồng hoặc chi trả niên kim định kỳ.",
+        "ui_path": "Payment > Disbursement Workbench & Payment Requisition",
+        "pdf_page": 381,
+        "prerequisites": [
+          "Lệnh yêu cầu chi trả (Payment Requisition) đã được phê duyệt hợp lệ từ Module 02 (Free-Look), Module 04 (CS/Surrender/Loan), hoặc Module 06 (Claims).",
+          "Tài khoản ngân hàng của người thụ hưởng đã được xác minh thông tin chính chủ.",
+          "Tài khoản chi trả của công ty bảo hiểm có đủ số dư thanh toán."
+        ],
+        "steps": [
+          "1. From main menu, navigate to Payment > Disbursement Workbench.",
+          "2. System displays approved payment requisitions waiting for disbursement.",
+          "3. Select records to pay. Review Payee Name, ID Number, Bank Account Number, Bank Name, and Payout Amount.",
+          "4. Select Disbursement Plan: Lump Sum (Một lần) or Installment (Nhiều kỳ định kỳ đối với niên kim).",
+          "5. Select Outbound Payment Gateway: Host-to-Host Bank API, NAPAS 247 Instant Transfer, or Cheque.",
+          "6. Click 'Execute Payment Batch'. System transmits transfer orders to the banking system.",
+          "7. Upon Bank Confirmation (Success 200 OK):",
+          "   a. System updates Payment Status to 'PAID'.",
+          "   b. Records Bank Transaction ID (FT Code).",
+          "   c. Generates GL Journal Entry: Dr GL 2212 (Treo chi trả bồi thường/giải ước) / Cr GL 1111 (Tiền gửi ngân hàng).",
+          "8. If bank rejects transfer (e.g. Account Closed), system marks record as 'FAILED' and returns to CS queue for payee update."
+        ],
+        "fields_table": [
+          {
+            "field": "PAYMENT_REF_NO",
+            "type": "String",
+            "required": "System",
+            "default": "N/A",
+            "description": "Mã định danh lệnh chi tiền ra duy nhất"
+          },
+          {
+            "field": "DISBURSEMENT_TYPE",
+            "type": "Enum",
+            "required": "System",
+            "default": "LUMP_SUM",
+            "description": "Loại hình chi trả: LUMP_SUM, INSTALLMENT"
+          },
+          {
+            "field": "PAYEE_NAME",
+            "type": "String",
+            "required": "Yes",
+            "default": "N/A",
+            "description": "Họ và tên người nhận tiền thực tế"
+          },
+          {
+            "field": "PAYEE_BANK_ACCOUNT",
+            "type": "String",
+            "required": "Yes",
+            "default": "N/A",
+            "description": "Số tài khoản ngân hàng người nhận"
+          },
+          {
+            "field": "PAID_AMOUNT",
+            "type": "Decimal",
+            "required": "System",
+            "default": "0",
+            "description": "Số tiền thực chi chuyển khoản"
+          }
+        ],
+        "validation_rules": [
+          {
+            "code": "VAL-BCP-08-A",
+            "rule": "Tên chủ tài khoản ngân hàng nhận tiền phải trùng khớp với thông tin người thụ hưởng hoặc Bên mua bảo hiểm trên hợp đồng."
+          },
+          {
+            "code": "VAL-BCP-08-B",
+            "rule": "Lệnh chi tiền đã ở trạng thái 'PAID' không được phép hủy trực tiếp; bắt buộc phải thực hiện quy trình thu hồi (Payment Reversal) có phê duyệt Giám đốc Tài chính."
+          }
+        ],
+        "actuary_notes": "Chi trả qua kênh điện tử 24/7 giúp rút ngắn thời gian giải quyết quyền lợi khách hàng và giảm chi phí quản lý tiền mặt.",
+        "op_notes": "Tích hợp dịch vụ NAPAS 24/7 giúp tiền đến tài khoản khách hàng chỉ trong vòng 30 giây kể từ khi phê duyệt lệnh chi."
       }
     ],
-    "sop_count": 3,
+    "sop_count": 8,
     "interconnections": {
       "module_code": "FIN_BILLING",
       "upstream_sources": [
@@ -9077,59 +9351,267 @@ window.EBAO_MODULES = [
       ]
     },
     "pdf_start_page": 342,
-    "pdf_end_page": 375,
-    "pdf_chapter": "Chapter 6: Billing & Collection (FIN APP)",
+    "pdf_end_page": 405,
+    "pdf_chapter": "Module 05: Gemini BCP User Guide (Pages 342-405)",
     "validation_rules": [
       {
-        "ruleId": "VAL-BIL-001",
+        "ruleId": "VAL-BCP-001",
         "module": "MOD_05",
         "moduleName": "Billing & Collection",
-        "lifecyclePhase": "06. Billing & Grace Period",
-        "stage": "Renewal Extraction",
-        "targetEntity": "T_BILLING_SCHEDULE",
-        "ruleName": "Advance Billing Notice Generation (T-30 Days)",
-        "condition": "Renewal bills extracted exactly 30 calendar days prior to Next Due Date (`DUE_DATE`).",
-        "severity": "ROUTING",
-        "errorCode": "INFO_BIL_EXTRACTION_SUCCESS",
-        "errorMessage": "Renewal notice generated and dispatched via SMS/Email/Portal.",
-        "systemAction": "Creates Account Receivable (AR) record in `T_AR_INVOICE`.",
-        "actuarialBasis": "Smooth operational cash flow intake and timely statutory premium notice delivery.",
-        "pdfPage": 344
+        "lifecyclePhase": "05. Billing & Grace",
+        "stage": "Grace Period",
+        "targetEntity": "T_POL_POLICY",
+        "ruleName": "60-Day Full Protection Integrity",
+        "condition": "Policy remains 100% Inforce with full coverage benefits during all 60 days of Grace Period.",
+        "severity": "CRITICAL",
+        "errorCode": "ERR_BCP_GRACE_REJECTION_PROHIBITED",
+        "errorMessage": "Nghiêm cấm từ chối bồi thường hoặc cắt giảm quyền lợi trong thời gian 60 ngày gia hạn đóng phí.",
+        "systemAction": "Bảo lưu trạng thái hợp đồng và tiếp nhận hồ sơ bồi thường bình thường.",
+        "actuarialBasis": "Tuân thủ Điều 37 Luật Kinh doanh Bảo hiểm số 08/2022/QH15.",
+        "pdfPage": 350
       },
       {
-        "ruleId": "VAL-BIL-002",
+        "ruleId": "VAL-BCP-002",
         "module": "MOD_05",
         "moduleName": "Billing & Collection",
-        "lifecyclePhase": "06. Billing & Grace Period",
-        "stage": "Grace Period Counting",
-        "targetEntity": "T_POLICY",
-        "ruleName": "60-Day Grace Period Inforce Continuity",
-        "condition": "During Grace Days 1 through 60, policy remains 100% inforce with full death and rider claim coverage.",
-        "severity": "INFORMATIONAL",
-        "errorCode": "INFO_BIL_GRACE_ACTIVE",
-        "errorMessage": "Policy is in Grace Period. Claim occurring during this window is fully payable minus overdue premium.",
-        "systemAction": "Suppresses lapse trigger; dispatches overdue reminders on Day 30 and Day 50.",
-        "actuarialBasis": "Article 37 Insurance Business Law: mandatory 60-day grace protection for periodical premium payment policies.",
-        "pdfPage": 342
-      },
-      {
-        "ruleId": "VAL-BIL-003",
-        "module": "MOD_05",
-        "moduleName": "Billing & Collection",
-        "lifecyclePhase": "06. Billing & Grace Period",
-        "stage": "Day 60 Expiration",
-        "targetEntity": "T_POLICY",
-        "ruleName": "Grace Expiration Gating: APL vs Auto-Lapse",
-        "condition": "At 23:59:59 on Day 60, system checks Net Cash Value: If Net CV >= Overdue Premium -> APL; Else -> LAPSE.",
+        "lifecyclePhase": "05. Billing & Grace",
+        "stage": "Claim in Grace",
+        "targetEntity": "T_CLM_SETTLEMENT",
+        "ruleName": "Overdue Premium Offset on Grace Claim",
+        "condition": "Unpaid modal premium must be deducted from the claim payout if death or event occurs during Grace Period.",
         "severity": "HARD_STOP",
-        "errorCode": "ERR_BIL_GRACE_LAPSE_TRIGGER",
-        "errorMessage": "Grace period expired without payment. Automatic non-forfeiture decision executed by batch engine.",
-        "systemAction": "Updates policy status to `INFORCE_APL` or `LAPSED`; locks billing collection.",
-        "actuarialBasis": "Actuarial reserve preservation: insurer cannot maintain unbacked risk reserve after grace exhaustion without collateral.",
-        "pdfPage": 344
+        "errorCode": "ERR_BCP_CLAIM_PREM_OFFSET_REQUIRED",
+        "errorMessage": "Sự kiện bảo hiểm xảy ra trong kỳ gia hạn; bắt buộc khấu trừ kỳ phí chưa nộp vào số tiền bồi thường.",
+        "systemAction": "Tự động tạo bản ghi khấu trừ phí trước khi duyệt chi trả bồi thường.",
+        "actuarialBasis": "Bảo đảm nguyên tắc công bằng định phí: Phí bảo hiểm của kỳ rủi ro phát sinh phải được thanh toán đầy đủ.",
+        "pdfPage": 350
+      },
+      {
+        "ruleId": "VAL-BCP-003",
+        "module": "MOD_05",
+        "moduleName": "Billing & Collection",
+        "lifecyclePhase": "05. Billing & Grace",
+        "stage": "APL Execution",
+        "targetEntity": "T_POL_LOAN",
+        "ruleName": "APL Cash Value Sufficiency Constraint",
+        "condition": "APL requires Net CSV >= Modal Installment Premium on Midnight of Grace Day 60.",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_BCP_APL_INSUFFICIENT_CSV",
+        "errorMessage": "Giá trị hoàn lại ròng không đủ để thực hiện tạm ứng đóng phí tự động APL.",
+        "systemAction": "Chuyển hướng quyết định từ APL sang Auto-Lapse.",
+        "actuarialBasis": "Ngăn ngừa việc tạm ứng vượt quá tài sản đảm bảo của hợp đồng dẫn đến nợ xấu bảo hiểm.",
+        "pdfPage": 373
+      },
+      {
+        "ruleId": "VAL-BCP-004",
+        "module": "MOD_05",
+        "moduleName": "Billing & Collection",
+        "lifecyclePhase": "05. Billing & Grace",
+        "stage": "Midnight EOD",
+        "targetEntity": "T_POL_POLICY",
+        "ruleName": "Midnight Auto-Lapse Cutoff Strict Timing",
+        "condition": "Auto-lapse execution occurs strictly at 23:59:59 of Grace Day 60, not earlier.",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_BCP_PREMATURE_LAPSE_PROHIBITED",
+        "errorMessage": "Không được chuyển trạng thái Mất Hiệu Lực trước khi kết thúc đủ 60 ngày gia hạn.",
+        "systemAction": "Chặn lệnh cập nhật Lapsed thủ công của người dùng trước hạn chót.",
+        "actuarialBasis": "Bảo vệ quyền lợi khách hàng có quyền nộp phí đến phút cuối cùng của ngày thứ 60.",
+        "pdfPage": 350
+      },
+      {
+        "ruleId": "VAL-BCP-005",
+        "module": "MOD_05",
+        "moduleName": "Billing & Collection",
+        "lifecyclePhase": "05. Billing & Grace",
+        "stage": "Suspense Allocation",
+        "targetEntity": "T_BCP_SUSPENSE",
+        "ruleName": "Suspense Minimum Tolerance Match 100%",
+        "condition": "Renewal allocation requires suspense balance >= 100.0% of modal installment premium.",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_BCP_SUSPENSE_UNDERFUNDED",
+        "errorMessage": "Số dư trong tài khoản treo Suspense chưa đủ để thanh toán tròn kỳ phí định kỳ.",
+        "systemAction": "Giữ tiền trong tài khoản Suspense và không nâng ngày PTD.",
+        "actuarialBasis": "Doanh nghiệp bảo hiểm không chấp nhận thanh toán dở dang làm lệch chu kỳ bảo vệ.",
+        "pdfPage": 363
+      },
+      {
+        "ruleId": "VAL-BCP-006",
+        "module": "MOD_05",
+        "moduleName": "Billing & Collection",
+        "lifecyclePhase": "05. Billing & Grace",
+        "stage": "Direct Debit",
+        "targetEntity": "T_BCP_DIRECT_DEBIT",
+        "ruleName": "Direct Debit Duplicate Extraction Lock",
+        "condition": "Policy cannot be extracted into multiple active clearing batches simultaneously.",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_BCP_DD_CONCURRENT_EXTRACTION",
+        "errorMessage": "Hợp đồng đang nằm trong một tệp trích nợ chờ ngân hàng xử lý; không thể xuất tệp lần 2.",
+        "systemAction": "Khóa trường BILLING_STATUS = 'IN_COLLECTION'.",
+        "actuarialBasis": "Ngăn ngừa trừ tiền trùng lặp từ tài khoản ngân hàng của khách hàng.",
+        "pdfPage": 355
+      },
+      {
+        "ruleId": "VAL-BCP-007",
+        "module": "MOD_05",
+        "moduleName": "Billing & Collection",
+        "lifecyclePhase": "05. Billing & Grace",
+        "stage": "Direct Debit Mandate",
+        "targetEntity": "T_BCP_MANDATE",
+        "ruleName": "Mandate Verification Prior to Clearing",
+        "condition": "Direct debit extraction permitted only for accounts with VERIFIED mandate status.",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_BCP_MANDATE_UNVERIFIED",
+        "errorMessage": "Ủy quyền trích nợ tự động chưa được ngân hàng xác minh tính hợp lệ.",
+        "systemAction": "Loại bỏ hợp đồng khỏi danh sách xuất tệp trích nợ tự động.",
+        "actuarialBasis": "Tuân thủ quy định thanh toán không dùng tiền mặt và phòng tránh khiếu nại trái phép.",
+        "pdfPage": 355
+      },
+      {
+        "ruleId": "VAL-BCP-008",
+        "module": "MOD_05",
+        "moduleName": "Billing & Collection",
+        "lifecyclePhase": "05. Billing & Grace",
+        "stage": "Batch Return",
+        "targetEntity": "T_BCP_CLEARING_FILE",
+        "ruleName": "Clearing File Idempotency Guarantee",
+        "condition": "A bank clearing return file can only be processed and settled exactly once.",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_BCP_FILE_ALREADY_PROCESSED",
+        "errorMessage": "Tệp kết quả thanh toán này đã được đối soát và hạch toán trước đó.",
+        "systemAction": "Từ chối nạp tệp và gửi cảnh báo trùng lặp cho kế toán.",
+        "actuarialBasis": "Ngăn chặn ghi nhận doanh thu phí và cập nhật PTD hai lần.",
+        "pdfPage": 364
+      },
+      {
+        "ruleId": "VAL-BCP-009",
+        "module": "MOD_05",
+        "moduleName": "Billing & Collection",
+        "lifecyclePhase": "05. Billing & Grace",
+        "stage": "Unmatched Pool",
+        "targetEntity": "T_BCP_UNMATCHED",
+        "ruleName": "Unmatched Pool 90-Day Aging Cutoff",
+        "condition": "Unidentified funds remaining in Unmatched Pool > 90 days must be transferred to Audit Holding Account.",
+        "severity": "WARNING",
+        "errorCode": "WARN_BCP_UNMATCHED_AGING_OVERFLOW",
+        "errorMessage": "Khoản tiền treo chưa khớp đã quá hạn 90 ngày theo chuẩn kế toán kiểm toán.",
+        "systemAction": "Tự động chuyển vào tài khoản tiền gửi chờ thanh toán kiểm toán.",
+        "actuarialBasis": "Bảo đảm tính trung thực của báo cáo tài chính và tuân thủ chuẩn mực kế toán doanh nghiệp bảo hiểm.",
+        "pdfPage": 366
+      },
+      {
+        "ruleId": "VAL-BCP-010",
+        "module": "MOD_05",
+        "moduleName": "Billing & Collection",
+        "lifecyclePhase": "05. Billing & Grace",
+        "stage": "APL Interest",
+        "targetEntity": "T_POL_LOAN",
+        "ruleName": "APL Statutory Interest Accrual Standard",
+        "condition": "APL loan interest is accrued daily at the approved statutory rate (6.5%/year) and capitalized annually.",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_BCP_APL_RATE_NONCOMPLIANT",
+        "errorMessage": "Lãi suất tính cho khoản vay đóng phí APL không đúng với tỷ lệ đã đăng ký với Bộ Tài chính.",
+        "systemAction": "Áp dụng tỷ lệ lãi suất mặc định của bảng tham số hệ thống.",
+        "actuarialBasis": "Tuân thủ quy tắc tính toán lãi vay hợp đồng đã được phê chuẩn trong Product Spec.",
+        "pdfPage": 373
+      },
+      {
+        "ruleId": "VAL-BCP-011",
+        "module": "MOD_05",
+        "moduleName": "Billing & Collection",
+        "lifecyclePhase": "05. Billing & Grace",
+        "stage": "Billing Notice",
+        "targetEntity": "T_BCP_NOTICE",
+        "ruleName": "Paid-Up Exemption from Billing Generation",
+        "condition": "Policies with status PAID_UP or WAIVED must be excluded from billing notice generation.",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_BCP_PAIDUP_BILLING_PROHIBITED",
+        "errorMessage": "Hợp đồng đã đóng đủ phí hoặc chuyển RPU không được phát sinh thông báo thu phí.",
+        "systemAction": "Tự động bỏ qua hợp đồng trong tiến trình quét lập hóa đơn.",
+        "actuarialBasis": "Khách hàng không còn nghĩa vụ đóng phí; tránh gây hiểu lầm và khiếu nại.",
+        "pdfPage": 346
+      },
+      {
+        "ruleId": "VAL-BCP-012",
+        "module": "MOD_05",
+        "moduleName": "Billing & Collection",
+        "lifecyclePhase": "05. Billing & Grace",
+        "stage": "Advance Premium",
+        "targetEntity": "T_BCP_APA",
+        "ruleName": "Advance Premium Account (APA) Auto-Drawdown",
+        "condition": "If Advance Premium Account balance > 0, system automatically draws from APA before billing customer.",
+        "severity": "HARD_STOP",
+        "errorCode": "INFO_BCP_APA_AUTO_DRAWDOWN",
+        "errorMessage": "Đã tự động trích tiền từ tài khoản phí đóng trước (APA) để thanh toán phí định kỳ.",
+        "systemAction": "Trích tiền APA, cập nhật PTD và không xuất tệp trích nợ ngân hàng.",
+        "actuarialBasis": "Ưu tiên giải tỏa nguồn vốn trả trước của khách hàng trước khi tạo thêm nghĩa vụ thanh toán.",
+        "pdfPage": 345
+      },
+      {
+        "ruleId": "VAL-BCP-013",
+        "module": "MOD_05",
+        "moduleName": "Billing & Collection",
+        "lifecyclePhase": "05. Billing & Grace",
+        "stage": "Disbursement",
+        "targetEntity": "T_BCP_PAYMENT",
+        "ruleName": "Payee Name Identity Strict Match",
+        "condition": "Disbursement bank account owner name must match Policyholder or Designated Beneficiary.",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_BCP_PAYEE_NAME_MISMATCH",
+        "errorMessage": "Tên chủ tài khoản nhận tiền không trùng khớp với người được hưởng quyền lợi trên hợp đồng.",
+        "systemAction": "Chặn giải ngân và yêu cầu xác minh bổ sung hoặc cung cấp tài khoản chính chủ.",
+        "actuarialBasis": "Phòng chống gian lận nội bộ và bảo đảm tính pháp lý trong việc chi trả quyền lợi bảo hiểm.",
+        "pdfPage": 381
+      },
+      {
+        "ruleId": "VAL-BCP-014",
+        "module": "MOD_05",
+        "moduleName": "Billing & Collection",
+        "lifecyclePhase": "05. Billing & Grace",
+        "stage": "Payment Cancellation",
+        "targetEntity": "T_BCP_PAYMENT",
+        "ruleName": "Paid Disbursement Reversal Authorization",
+        "condition": "Cancelling a PAID disbursement order requires Chief Financial Officer (CFO) dual authorization.",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_BCP_REVERSAL_DOA_UNAUTHORIZED",
+        "errorMessage": "Lệnh chi tiền đã chuyển khoản thành công; yêu cầu thu hồi bắt buộc phải có phê duyệt của Giám đốc Tài chính.",
+        "systemAction": "Khóa lệnh hủy và chuyển luồng phê duyệt sang tài khoản CFO.",
+        "actuarialBasis": "Kiểm soát rủi ro thất thoát ngân quỹ doanh nghiệp bảo hiểm.",
+        "pdfPage": 396
+      },
+      {
+        "ruleId": "VAL-BCP-015",
+        "module": "MOD_05",
+        "moduleName": "Billing & Collection",
+        "lifecyclePhase": "05. Billing & Grace",
+        "stage": "PTD Advance",
+        "targetEntity": "T_POL_POLICY",
+        "ruleName": "Paid-To-Date Synchronization Across Riders",
+        "condition": "Advancing Base Policy PTD automatically advances all active attached riders' PTD concurrently.",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_BCP_PTD_DESYNCHRONIZATION",
+        "errorMessage": "Ngày đến hạn đóng phí PTD của sản phẩm bổ trợ bị lệch so với hợp đồng chính.",
+        "systemAction": "Tự động đồng bộ hóa toàn bộ PTD của các rider theo hợp đồng chính.",
+        "actuarialBasis": "Bảo đảm đồng nhất chu kỳ thu phí và tính toán dự phòng nghiệp vụ của toàn bộ gói hợp đồng.",
+        "pdfPage": 363
+      },
+      {
+        "ruleId": "VAL-BCP-016",
+        "module": "MOD_05",
+        "moduleName": "Billing & Collection",
+        "lifecyclePhase": "05. Billing & Grace",
+        "stage": "GL Posting",
+        "targetEntity": "T_PUB_TX_UNDO_LOG",
+        "ruleName": "Two-Phase Commit Settlement Post-Image Recording",
+        "condition": "Every renewal settlement must persist undo log snapshot before updating SOR tables.",
+        "severity": "CRITICAL",
+        "errorCode": "ERR_BCP_2PC_UNDO_MISSING",
+        "errorMessage": "Không thể lưu bản ghi snapshot giao dịch 2PC trước khi hạch toán vào sổ cái và SOR.",
+        "systemAction": "Hủy giao dịch thu phí và trả lời lỗi cho ngân hàng.",
+        "actuarialBasis": "Bảo đảm tính toàn vẹn 100% của sổ sách kế toán bảo hiểm trong kiến trúc phân tán.",
+        "pdfPage": 416
       }
     ],
-    "validation_rules_count": 3
+    "validation_rules_count": 16
   },
   {
     "id": "MOD_06",
