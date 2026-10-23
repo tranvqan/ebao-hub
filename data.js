@@ -11,16 +11,44 @@ window.EBAO_MODULES = [
     "summary": "Nền tảng kiến trúc Core PAS eBao Gemini Life và Động cơ Định cấu hình Sản phẩm (Product Factory). Vận hành trên mô hình Microservices 4 tầng (UI, BFF, Business Services, System of Record) với cơ chế điều phối quy trình nội bộ khai báo Garment & Fabrics cho phép tùy biến logic theo từng Tenant (như bổ sung tính thuế GST/VAT) mà không sửa mã nguồn cốt lõi. Tích hợp khung quản lý giao dịch phân tán toàn cục 2PC (InsureMO Seata AT) với cơ chế tự động bù trừ qua t_pub_tx_undo_log. Module cung cấp xưởng sản phẩm Product Factory 10 bước khép kín từ định nghĩa sản phẩm, bảng tỷ lệ phí đa chiều, hệ số kỳ đóng phí, lịch giá trị hoàn lại, ma trận rider tương thích, đến phát hành phiên bản runtime lên SOR với cơ chế bảo vệ nâng cấp baseline (record_usage = 5).",
     "mermaid_workflow": "graph TD\n    subgraph UI_Layer [\"1. Presentation Layer (UI)\"]\n        UI_NB[\"Sales Portal / NB Workbench\"]\n        UI_CS[\"Customer Service Portal\"]\n        UI_CLM[\"Claim Processing Portal\"]\n    end\n\n    subgraph BFF_Layer [\"2. Backend for Frontend (BFF) Layer\"]\n        BFF[\"Regional BFF & API Gateway<br/>(Protocol Translation & Session Auth)\"]\n    end\n\n    subgraph BS_Layer [\"3. Business Service (BS) Layer - Garment & Fabrics\"]\n        PA_BS[\"PA BS (Policy Admin)\"]\n        CLM_BS[\"Claim BS (Claims)\"]\n        BCP_BS[\"BCP BS (Billing & Collection)\"]\n        \n        subgraph Pipeline [\"Quotation Garment Pipeline\"]\n            F1[\"Step 1: Build Context\"] --> F2[\"Step 2: Pre-Validation\"]\n            F2 --> F3[\"Step 3: Fetch Master Data\"]\n            F3 --> F4[\"Step 4: Rate Calculation\"]\n            F4 --> F5[\"Step 16: GST/Tax (Tenant Fabric)\"]\n            F5 --> F6[\"Step 17: Save & 2PC Log\"]\n        end\n    end\n\n    subgraph Global_TX [\"Global Transaction & Compensation (InsureMO Seata AT)\"]\n        TX_MGR[\"Transaction Coordinator\"]\n        UNDO_LOG[(\"t_pub_tx_undo_log<br/>(JPA Pre-image Snapshot)\")]\n    end\n\n    subgraph SOR_Layer [\"4. System of Record (SOR) Relational Database\"]\n        T_POL[(\"t_pol_policy<br/>(Master Contract)\")]\n        T_CV[(\"t_pol_cash_value<br/>(CV Schedule)\")]\n        T_RATE[(\"t_rt_ratetable_data<br/>(Actuarial Rates)\")]\n    end\n\n    UI_NB -->|REST/JSON| BFF\n    UI_CS -->|REST/JSON| BFF\n    UI_CLM -->|REST/JSON| BFF\n    BFF --> PA_BS\n    BFF --> CLM_BS\n    BFF --> BCP_BS\n    PA_BS --> Pipeline\n    Pipeline -->|2PC Two-Phase Commit| TX_MGR\n    TX_MGR -->|Record State| UNDO_LOG\n    Pipeline -->|Commit Validated State| T_POL\n    Pipeline -->|Commit Validated State| T_CV\n    Pipeline -->|Read Matrix| T_RATE\n\n    classDef ui fill:#e0f2fe,stroke:#0284c7,stroke-width:2px,color:#0369a1;\n    classDef bff fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#b45309;\n    classDef bs fill:#ede9fe,stroke:#7c3aed,stroke-width:2px,color:#6d28d9;\n    classDef sor fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#15803d;\n    classDef tx fill:#ffe4e6,stroke:#e11d48,stroke-width:2px,color:#be123c;\n\n    class UI_NB,UI_CS,UI_CLM ui;\n    class BFF bff;\n    class PA_BS,CLM_BS,BCP_BS,F1,F2,F3,F4,F5,F6 bs;\n    class T_POL,T_CV,T_RATE sor;\n    class TX_MGR,UNDO_LOG tx;",
     "core_concepts": [
-      "Kiến trúc Microservices 4 Tầng: Presentation Layer (UI), BFF (Backend for Frontend), Business Services (PA BS, Claim BS, BCP BS), SOR (System of Record lưu trữ bảng t_pol_*, t_party_* bất biến).",
-      "Mô hình Khai báo Garment & Fabrics: Garment là điểm vào xử lý nghiệp vụ (entrypoint Java method mang JSON context); Fabrics là các microservices nguyên tử (atomic steps) được dệt (weave) tuần tự. Cho phép thêm/sửa step theo Tenant mà không sửa mã nguồn baseline.",
-      "Khung Giao dịch Toàn cục & Bù trừ (Global 2PC Transaction): Dựa trên InsureMO Seata AT mode. Mỗi thao tác ghi dữ liệu cục bộ tự động trích xuất JPA Entity snapshot vào bảng t_pub_tx_undo_log; nếu dịch vụ hạ nguồn thất bại, giao dịch tự động đảo ngược về trạng thái ban đầu.",
-      "Đa Khách thuê & Múi giờ UTC: JVM chạy trên chuẩn múi giờ UTC; BFF và Business Service chuyển đổi ngày kinh doanh theo múi giờ tenant (ví dụ Asia/Ho_Chi_Minh). Phân vùng dữ liệu triệt để ngăn chặn rò rỉ dữ liệu chéo giữa các Tenant.",
-      "Quy chuẩn Đặt tên Cache Redis & Invalidation: Tiền tố bắt buộc '[BIZ-DATA] + [Tên Module] + [Chi tiết]' (ví dụ [BIZ-DATA][PROD]RateTable). Hết hạn mặc định 24h, hỗ trợ xóa tập trung qua cơ chế broadcast RabbitMQ.",
-      "Cơ chế Ghi đè Cấu hình Baseline (record_usage = 5): Bảng Code Table, Data Table, I18n Message cho phép reload theo Tenant. Thiết lập record_usage = 5 giúp cấu hình của Tenant không bị ghi đè khi nâng cấp phiên bản Gemini baseline.",
-      "Quy trình 10 Bước Định Cấu Hình Sản Phẩm (Product Factory): Trải qua 10 bước chuẩn hóa từ Product Master, Terms/Eligibility, Sum Assured Bounds, Rate Tables, Modal Loadings, Cash Value Schedule, Rider Matrix, Auto-UW STP, Non-Forfeiture đến Compile & Publish SOR."
+      {
+        "term": "Kiến trúc Microservices 4 Tầng",
+        "def": "Presentation Layer (UI), BFF (Backend for Frontend), Business Services (PA BS, Claim BS, BCP BS), SOR (System of Record lưu trữ bảng t_pol_*, t_party_* bất biến)."
+      },
+      {
+        "term": "Mô hình Khai báo Garment & Fabrics",
+        "def": "Garment là điểm vào xử lý nghiệp vụ (entrypoint Java method mang JSON context); Fabrics là các microservices nguyên tử (atomic steps) được dệt (weave) tuần tự. Cho phép thêm/sửa step theo Tenant mà không sửa mã nguồn baseline."
+      },
+      {
+        "term": "Khung Giao dịch Toàn cục & Bù trừ (Global 2PC Transaction)",
+        "def": "Dựa trên InsureMO Seata AT mode. Mỗi thao tác ghi dữ liệu cục bộ tự động trích xuất JPA Entity snapshot vào bảng t_pub_tx_undo_log; nếu dịch vụ hạ nguồn thất bại, giao dịch tự động đảo ngược về trạng thái ban đầu."
+      },
+      {
+        "term": "Đa Khách thuê & Múi giờ UTC",
+        "def": "JVM chạy trên chuẩn múi giờ UTC; BFF và Business Service chuyển đổi ngày kinh doanh theo múi giờ tenant (ví dụ Asia/Ho_Chi_Minh). Phân vùng dữ liệu triệt để ngăn chặn rò rỉ dữ liệu chéo giữa các Tenant."
+      },
+      {
+        "term": "Quy chuẩn Đặt tên Cache Redis & Invalidation",
+        "def": "Tiền tố bắt buộc '[BIZ-DATA] + [Tên Module] + [Chi tiết]' (ví dụ [BIZ-DATA][PROD]RateTable). Hết hạn mặc định 24h, hỗ trợ xóa tập trung qua cơ chế broadcast RabbitMQ."
+      },
+      {
+        "term": "Cơ chế Ghi đè Cấu hình Baseline (record_usage = 5)",
+        "def": "Bảng Code Table, Data Table, I18n Message cho phép reload theo Tenant. Thiết lập record_usage = 5 giúp cấu hình của Tenant không bị ghi đè khi nâng cấp phiên bản Gemini baseline."
+      },
+      {
+        "term": "Quy trình 10 Bước Định Cấu Hình Sản Phẩm (Product Factory)",
+        "def": "Trải qua 10 bước chuẩn hóa từ Product Master, Terms/Eligibility, Sum Assured Bounds, Rate Tables, Modal Loadings, Cash Value Schedule, Rider Matrix, Auto-UW STP, Non-Forfeiture đến Compile & Publish SOR."
+      }
     ],
-    "actuary_notes": "Từ góc độ Định phí Bảo hiểm (Actuarial), Product Factory của eBao Gemini áp dụng cấu trúc dữ liệu đa chiều tối ưu hóa cho việc tính toán dòng tiền và phí bảo hiểm theo công thức: Annual_Premium = (Sum_Assured / 1000) * Base_Rate(Age, Gender, Smoker, Term) * Modal_Factor + Flat_Loading. Bảng tỷ lệ phí (t_rt_ratetable_data) hỗ trợ n chiều tra cứu, kết hợp hệ số đóng phí (Annual = 1.0, Semi-Annual = 0.52, Quarterly = 0.27, Monthly = 0.09). Lịch giá trị hoàn lại (Cash Value Schedule) và tỷ lệ chia lãi tích lũy/bảo tức đảo ngược (Reversionary Bonus) được kiểm soát chặt chẽ bằng ràng buộc không được âm, không vượt quá Số tiền bảo hiểm, và tuân thủ biên khả năng thanh toán theo quy định của Bộ Tài chính.",
-    "op_notes": "Về mặt Vận hành Công nghệ (System Operations), việc phân tách rõ ràng giữa New Business Workbench và SOR Tables thông qua API gọi PA BS giúp tách biệt hoàn toàn rủi ro dữ liệu giữa giai đoạn ghi nhận hồ sơ và giai đoạn quản lý hợp đồng sau phát hành. Quản trị viên hệ thống khi bổ sung cấu hình cho thị trường Việt Nam (như thuế VAT 10% hoặc các khoản phí quản lý quỹ) phải tuân thủ quy tắc tạo cấu hình trong Configuration Group riêng của Tenant trên MC Environment (https://[tenantcode]-gimc.insuremo.com) và luôn đặt tham số record_usage = 5 để bảo vệ an toàn tuyệt đối khi nâng cấp bản vá Core.",
+    "actuary_notes": [
+      "Từ góc độ Định phí Bảo hiểm (Actuarial), Product Factory của eBao Gemini áp dụng cấu trúc dữ liệu đa chiều tối ưu hóa cho việc tính toán dòng tiền và phí bảo hiểm theo công thức: Annual_Premium = (Sum_Assured / 1000) * Base_Rate(Age, Gender, Smoker, Term) * Modal_Factor + Flat_Loading.",
+      "Bảng tỷ lệ phí (t_rt_ratetable_data) hỗ trợ n chiều tra cứu, kết hợp hệ số đóng phí (Annual = 1.0, Semi-Annual = 0.52, Quarterly = 0.27, Monthly = 0.09).",
+      "Lịch giá trị hoàn lại (Cash Value Schedule) và tỷ lệ chia lãi tích lũy/bảo tức đảo ngược (Reversionary Bonus) được kiểm soát chặt chẽ bằng ràng buộc không được âm, không vượt quá Số tiền bảo hiểm, và tuân thủ biên khả năng thanh toán theo quy định của Bộ Tài chính."
+    ],
+    "op_notes": [
+      "Về mặt Vận hành Công nghệ (System Operations), việc phân tách rõ ràng giữa New Business Workbench và SOR Tables thông qua API gọi PA BS giúp tách biệt hoàn toàn rủi ro dữ liệu giữa giai đoạn ghi nhận hồ sơ và giai đoạn quản lý hợp đồng sau phát hành.",
+      "Quản trị viên hệ thống khi bổ sung cấu hình cho thị trường Việt Nam (như thuế VAT 10% hoặc các khoản phí quản lý quỹ) phải tuân thủ quy tắc tạo cấu hình trong Configuration Group riêng của Tenant trên MC Environment (https://[tenantcode]-gimc.insuremo.com) và luôn đặt tham số record_usage = 5 để bảo vệ an toàn tuyệt đối khi nâng cấp bản vá Core."
+    ],
     "sections": [
       {
         "heading": "1. Layered Microservices Topology",
@@ -1341,10 +1369,10 @@ window.EBAO_MODULES = [
     "sops": [
       {
         "code": "SOP-ARC-01",
+        "id": "SOP-ARC-01",
         "title": "Multi-Tenant Isolation, URP Role Assignment & Branch Data Boundary",
         "role": "System Administrator / Security Lead",
         "objective": "Thiết lập phân vùng dữ liệu khách thuê (Multi-tenant Data Boundary), cơ cấu tổ chức chi nhánh và gán quyền người dùng (URP) đảm bảo cô lập hoàn toàn giữa các tenant và chi nhánh nghiệp vụ.",
-        "ui_path": "System Admin -> URP -> User & Role Management -> Tenant Context Setting",
         "pdf_page": 12,
         "prerequisites": [
           "Tài khoản quản trị viên cấp cao có phân quyền SUPER_ADMIN trên hệ sinh thái InsureMO.",
@@ -1385,71 +1413,81 @@ window.EBAO_MODULES = [
         ],
         "fields_table": [
           {
-            "field": "TENANT_CODE",
+            "name": "TENANT_CODE",
             "type": "String",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Mã định danh duy nhất của khách thuê (ví dụ: SACOM_VN)"
+            "desc": "Mã định danh duy nhất của khách thuê (ví dụ: SACOM_VN)"
           },
           {
-            "field": "BRANCH_CODE",
+            "name": "BRANCH_CODE",
             "type": "String",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Mã định danh chi nhánh (ví dụ: BR-HCM-01)"
+            "desc": "Mã định danh chi nhánh (ví dụ: BR-HCM-01)"
           },
           {
-            "field": "DATA_SCOPE_TYPE",
+            "name": "DATA_SCOPE_TYPE",
             "type": "Enum",
             "required": "Yes",
-            "default": "BRANCH_ONLY",
-            "description": "Phạm vi dữ liệu: OWN_USER, BRANCH_ONLY, BRANCH_AND_SUB, ALL_COMPANY"
+            "desc": "Phạm vi dữ liệu: OWN_USER, BRANCH_ONLY, BRANCH_AND_SUB, ALL_COMPANY"
           },
           {
-            "field": "ROLE_CODE",
+            "name": "ROLE_CODE",
             "type": "String",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Mã vai trò trong hệ thống URP (ví dụ: UW_L2)"
+            "desc": "Mã vai trò trong hệ thống URP (ví dụ: UW_L2)"
           },
           {
-            "field": "EFFECTIVE_FROM",
+            "name": "EFFECTIVE_FROM",
             "type": "Date",
             "required": "Yes",
-            "default": "CURRENT_DATE",
-            "description": "Ngày bắt đầu có hiệu lực của quyền truy cập"
+            "desc": "Ngày bắt đầu có hiệu lực của quyền truy cập"
           },
           {
-            "field": "EFFECTIVE_TO",
+            "name": "EFFECTIVE_TO",
             "type": "Date",
             "required": "No",
-            "default": "9999-12-31",
-            "description": "Ngày hết hạn hiệu lực của quyền truy cập"
+            "desc": "Ngày hết hạn hiệu lực của quyền truy cập"
           }
         ],
         "validation_rules": [
           {
-            "code": "VAL-ARC-01-A",
-            "rule": "Cấm truy cập chéo giữa 2 Tenant ID khác nhau trong cùng một JVM session. Trả về mã lỗi 403 Forbidden."
+            "ruleId": "VAL-ARC-01-A",
+            "ruleName": "Cấm truy cập chéo giữa 2 Tenant ID khác nhau trong cùng một JVM session. Trả về mã lỗi 403 Forbidden.",
+            "errorCode": "ERR_VAL_ARC_01_A",
+            "severity": "HARD_STOP",
+            "condition": "Cấm truy cập chéo giữa 2 Tenant ID khác nhau trong cùng một JVM session. Trả về mã lỗi 403 Forbidden.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 12
           },
           {
-            "code": "VAL-ARC-01-B",
-            "rule": "Mỗi người dùng nghiệp vụ bắt buộc phải gắn với tối thiểu 1 Chi nhánh hợp lệ có trạng thái ACTIVE."
+            "ruleId": "VAL-ARC-01-B",
+            "ruleName": "Mỗi người dùng nghiệp vụ bắt buộc phải gắn với tối thiểu 1 Chi nhánh hợp lệ có trạng thái ACTIVE.",
+            "errorCode": "ERR_VAL_ARC_01_B",
+            "severity": "HARD_STOP",
+            "condition": "Mỗi người dùng nghiệp vụ bắt buộc phải gắn với tối thiểu 1 Chi nhánh hợp lệ có trạng thái ACTIVE.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 12
           },
           {
-            "code": "VAL-ARC-01-C",
-            "rule": "Chỉ tài khoản có cờ IS_HEAD_OFFICE = true mới được cấp phạm vi dữ liệu ALL_COMPANY."
+            "ruleId": "VAL-ARC-01-C",
+            "ruleName": "Chỉ tài khoản có cờ IS_HEAD_OFFICE = true mới được cấp phạm vi dữ liệu ALL_COMPANY.",
+            "errorCode": "ERR_VAL_ARC_01_C",
+            "severity": "HARD_STOP",
+            "condition": "Chỉ tài khoản có cờ IS_HEAD_OFFICE = true mới được cấp phạm vi dữ liệu ALL_COMPANY.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 12
           }
-        ],
-        "actuary_notes": "Phân định dữ liệu chặt chẽ giúp bảo vệ báo cáo tài chính và dữ liệu dự phòng kỹ thuật không bị trộn lẫn giữa các công ty con hoặc các đối tác phân phối.",
-        "op_notes": "Định kỳ rà soát tài khoản người dùng mỗi quý (Quarterly Access Review) để thu hồi quyền của nhân sự đã thôi việc hoặc chuyển phòng ban."
+        ]
       },
       {
         "code": "SOP-ARC-02",
+        "id": "SOP-ARC-02",
         "title": "Declarative Microservices Orchestration (Garment & Fabrics Pipeline)",
         "role": "Integration Architect / Core Solution Specialist",
         "objective": "Cấu hình, điều phối và mở rộng luồng xử lý nghiệp vụ nội bộ bằng cơ chế dệt Garment & Fabrics, cho phép thêm bước nghiệp vụ riêng của từng Tenant (ví dụ tính thuế GST/VAT, kiểm tra AML nâng cao) mà không sửa mã nguồn Java baseline.",
-        "ui_path": "BS Configuration Center -> Orchestration -> Garment Management -> Fabric Weaving Studio",
         "pdf_page": 17,
         "prerequisites": [
           "Truy cập vào trung tâm cấu hình BS Configuration Center trên môi trường MC.",
@@ -1490,64 +1528,75 @@ window.EBAO_MODULES = [
         ],
         "fields_table": [
           {
-            "field": "GARMENT_ID",
+            "name": "GARMENT_ID",
             "type": "String",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Mã định danh của dịch vụ nghiệp vụ chính (Garment)"
+            "desc": "Mã định danh của dịch vụ nghiệp vụ chính (Garment)"
           },
           {
-            "field": "FABRIC_STEP_NO",
+            "name": "FABRIC_STEP_NO",
             "type": "Integer",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Thứ tự thực thi của Fabric trong pipeline (1, 2, 3...)"
+            "desc": "Thứ tự thực thi của Fabric trong pipeline (1, 2, 3...)"
           },
           {
-            "field": "FABRIC_NAME",
+            "name": "FABRIC_NAME",
             "type": "String",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Tên định danh Java method của microservice nguyên tử"
+            "desc": "Tên định danh Java method của microservice nguyên tử"
           },
           {
-            "field": "EXECUTION_MODE",
+            "name": "EXECUTION_MODE",
             "type": "Enum",
             "required": "Yes",
-            "default": "SYNCHRONOUS",
-            "description": "Chế độ thực thi: SYNCHRONOUS, ASYNCHRONOUS, CONDITIONAL"
+            "desc": "Chế độ thực thi: SYNCHRONOUS, ASYNCHRONOUS, CONDITIONAL"
           },
           {
-            "field": "FAILURE_POLICY",
+            "name": "FAILURE_POLICY",
             "type": "Enum",
             "required": "Yes",
-            "default": "ABORT_AND_ROLLBACK",
-            "description": "Hành vi khi bước lỗi: ABORT_AND_ROLLBACK, IGNORE_AND_CONTINUE, RETRY"
+            "desc": "Hành vi khi bước lỗi: ABORT_AND_ROLLBACK, IGNORE_AND_CONTINUE, RETRY"
           }
         ],
         "validation_rules": [
           {
-            "code": "VAL-ARC-02-A",
-            "rule": "Thứ tự thực thi Fabric Step No phải là số nguyên dương tăng dần không trùng lặp."
+            "ruleId": "VAL-ARC-02-A",
+            "ruleName": "Thứ tự thực thi Fabric Step No phải là số nguyên dương tăng dần không trùng lặp.",
+            "errorCode": "ERR_VAL_ARC_02_A",
+            "severity": "HARD_STOP",
+            "condition": "Thứ tự thực thi Fabric Step No phải là số nguyên dương tăng dần không trùng lặp.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 17
           },
           {
-            "code": "VAL-ARC-02-B",
-            "rule": "Tất cả các tham số Input Context mà Fabric yêu cầu phải được cung cấp bởi các Fabric thực thi trước đó."
+            "ruleId": "VAL-ARC-02-B",
+            "ruleName": "Tất cả các tham số Input Context mà Fabric yêu cầu phải được cung cấp bởi các Fabric thực thi trước đó.",
+            "errorCode": "ERR_VAL_ARC_02_B",
+            "severity": "HARD_STOP",
+            "condition": "Tất cả các tham số Input Context mà Fabric yêu cầu phải được cung cấp bởi các Fabric thực thi trước đó.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 17
           },
           {
-            "code": "VAL-ARC-02-C",
-            "rule": "Bước Pick and Return Step bắt buộc phải là bước cuối cùng trong pipeline để hoàn trả kết quả cho client."
+            "ruleId": "VAL-ARC-02-C",
+            "ruleName": "Bước Pick and Return Step bắt buộc phải là bước cuối cùng trong pipeline để hoàn trả kết quả cho client.",
+            "errorCode": "ERR_VAL_ARC_02_C",
+            "severity": "HARD_STOP",
+            "condition": "Bước Pick and Return Step bắt buộc phải là bước cuối cùng trong pipeline để hoàn trả kết quả cho client.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 17
           }
-        ],
-        "actuary_notes": "Cho phép đội ngũ kỹ thuật nhúng các thuật toán kiểm tra khả năng chi trả hoặc tính toán thuế giá trị gia tăng chuyên biệt theo từng thị trường mà không ảnh hưởng tới lõi tính phí.",
-        "op_notes": "Sử dụng tính năng Dry Run trong MC để chạy giả lập 100 giao dịch mẫu trước khi phát hành cấu hình pipeline lên môi trường Production."
+        ]
       },
       {
         "code": "SOP-ARC-03",
+        "id": "SOP-ARC-03",
         "title": "Global Distributed Transaction & Undo Log Compensation Management",
         "role": "Core PAS Architect / Database Administrator",
         "objective": "Quản trị khung giao dịch toàn cục phân tán 2PC (InsureMO Seata AT), giám sát bảng nhật ký bù trừ t_pub_tx_undo_log và xử lý phục hồi tự động khi có sự cố dịch vụ hạ nguồn trong quá trình phát hành hợp đồng.",
-        "ui_path": "System Admin -> Transaction Monitor -> Global Transactions & Undo Logs",
         "pdf_page": 22,
         "prerequisites": [
           "Quyền quản trị Database Administrator hoặc Core System Architect.",
@@ -1588,64 +1637,75 @@ window.EBAO_MODULES = [
         ],
         "fields_table": [
           {
-            "field": "XID",
+            "name": "XID",
             "type": "String",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Global Transaction ID duy nhất trên toàn hệ sinh thái microservices"
+            "desc": "Global Transaction ID duy nhất trên toàn hệ sinh thái microservices"
           },
           {
-            "field": "BRANCH_ID",
+            "name": "BRANCH_ID",
             "type": "Long",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Branch Transaction ID của từng microservice thành phần"
+            "desc": "Branch Transaction ID của từng microservice thành phần"
           },
           {
-            "field": "ROLLBACK_INFO",
+            "name": "ROLLBACK_INFO",
             "type": "Blob/JSON",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Dữ liệu JSON snapshot lưu pre-image và post-image của JPA Entity"
+            "desc": "Dữ liệu JSON snapshot lưu pre-image và post-image của JPA Entity"
           },
           {
-            "field": "LOG_STATUS",
+            "name": "LOG_STATUS",
             "type": "Integer",
             "required": "Yes",
-            "default": "0",
-            "description": "Trạng thái log: 0 = Normal, 1 = Defense Rollback, 2 = Completed"
+            "desc": "Trạng thái log: 0 = Normal, 1 = Defense Rollback, 2 = Completed"
           },
           {
-            "field": "LOG_CREATED",
+            "name": "LOG_CREATED",
             "type": "Timestamp",
             "required": "Yes",
-            "default": "CURRENT_TIMESTAMP",
-            "description": "Thời điểm tạo bản ghi snapshot giao dịch"
+            "desc": "Thời điểm tạo bản ghi snapshot giao dịch"
           }
         ],
         "validation_rules": [
           {
-            "code": "VAL-ARC-03-A",
-            "rule": "Tuyệt đối không được xóa thủ công bản ghi trong t_pub_tx_undo_log khi transaction đang ở trạng thái ACTIVE."
+            "ruleId": "VAL-ARC-03-A",
+            "ruleName": "Tuyệt đối không được xóa thủ công bản ghi trong t_pub_tx_undo_log khi transaction đang ở trạng thái ACTIVE.",
+            "errorCode": "ERR_VAL_ARC_03_A",
+            "severity": "HARD_STOP",
+            "condition": "Tuyệt đối không được xóa thủ công bản ghi trong t_pub_tx_undo_log khi transaction đang ở trạng thái ACTIVE.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 22
           },
           {
-            "code": "VAL-ARC-03-B",
-            "rule": "Nếu phát hiện Dirty Write (dữ liệu hiện tại khác post-image), cơ chế tự động bù trừ phải dừng lại và gửi cảnh báo mức CRITICAL cho DBA."
+            "ruleId": "VAL-ARC-03-B",
+            "ruleName": "Nếu phát hiện Dirty Write (dữ liệu hiện tại khác post-image), cơ chế tự động bù trừ phải dừng lại và gửi cảnh báo mức CRITICAL cho DBA.",
+            "errorCode": "ERR_VAL_ARC_03_B",
+            "severity": "HARD_STOP",
+            "condition": "Nếu phát hiện Dirty Write (dữ liệu hiện tại khác post-image), cơ chế tự động bù trừ phải dừng lại và gửi cảnh báo mức CRITICAL cho DBA.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 22
           },
           {
-            "code": "VAL-ARC-03-C",
-            "rule": "Thời gian timeout tối đa của một Global Transaction là 60 giây; vượt quá thời gian này hệ thống tự động kích hoạt rollback."
+            "ruleId": "VAL-ARC-03-C",
+            "ruleName": "Thời gian timeout tối đa của một Global Transaction là 60 giây; vượt quá thời gian này hệ thống tự động kích hoạt rollback.",
+            "errorCode": "ERR_VAL_ARC_03_C",
+            "severity": "HARD_STOP",
+            "condition": "Thời gian timeout tối đa của một Global Transaction là 60 giây; vượt quá thời gian này hệ thống tự động kích hoạt rollback.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 22
           }
-        ],
-        "actuary_notes": "Bảo đảm tính toàn vẹn 100% của dòng tiền thu phí đầu tiên: Không bao giờ xảy ra tình huống tiền đã trừ khỏi tài khoản khách hàng nhưng hợp đồng không được ghi nhận trong SOR.",
-        "op_notes": "Cấu hình tiến trình dọn dẹp (Housekeeping Job) định kỳ xóa các bản ghi undo log đã hoàn tất (status = Completed) cũ hơn 7 ngày để tối ưu dung lượng lưu trữ."
+        ]
       },
       {
         "code": "SOP-ARC-04",
+        "id": "SOP-ARC-04",
         "title": "Product Definition, Term Alignment & Sum Assured Eligibility Boundaries",
         "role": "Product Actuary / Product Configuration Specialist",
         "objective": "Thiết lập sản phẩm bảo hiểm mới trên Product Factory: Định nghĩa thông tin tổng quát sản phẩm, các kỳ hạn hợp đồng (Policy Term), kỳ hạn đóng phí (Premium Term), giới hạn tuổi tham gia và hạn mức số tiền bảo hiểm (SA).",
-        "ui_path": "Product Factory -> Product Master -> Plan Definition & Eligibility Setup",
         "pdf_page": 26,
         "prerequisites": [
           "Bản tóm tắt tính năng sản phẩm (Product Spec) và Quy tắc - Điều khoản đã được Bộ Tài chính phê duyệt.",
@@ -1686,85 +1746,93 @@ window.EBAO_MODULES = [
         ],
         "fields_table": [
           {
-            "field": "PROD_CODE",
+            "name": "PROD_CODE",
             "type": "String",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Mã định danh sản phẩm duy nhất trong toàn hệ thống"
+            "desc": "Mã định danh sản phẩm duy nhất trong toàn hệ thống"
           },
           {
-            "field": "PROD_TYPE",
+            "name": "PROD_TYPE",
             "type": "Enum",
             "required": "Yes",
-            "default": "TRADITIONAL",
-            "description": "Loại hình: TRADITIONAL, INVESTMENT_LINKED, UNIVERSAL_LIFE, TERM"
+            "desc": "Loại hình: TRADITIONAL, INVESTMENT_LINKED, UNIVERSAL_LIFE, TERM"
           },
           {
-            "field": "POLICY_TERM_YEARS",
+            "name": "POLICY_TERM_YEARS",
             "type": "Integer",
             "required": "Yes",
-            "default": "20",
-            "description": "Thời hạn hợp đồng tính bằng năm (hoặc đến tuổi cố định)"
+            "desc": "Thời hạn hợp đồng tính bằng năm (hoặc đến tuổi cố định)"
           },
           {
-            "field": "PREM_PAYING_TERM_YEARS",
+            "name": "PREM_PAYING_TERM_YEARS",
             "type": "Integer",
             "required": "Yes",
-            "default": "20",
-            "description": "Thời hạn đóng phí tính bằng năm (phải <= Policy Term)"
+            "desc": "Thời hạn đóng phí tính bằng năm (phải <= Policy Term)"
           },
           {
-            "field": "MIN_ENTRY_AGE_DAYS",
+            "name": "MIN_ENTRY_AGE_DAYS",
             "type": "Integer",
             "required": "Yes",
-            "default": "30",
-            "description": "Tuổi tham gia tối thiểu tính bằng ngày (cho trẻ sơ sinh)"
+            "desc": "Tuổi tham gia tối thiểu tính bằng ngày (cho trẻ sơ sinh)"
           },
           {
-            "field": "MAX_ENTRY_AGE_YEARS",
+            "name": "MAX_ENTRY_AGE_YEARS",
             "type": "Integer",
             "required": "Yes",
-            "default": "65",
-            "description": "Tuổi tham gia tối đa tính bằng năm"
+            "desc": "Tuổi tham gia tối đa tính bằng năm"
           },
           {
-            "field": "MAX_MATURITY_AGE",
+            "name": "MAX_MATURITY_AGE",
             "type": "Integer",
             "required": "Yes",
-            "default": "85",
-            "description": "Tuổi tối đa của Người được bảo hiểm tại ngày đáo hạn"
+            "desc": "Tuổi tối đa của Người được bảo hiểm tại ngày đáo hạn"
           },
           {
-            "field": "MIN_SUM_ASSURED",
+            "name": "MIN_SUM_ASSURED",
             "type": "Decimal",
             "required": "Yes",
-            "default": "50000000",
-            "description": "Số tiền bảo hiểm tối thiểu chấp nhận trên hệ thống"
+            "desc": "Số tiền bảo hiểm tối thiểu chấp nhận trên hệ thống"
           }
         ],
         "validation_rules": [
           {
-            "code": "VAL-ARC-04-A",
-            "rule": "Thời hạn đóng phí (PPT) phải nhỏ hơn hoặc bằng Thời hạn hợp đồng (PT). Vi phạm sẽ bị chặn lưu với mã lỗi ERR_PF_TERM_MISMATCH."
+            "ruleId": "VAL-ARC-04-A",
+            "ruleName": "Thời hạn đóng phí (PPT) phải nhỏ hơn hoặc bằng Thời hạn hợp đồng (PT). Vi phạm sẽ bị chặn lưu với mã lỗi ERR_PF_TERM_MISMATCH.",
+            "errorCode": "ERR_VAL_ARC_04_A",
+            "severity": "HARD_STOP",
+            "condition": "Thời hạn đóng phí (PPT) phải nhỏ hơn hoặc bằng Thời hạn hợp đồng (PT). Vi phạm sẽ bị chặn lưu với mã lỗi ERR_PF_TERM_MISMATCH.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 26
           },
           {
-            "code": "VAL-ARC-04-B",
-            "rule": "Tổng của Tuổi tham gia tối đa và Thời hạn hợp đồng không được vượt quá Tuổi đáo hạn tối đa (Max Entry Age + PT <= Max Maturity Age)."
+            "ruleId": "VAL-ARC-04-B",
+            "ruleName": "Tổng của Tuổi tham gia tối đa và Thời hạn hợp đồng không được vượt quá Tuổi đáo hạn tối đa (Max Entry Age + PT <= Max Maturity Age).",
+            "errorCode": "ERR_VAL_ARC_04_B",
+            "severity": "HARD_STOP",
+            "condition": "Tổng của Tuổi tham gia tối đa và Thời hạn hợp đồng không được vượt quá Tuổi đáo hạn tối đa (Max Entry Age + PT <= Max Maturity Age).",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 26
           },
           {
-            "code": "VAL-ARC-04-C",
-            "rule": "Số tiền bảo hiểm yêu cầu phải là bội số nguyên của Bước nhảy số tiền (SA Step Unit)."
+            "ruleId": "VAL-ARC-04-C",
+            "ruleName": "Số tiền bảo hiểm yêu cầu phải là bội số nguyên của Bước nhảy số tiền (SA Step Unit).",
+            "errorCode": "ERR_VAL_ARC_04_C",
+            "severity": "HARD_STOP",
+            "condition": "Số tiền bảo hiểm yêu cầu phải là bội số nguyên của Bước nhảy số tiền (SA Step Unit).",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 26
           }
-        ],
-        "actuary_notes": "Ràng buộc PPT <= PT là nguyên lý định phí cốt lõi nhằm tránh tình trạng quỹ dự phòng nghiệp vụ bị âm do phải gánh chịu chi phí rủi ro tử vong khi không còn nguồn thu phí.",
-        "op_notes": "Khi định nghĩa sản phẩm liên kết đầu tư (Unit-Linked), cần cấu hình thêm tỷ lệ phân bổ phí ban đầu (Initial Allocation Rate) theo từng năm hợp đồng."
+        ]
       },
       {
         "code": "SOP-ARC-05",
+        "id": "SOP-ARC-05",
         "title": "Multi-Dimensional Rate Table, Modal Loading & Actuarial Formula Compilation",
         "role": "Appointed Actuary / Pricing Specialist",
         "objective": "Nạp bảng tỷ lệ phí bảo hiểm đa chiều (Rate Tables), cấu hình các hệ số định kỳ đóng phí (Modal Factors), và biên dịch công thức tính phí toán học trong Product Factory.",
-        "ui_path": "Product Factory -> Rate Tables -> Import & Actuarial Formula Builder",
         "pdf_page": 28,
         "prerequisites": [
           "Bảng tỷ lệ phí thuần và phí gộp đã được Bộ phận Định phí (Pricing Team) tính toán và phê duyệt theo mô hình Prophet/Excel.",
@@ -1805,78 +1873,87 @@ window.EBAO_MODULES = [
         ],
         "fields_table": [
           {
-            "field": "RATE_TABLE_CODE",
+            "name": "RATE_TABLE_CODE",
             "type": "String",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Mã bảng tỷ lệ phí duy nhất (ví dụ: RT_ENDOW_STD_2026)"
+            "desc": "Mã bảng tỷ lệ phí duy nhất (ví dụ: RT_ENDOW_STD_2026)"
           },
           {
-            "field": "DIMENSION_KEYS",
+            "name": "DIMENSION_KEYS",
             "type": "Array",
             "required": "Yes",
-            "default": "['AGE', 'GENDER']",
-            "description": "Danh sách các khóa chiều không gian dùng để tra cứu"
+            "desc": "Danh sách các khóa chiều không gian dùng để tra cứu"
           },
           {
-            "field": "RATE_VALUE",
+            "name": "RATE_VALUE",
             "type": "Decimal(10,6)",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Tỷ lệ phí trên mỗi đơn vị 1,000 VND số tiền bảo hiểm"
+            "desc": "Tỷ lệ phí trên mỗi đơn vị 1,000 VND số tiền bảo hiểm"
           },
           {
-            "field": "MODAL_FACTOR_ANNUAL",
+            "name": "MODAL_FACTOR_ANNUAL",
             "type": "Decimal(4,3)",
             "required": "Yes",
-            "default": "1.000",
-            "description": "Hệ số đóng phí năm"
+            "desc": "Hệ số đóng phí năm"
           },
           {
-            "field": "MODAL_FACTOR_SEMI",
+            "name": "MODAL_FACTOR_SEMI",
             "type": "Decimal(4,3)",
             "required": "Yes",
-            "default": "0.520",
-            "description": "Hệ số đóng phí nửa năm (chứa lãi suất và chi phí quản lý)"
+            "desc": "Hệ số đóng phí nửa năm (chứa lãi suất và chi phí quản lý)"
           },
           {
-            "field": "MODAL_FACTOR_QUARTER",
+            "name": "MODAL_FACTOR_QUARTER",
             "type": "Decimal(4,3)",
             "required": "Yes",
-            "default": "0.270",
-            "description": "Hệ số đóng phí quý"
+            "desc": "Hệ số đóng phí quý"
           },
           {
-            "field": "MODAL_FACTOR_MONTH",
+            "name": "MODAL_FACTOR_MONTH",
             "type": "Decimal(4,3)",
             "required": "Yes",
-            "default": "0.090",
-            "description": "Hệ số đóng phí tháng"
+            "desc": "Hệ số đóng phí tháng"
           }
         ],
         "validation_rules": [
           {
-            "code": "VAL-ARC-05-A",
-            "rule": "Tỷ lệ phí Rate Value trong toàn bộ bảng phải là số dương nghiêm ngặt (> 0)."
+            "ruleId": "VAL-ARC-05-A",
+            "ruleName": "Tỷ lệ phí Rate Value trong toàn bộ bảng phải là số dương nghiêm ngặt (> 0).",
+            "errorCode": "ERR_VAL_ARC_05_A",
+            "severity": "HARD_STOP",
+            "condition": "Tỷ lệ phí Rate Value trong toàn bộ bảng phải là số dương nghiêm ngặt (> 0).",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 28
           },
           {
-            "code": "VAL-ARC-05-B",
-            "rule": "Ma trận tỷ lệ phí phải phủ kín 100% không gian tra cứu; không được phép tồn tại ô trống hoặc giá trị NULL."
+            "ruleId": "VAL-ARC-05-B",
+            "ruleName": "Ma trận tỷ lệ phí phải phủ kín 100% không gian tra cứu; không được phép tồn tại ô trống hoặc giá trị NULL.",
+            "errorCode": "ERR_VAL_ARC_05_B",
+            "severity": "HARD_STOP",
+            "condition": "Ma trận tỷ lệ phí phải phủ kín 100% không gian tra cứu; không được phép tồn tại ô trống hoặc giá trị NULL.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 28
           },
           {
-            "code": "VAL-ARC-05-C",
-            "rule": "Các hệ số kỳ đóng phí phải thỏa mãn điều kiện chống kinh doanh chênh lệch giá (No-arbitrage): Annual <= 2*Semi <= 4*Quarter <= 12*Month."
+            "ruleId": "VAL-ARC-05-C",
+            "ruleName": "Các hệ số kỳ đóng phí phải thỏa mãn điều kiện chống kinh doanh chênh lệch giá (No-arbitrage): Annual <= 2*Semi <= 4*Quarter <= 12*Month.",
+            "errorCode": "ERR_VAL_ARC_05_C",
+            "severity": "HARD_STOP",
+            "condition": "Các hệ số kỳ đóng phí phải thỏa mãn điều kiện chống kinh doanh chênh lệch giá (No-arbitrage): Annual <= 2*Semi <= 4*Quarter <= 12*Month.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 28
           }
-        ],
-        "actuary_notes": "Hệ số đóng phí kỳ nhỏ hơn 1 năm luôn lớn hơn tỷ lệ chia đều (ví dụ Semi 0.52 thay vì 0.50) nhằm bù đắp chi phí cơ hội lãi suất bị mất và chi phí quản lý thu phí phát sinh nhiều lần.",
-        "op_notes": "Khi nạp bảng tỷ lệ phí vào môi trường Core, hệ thống tự động lưu vào t_rt_ratetable_data và đẩy bản sao vào cache Redis '[BIZ-DATA][PROD]RateTable' để đạt tốc độ truy xuất < 2ms."
+        ]
       },
       {
         "code": "SOP-ARC-06",
+        "id": "SOP-ARC-06",
         "title": "Cash Value Schedule, Bonus Engine & Non-Forfeiture Publishing to SOR",
         "role": "Lead Product Architect / Release Manager",
         "objective": "Cấu hình lịch trình giá trị hoàn lại (Cash Value Schedule), cơ chế tích lũy bảo tức, các quyền chọn không hủy bỏ hiệu lực (Non-Forfeiture Options: RPU, ETI, APL), và phát hành phiên bản sản phẩm chính thức lên SOR.",
-        "ui_path": "Product Factory -> Non-Forfeiture & Cash Values -> SOR Release Workbench",
         "pdf_page": 29,
         "prerequisites": [
           "Bảng tỷ lệ phí và các quy tắc sản phẩm đã vượt qua 100% các bài kiểm tra xác thực (Validation Suite).",
@@ -1917,64 +1994,74 @@ window.EBAO_MODULES = [
         ],
         "fields_table": [
           {
-            "field": "CSV_START_YEAR",
+            "name": "CSV_START_YEAR",
             "type": "Integer",
             "required": "Yes",
-            "default": "2",
-            "description": "Năm hợp đồng đầu tiên bắt đầu phát sinh giá trị hoàn lại"
+            "desc": "Năm hợp đồng đầu tiên bắt đầu phát sinh giá trị hoàn lại"
           },
           {
-            "field": "CSV_RATE_PER_1000",
+            "name": "CSV_RATE_PER_1000",
             "type": "Decimal(8,4)",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Tỷ lệ giá trị hoàn lại trên mỗi 1,000 VND số tiền bảo hiểm"
+            "desc": "Tỷ lệ giá trị hoàn lại trên mỗi 1,000 VND số tiền bảo hiểm"
           },
           {
-            "field": "APL_ALLOWED",
+            "name": "APL_ALLOWED",
             "type": "Boolean",
             "required": "Yes",
-            "default": "TRUE",
-            "description": "Cho phép kích hoạt tính năng Tự động tạm ứng đóng phí bảo hiểm (APL)"
+            "desc": "Cho phép kích hoạt tính năng Tự động tạm ứng đóng phí bảo hiểm (APL)"
           },
           {
-            "field": "MAX_LOAN_PCT_OF_CSV",
+            "name": "MAX_LOAN_PCT_OF_CSV",
             "type": "Decimal(4,2)",
             "required": "Yes",
-            "default": "0.80",
-            "description": "Tỷ lệ tối đa được phép vay trên Giá trị hoàn lại ròng (80%)"
+            "desc": "Tỷ lệ tối đa được phép vay trên Giá trị hoàn lại ròng (80%)"
           },
           {
-            "field": "POLICY_LOAN_ANNUAL_INT",
+            "name": "POLICY_LOAN_ANNUAL_INT",
             "type": "Decimal(4,3)",
             "required": "Yes",
-            "default": "0.065",
-            "description": "Lãi suất năm tính cho các khoản tạm ứng vay theo hợp đồng (6.5%)"
+            "desc": "Lãi suất năm tính cho các khoản tạm ứng vay theo hợp đồng (6.5%)"
           },
           {
-            "field": "RECORD_USAGE",
+            "name": "RECORD_USAGE",
             "type": "Integer",
             "required": "Yes",
-            "default": "5",
-            "description": "Cờ bảo vệ cấu hình Tenant chống bị ghi đè khi nâng cấp baseline (Bắt buộc = 5)"
+            "desc": "Cờ bảo vệ cấu hình Tenant chống bị ghi đè khi nâng cấp baseline (Bắt buộc = 5)"
           }
         ],
         "validation_rules": [
           {
-            "code": "VAL-ARC-06-A",
-            "rule": "Giá trị hoàn lại của mọi năm hợp đồng không được vượt quá Số tiền bảo hiểm quyền lợi tử vong."
+            "ruleId": "VAL-ARC-06-A",
+            "ruleName": "Giá trị hoàn lại của mọi năm hợp đồng không được vượt quá Số tiền bảo hiểm quyền lợi tử vong.",
+            "errorCode": "ERR_VAL_ARC_06_A",
+            "severity": "HARD_STOP",
+            "condition": "Giá trị hoàn lại của mọi năm hợp đồng không được vượt quá Số tiền bảo hiểm quyền lợi tử vong.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 29
           },
           {
-            "code": "VAL-ARC-06-B",
-            "rule": "Tỷ lệ vay theo hợp đồng không được vượt quá 80% Giá trị hoàn lại sau khi đã khấu trừ các khoản nợ phí và tạm ứng trước đó."
+            "ruleId": "VAL-ARC-06-B",
+            "ruleName": "Tỷ lệ vay theo hợp đồng không được vượt quá 80% Giá trị hoàn lại sau khi đã khấu trừ các khoản nợ phí và tạm ứng trước đó.",
+            "errorCode": "ERR_VAL_ARC_06_B",
+            "severity": "HARD_STOP",
+            "condition": "Tỷ lệ vay theo hợp đồng không được vượt quá 80% Giá trị hoàn lại sau khi đã khấu trừ các khoản nợ phí và tạm ứng trước đó.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 29
           },
           {
-            "code": "VAL-ARC-06-C",
-            "rule": "Tham số record_usage bắt buộc phải bằng 5 đối với tất cả cấu hình sản phẩm phát hành của Tenant."
+            "ruleId": "VAL-ARC-06-C",
+            "ruleName": "Tham số record_usage bắt buộc phải bằng 5 đối với tất cả cấu hình sản phẩm phát hành của Tenant.",
+            "errorCode": "ERR_VAL_ARC_06_C",
+            "severity": "HARD_STOP",
+            "condition": "Tham số record_usage bắt buộc phải bằng 5 đối với tất cả cấu hình sản phẩm phát hành của Tenant.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 29
           }
-        ],
-        "actuary_notes": "Giá trị hoàn lại được tính toán dựa trên dự phòng nghiệp vụ trừ đi chi phí thu hồi ban đầu chưa phân bổ (Unamortized Acquisition Expenses) theo đúng công thức đã đăng ký với Bộ Tài chính.",
-        "op_notes": "Sau khi phát hành thành công lên SOR, cần gửi thông báo phát hành (Release Notification) kèm theo bộ test vector cho đội ngũ kinh doanh và ban thẩm định trước khi mở bán chính thức."
+        ]
       }
     ],
     "sop_count": 6,
@@ -2033,192 +2120,120 @@ window.EBAO_MODULES = [
     "validation_rules": [
       {
         "ruleId": "VAL-PF-001",
-        "module": "MOD_01",
-        "moduleName": "Architecture & Product Factory",
-        "lifecyclePhase": "01. Product Configuration",
-        "stage": "Product Definition",
-        "targetEntity": "T_PROD_TERM",
         "ruleName": "Policy Term vs Premium Paying Term Alignment",
-        "condition": "Premium Paying Term (PPT) must be strictly <= Policy Term (PT).",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_PF_TERM_MISMATCH",
-        "errorMessage": "Thời hạn đóng phí không được phép lớn hơn thời hạn hợp đồng bảo hiểm.",
+        "severity": "HARD_STOP",
+        "condition": "Premium Paying Term (PPT) must be strictly <= Policy Term (PT).",
         "systemAction": "Chặn biên dịch và phát hành sản phẩm lên bảng runtime SOR.",
         "actuarialBasis": "Ngăn ngừa dự phòng kỹ thuật âm và rủi ro không có dòng tiền thu phí bù đắp chi phí bảo hiểm trong tương lai.",
         "pdfPage": 26
       },
       {
         "ruleId": "VAL-PF-002",
-        "module": "MOD_01",
-        "moduleName": "Architecture & Product Factory",
-        "lifecyclePhase": "01. Product Configuration",
-        "stage": "Eligibility Setup",
-        "targetEntity": "T_PROD_AGE_LIMIT",
         "ruleName": "Entry Age Boundary & Maturity Ceiling",
-        "condition": "Min Entry Age < Max Entry Age AND (Max Entry Age + Policy Term) <= Max Maturity Age (typically 80 or 99).",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_PF_AGE_EXCEEDED",
-        "errorMessage": "Tổng tuổi tham gia tối đa và thời hạn hợp đồng vượt quá tuổi đáo hạn tối đa cho phép.",
+        "severity": "HARD_STOP",
+        "condition": "Min Entry Age < Max Entry Age AND (Max Entry Age + Policy Term) <= Max Maturity Age (typically 80 or 99).",
         "systemAction": "Hệ thống từ chối lưu cấu hình điều kiện tham gia sản phẩm.",
         "actuarialBasis": "Bảo đảm xác suất tử vong không vượt quá giới hạn bảng tỷ lệ tử vong CSO/Việt Nam 2014.",
         "pdfPage": 27
       },
       {
         "ruleId": "VAL-PF-003",
-        "module": "MOD_01",
-        "moduleName": "Architecture & Product Factory",
-        "lifecyclePhase": "01. Product Configuration",
-        "stage": "Rate Table Import",
-        "targetEntity": "T_RT_RATETABLE_DATA",
         "ruleName": "Multi-Dimensional Rate Table Full Coverage",
-        "condition": "Rate Table matrix must cover all defined combinations of Age, Gender, and Smoker status without NULL cells.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_PF_RATE_GAP",
-        "errorMessage": "Bảng tỷ lệ phí bị khuyết ô dữ liệu tại một số kết hợp tuổi/giới tính.",
+        "severity": "HARD_STOP",
+        "condition": "Rate Table matrix must cover all defined combinations of Age, Gender, and Smoker status without NULL cells.",
         "systemAction": "Chặn nhập ma trận phí và xuất danh sách các tọa độ bị thiếu dữ liệu.",
         "actuarialBasis": "Đảm bảo New Business Workbench không bao giờ gặp lỗi tính phí không tìm thấy tỷ lệ tại runtime.",
         "pdfPage": 28
       },
       {
         "ruleId": "VAL-PF-004",
-        "module": "MOD_01",
-        "moduleName": "Architecture & Product Factory",
-        "lifecyclePhase": "01. Product Configuration",
-        "stage": "Modal Loading",
-        "targetEntity": "T_MODAL_FACTOR",
         "ruleName": "No-Arbitrage Modal Loading Hierarchy",
-        "condition": "Annual Premium <= 2 * Semi-Annual <= 4 * Quarterly <= 12 * Monthly Premium.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_PF_MODAL_ARBITRAGE",
-        "errorMessage": "Hệ số định kỳ đóng phí vi phạm nguyên tắc chống kinh doanh chênh lệch giá lãi suất.",
+        "severity": "HARD_STOP",
+        "condition": "Annual Premium <= 2 * Semi-Annual <= 4 * Quarterly <= 12 * Monthly Premium.",
         "systemAction": "Cảnh báo đỏ và chặn lưu cấu hình hệ số định kỳ.",
         "actuarialBasis": "Phương thức đóng phí kỳ nhỏ hơn phải gánh thêm lãi suất trả chậm và chi phí quản lý vận hành.",
         "pdfPage": 28
       },
       {
         "ruleId": "VAL-PF-005",
-        "module": "MOD_01",
-        "moduleName": "Architecture & Product Factory",
-        "lifecyclePhase": "01. Product Configuration",
-        "stage": "Cash Value Schedule",
-        "targetEntity": "T_SURRENDER_VAL_SCHEDULE",
         "ruleName": "Cash Value Ceiling & Monotonic Growth",
-        "condition": "0 <= Cash Value Rate(t) <= Sum Assured for all policy years t.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_PF_CSV_OVERFLOW",
-        "errorMessage": "Giá trị hoàn lại tại một số năm hợp đồng vượt quá số tiền bảo hiểm quyền lợi tử vong.",
+        "severity": "HARD_STOP",
+        "condition": "0 <= Cash Value Rate(t) <= Sum Assured for all policy years t.",
         "systemAction": "Chặn phê duyệt biểu giá trị hoàn lại.",
         "actuarialBasis": "Tránh hiện tượng tự sát vì lợi ích kinh tế hoặc trục lợi giá trị hoàn lại vượt quá trách nhiệm bảo vệ.",
         "pdfPage": 29
       },
       {
         "ruleId": "VAL-PF-006",
-        "module": "MOD_01",
-        "moduleName": "Architecture & Product Factory",
-        "lifecyclePhase": "01. Product Configuration",
-        "stage": "Microservices Orchestration",
-        "targetEntity": "T_DD_BUSI_CONTEXT",
         "ruleName": "Garment & Fabrics Monotonic Pipeline Sequence",
-        "condition": "Fabric step numbers in a Garment pipeline must be strictly positive and increasing without circular references.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_ARC_FABRIC_ORDER",
-        "errorMessage": "Thứ tự thực thi các bước Fabric bị trùng lặp hoặc chứa vòng lặp vô tận.",
+        "severity": "HARD_STOP",
+        "condition": "Fabric step numbers in a Garment pipeline must be strictly positive and increasing without circular references.",
         "systemAction": "Từ chối biên dịch pipeline điều phối dịch vụ nội bộ.",
         "actuarialBasis": "Bảo đảm tính xác định đơn dòng (deterministic sequential flow) của nghiệp vụ bảo hiểm.",
         "pdfPage": 15
       },
       {
         "ruleId": "VAL-PF-007",
-        "module": "MOD_01",
-        "moduleName": "Architecture & Product Factory",
-        "lifecyclePhase": "01. Product Configuration",
-        "stage": "System Configuration",
-        "targetEntity": "T_DD_BUSI_DATA_TABLE_RECORD",
         "ruleName": "Tenant Configuration Upgrade Protection Flag",
-        "condition": "All custom Tenant configuration records in MC environment must have record_usage = 5.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_ARC_RECORD_USAGE_INVALID",
-        "errorMessage": "Cấu hình riêng của Tenant chưa được gán cờ bảo vệ record_usage = 5.",
+        "severity": "HARD_STOP",
+        "condition": "All custom Tenant configuration records in MC environment must have record_usage = 5.",
         "systemAction": "Cảnh báo nguy cơ bị mất cấu hình khi hệ thống nâng cấp phiên bản Gemini SDK.",
         "actuarialBasis": "Bảo vệ các quy định nghiệp vụ và bảng phí đã đăng ký của công ty bảo hiểm khi có bản vá hệ điều hành core.",
         "pdfPage": 28
       },
       {
         "ruleId": "VAL-PF-008",
-        "module": "MOD_01",
-        "moduleName": "Architecture & Product Factory",
-        "lifecyclePhase": "01. Product Configuration",
-        "stage": "Global Transaction",
-        "targetEntity": "T_PUB_TX_UNDO_LOG",
         "ruleName": "Two-Phase Commit Pre-Image Snapshot Validation",
-        "condition": "Before executing any local write, pre-image snapshot of the entity must be persisted in t_pub_tx_undo_log.",
-        "severity": "CRITICAL",
         "errorCode": "ERR_ARC_UNDO_LOG_MISSING",
-        "errorMessage": "Không thể ghi snapshot bù trừ vào bảng t_pub_tx_undo_log trước khi sửa đổi dữ liệu.",
+        "severity": "CRITICAL",
+        "condition": "Before executing any local write, pre-image snapshot of the entity must be persisted in t_pub_tx_undo_log.",
         "systemAction": "Hủy giao dịch (Abort) ngay lập tức và ngăn cản việc ghi vào bảng SOR.",
         "actuarialBasis": "Bảo toàn tính toàn vẹn dữ liệu hợp đồng; nếu dịch vụ hạ nguồn đứt gãy, hệ thống có thể hoàn tác chính xác 100%.",
         "pdfPage": 22
       },
       {
         "ruleId": "VAL-PF-009",
-        "module": "MOD_01",
-        "moduleName": "Architecture & Product Factory",
-        "lifecyclePhase": "01. Product Configuration",
-        "stage": "Cache Management",
-        "targetEntity": "REDIS_CACHE_CLUSTER",
         "ruleName": "Standardized Cache Naming Convention",
-        "condition": "Cache keys must strictly start with prefix '[BIZ-DATA]' + Module Name + Detail (e.g. '[BIZ-DATA][PROD]RateTable').",
-        "severity": "WARNING",
         "errorCode": "WARN_ARC_CACHE_KEY_INVALID",
-        "errorMessage": "Tên khóa bộ nhớ đệm không tuân thủ quy chuẩn [BIZ-DATA].",
+        "severity": "WARNING",
+        "condition": "Cache keys must strictly start with prefix '[BIZ-DATA]' + Module Name + Detail (e.g. '[BIZ-DATA][PROD]RateTable').",
         "systemAction": "Khóa cache sẽ không nhận được lệnh xóa tự động khi có thông điệp broadcast qua RabbitMQ.",
         "actuarialBasis": "Tránh dùng lại dữ liệu phí cũ đã lỗi thời trong bộ nhớ đệm khi bảng tỷ lệ phí mới đã được kích hoạt.",
         "pdfPage": 25
       },
       {
         "ruleId": "VAL-PF-010",
-        "module": "MOD_01",
-        "moduleName": "Architecture & Product Factory",
-        "lifecyclePhase": "01. Product Configuration",
-        "stage": "Timezone Handling",
-        "targetEntity": "JVM_RUNTIME",
         "ruleName": "JVM UTC Timezone Strict Compliance",
-        "condition": "Gemini container JVM timezone must be UTC (0); localized conversion occurs only at BFF/BS boundary.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_ARC_TIMEZONE_POLLUTION",
-        "errorMessage": "Container khởi động với múi giờ khác UTC gây sai lệch ngày kinh doanh toàn hệ thống.",
+        "severity": "HARD_STOP",
+        "condition": "Gemini container JVM timezone must be UTC (0); localized conversion occurs only at BFF/BS boundary.",
         "systemAction": "Chặn khởi động dịch vụ Core PAS.",
         "actuarialBasis": "Ngày hiệu lực hợp đồng và thời gian 21 ngày cân nhắc phải được tính toán chính xác tuyệt đối trên cùng một chuẩn thời gian.",
         "pdfPage": 24
       },
       {
         "ruleId": "VAL-PF-011",
-        "module": "MOD_01",
-        "moduleName": "Architecture & Product Factory",
-        "lifecyclePhase": "01. Product Configuration",
-        "stage": "Rider Compatibility",
-        "targetEntity": "T_RIDER_COMPATIBILITY",
         "ruleName": "Rider Policy Term Bound by Base Plan",
-        "condition": "Rider Policy Term (PT_Rider) must be <= Base Policy Term (PT_Base).",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_PF_RIDER_TERM_EXCEEDED",
-        "errorMessage": "Thời hạn bảo vệ của sản phẩm bổ trợ không được vượt quá thời hạn hợp đồng chính.",
+        "severity": "HARD_STOP",
+        "condition": "Rider Policy Term (PT_Rider) must be <= Base Policy Term (PT_Base).",
         "systemAction": "Chặn liên kết rider vào gói sản phẩm chính.",
         "actuarialBasis": "Sản phẩm bổ trợ không thể tồn tại độc lập khi hợp đồng chính đã đáo hạn hoặc chấm dứt hiệu lực.",
         "pdfPage": 27
       },
       {
         "ruleId": "VAL-PF-012",
-        "module": "MOD_01",
-        "moduleName": "Architecture & Product Factory",
-        "lifecyclePhase": "01. Product Configuration",
-        "stage": "Non-Forfeiture Setup",
-        "targetEntity": "T_NON_FORFEITURE_PARAM",
         "ruleName": "Policy Loan Ceiling & Regulatory Interest Floor",
-        "condition": "Max Loan Ratio <= 80% Net CSV AND Policy Loan Annual Interest Rate >= 5.0%.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_PF_LOAN_TERMS_INVALID",
-        "errorMessage": "Tỷ lệ vay vượt quá 80% giá trị hoàn lại hoặc lãi suất vay thấp hơn sàn quy định.",
+        "severity": "HARD_STOP",
+        "condition": "Max Loan Ratio <= 80% Net CSV AND Policy Loan Annual Interest Rate >= 5.0%.",
         "systemAction": "Chặn cấu hình điều khoản vay hợp đồng.",
         "actuarialBasis": "Tuân thủ quy định trần an toàn tài chính của Luật Kinh doanh Bảo hiểm và bảo đảm rủi ro thấu chi không vượt quá quỹ hoàn lại.",
         "pdfPage": 29
@@ -2539,16 +2554,46 @@ window.EBAO_MODULES = [
     "summary": "Phân hệ Tiếp nhận Hồ sơ Yêu cầu Bảo hiểm và Phát hành Hợp đồng (New Business & Policy Issuance - NB APP). Bao quát toàn bộ vòng đời giai đoạn đầu từ Khởi tạo tiếp nhận (Reception) sinh mã Proposal No. và Policy No., nhập liệu chi tiết thông tin các bên (Bên mua bảo hiểm, Người được bảo hiểm, Người nộp phí, Người thụ hưởng cân đối 100%), liên kết sản phẩm chính và sản phẩm bổ trợ (Rider SA <= Parent SA), kiểm tra tuân thủ kênh Bancassurance (quy tắc 60 ngày giải ngân Thông tư 67/TT-BTC), kiểm soát Maker-Checker xác minh dữ liệu, điều phối luồng thẩm định tự động STP hoặc chuyển bàn thẩm định Underwriting, đối soát khớp thu phí đầu tiên (First Premium Suspense Allocation), kích hoạt lệnh Enforcing phát hành hợp đồng chính thức lên SOR, và giám sát thời gian 21 ngày cân nhắc (Free-Look Period) kích hoạt từ ngày khách hàng ký nhận bàn giao hợp đồng (e-ACK Delivery Date).",
     "mermaid_workflow": "graph TD\n    subgraph STG1 [\"1. Reception (Tiếp nhận)\"]\n        REC1[\"Nhập thông tin ban đầu & Kênh bán\"]\n        REC2[\"Kiểm tra Agent License & Quota\"]\n        REC3[\"Sinh mã Proposal No. & Policy No.\"]\n    end\n\n    subgraph STG2 [\"2. Data Entry (Nhập liệu)\"]\n        DE1[\"Policyholder (Individual/Org & PEP)\"]\n        DE2[\"Life Assured (Insurable Interest)\"]\n        DE3[\"Main Product + Rider (SA Bounds)\"]\n        DE4[\"Beneficiaries (Tổng % = 100%)\"]\n        DE5[\"Declaration Form (Y tế & Lối sống)\"]\n    end\n\n    subgraph STG3 [\"3. Verification (Kiểm tra)\"]\n        VER[\"Maker-Checker Verification Submit<br/>(Đối soát chéo dữ liệu & AML)\"]\n    end\n\n    subgraph STG4 [\"4. Underwriting Routing\"]\n        AUTOUW{\"STP Evaluation<br/>(Quy tắc Thẩm định Tự động)\"}\n        MANUW[\"Underwriting Workbench<br/>(Chuyên viên Thẩm định / LCA 30 ngày)\"]\n    end\n\n    subgraph STG5 [\"5. Payment & Suspense\"]\n        PAY[\"Nộp Phí Đầu Tiên (First Premium)<br/>(Virtual Account / Bank Transfer)\"]\n        SUSP[\"Khớp Phí & Treo Suspense GL 2211\"]\n    end\n\n    subgraph STG6 [\"6. Enforcing & Issuance\"]\n        ENF[\"Kích hoạt Lệnh Enforce Issue\"]\n        SOR[(\"Chuyển dữ liệu sang SOR<br/>t_pol_policy (Inforce)\")]\n        PDF[\"Tạo File Hợp Đồng Điện Tử (e-Policy PDF)\"]\n    end\n\n    subgraph STG7 [\"7. Delivery & 21-Day Free-Look\"]\n        ACK[\"Khách hàng Ký Nhận e-ACK (DELIVERY_DATE)\"]\n        FL[\"Kích hoạt Đếm Ngược 21 Ngày Cân Nhắc\"]\n    end\n\n    REC1 --> REC2 --> REC3 --> DE1\n    DE1 --> DE2 --> DE3 --> DE4 --> DE5 --> VER\n    VER --> AUTOUW\n    AUTOUW -->|Pass STP| PAY\n    AUTOUW -->|Referral| MANUW\n    MANUW -->|Standard / LCA Accepted| PAY\n    PAY --> SUSP --> ENF\n    ENF --> SOR\n    ENF --> PDF\n    PDF --> ACK --> FL\n\n    classDef rec fill:#e0f2fe,stroke:#0284c7,stroke-width:2px,color:#0369a1;\n    classDef de fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#b45309;\n    classDef ver fill:#ede9fe,stroke:#7c3aed,stroke-width:2px,color:#6d28d9;\n    classDef uw fill:#ffe4e6,stroke:#e11d48,stroke-width:2px,color:#be123c;\n    classDef pay fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#15803d;\n    classDef enf fill:#ccfbf1,stroke:#0d9488,stroke-width:2px,color:#115e59;\n    classDef ack fill:#f3e8ff,stroke:#9333ea,stroke-width:2px,color:#7e22ce;\n\n    class REC1,REC2,REC3 rec;\n    class DE1,DE2,DE3,DE4,DE5 de;\n    class VER ver;\n    class AUTOUW,MANUW uw;\n    class PAY,SUSP pay;\n    class ENF,SOR,PDF enf;\n    class ACK,FL ack;",
     "core_concepts": [
-      "Vòng đời 6 Giai đoạn New Business: Tiếp nhận (Reception) -> Nhập liệu (Data Entry) -> Kiểm tra xác minh (Verification Maker-Checker) -> Thẩm định rủi ro (Underwriting STP/Manual) -> Thu phí ban đầu (First Premium Allocation) -> Phát hành & Thực thi (Enforcing & Policy Issuance).",
-      "Sinh Mã Số Kép Ngay Từ Tiếp Nhận: Tại bước Initial Registration, hệ thống sinh đồng thời Proposal No. (quản lý hồ sơ yêu cầu) và Policy No. (mã hợp đồng tương lai), gắn chặt với Servicing Agent có chứng chỉ hành nghề hợp lệ.",
-      "Quy tắc Phân định Ranh giới Bên tham gia (Party Hierarchy): Hỗ trợ Policyholder là Cá nhân hoặc Tổ chức; Người được bảo hiểm có mối quan hệ quyền lợi có thể được bảo hiểm (Insurable Interest); Người thụ hưởng (Beneficiary) bắt buộc tổng tỷ lệ phân chia = 100%; trường hợp người thụ hưởng dưới 18 tuổi bắt buộc chỉ định Người giám hộ/Ủy thác (Trustee).",
-      "Ràng buộc Cấu hình Sản phẩm Bổ trợ (Rider Boundary): Thời hạn Rider không được vượt quá HĐ chính; tổng STBH Rider không vượt quá STBH HĐ chính (Sum of SA not greater than Parent SA); tự động loại trừ các Rider không tương thích.",
-      "Kiểm soát Tuân thủ Kênh Bancassurance (Thông tư 67/2023/TT-BTC): Chặn tuyệt đối việc bán bảo hiểm liên kết đầu tư kèm khoản vay trong thời hạn 60 ngày trước và sau giải ngân vốn vay ngân hàng.",
-      "Cơ chế Khớp Thu Phí Đầu Tiên (First Premium Suspense): Phí nộp ban đầu được treo tại tài khoản trung gian Suspense Account (Module 07 GL 2211). Lệnh Enforce chỉ được phép kích hoạt khi số tiền nộp khớp chính xác 100% phí kỳ đầu tiên.",
-      "Mốc 21 Ngày Cân Nhắc Tính từ Ngày Bàn Giao (Delivery Date): Thời hạn 21 ngày Free-Look luật định chỉ bắt đầu đếm khi hệ thống ghi nhận DELIVERY_DATE qua biên nhận điện tử e-ACK, không tính từ ngày phát hành (Issue Date). Nếu hủy hợp đồng trong 21 ngày: Hoàn 100% phí đã nộp trừ chi phí khám y tế; thu hồi 100% hoa hồng đại lý (Clawback)."
+      {
+        "term": "Vòng đời 6 Giai đoạn New Business",
+        "def": "Tiếp nhận (Reception) -> Nhập liệu (Data Entry) -> Kiểm tra xác minh (Verification Maker-Checker) -> Thẩm định rủi ro (Underwriting STP/Manual) -> Thu phí ban đầu (First Premium Allocation) -> Phát hành & Thực thi (Enforcing & Policy Issuance)."
+      },
+      {
+        "term": "Sinh Mã Số Kép Ngay Từ Tiếp Nhận",
+        "def": "Tại bước Initial Registration, hệ thống sinh đồng thời Proposal No. (quản lý hồ sơ yêu cầu) và Policy No. (mã hợp đồng tương lai), gắn chặt với Servicing Agent có chứng chỉ hành nghề hợp lệ."
+      },
+      {
+        "term": "Quy tắc Phân định Ranh giới Bên tham gia (Party Hierarchy)",
+        "def": "Hỗ trợ Policyholder là Cá nhân hoặc Tổ chức; Người được bảo hiểm có mối quan hệ quyền lợi có thể được bảo hiểm (Insurable Interest); Người thụ hưởng (Beneficiary) bắt buộc tổng tỷ lệ phân chia = 100%; trường hợp người thụ hưởng dưới 18 tuổi bắt buộc chỉ định Người giám hộ/Ủy thác (Trustee)."
+      },
+      {
+        "term": "Ràng buộc Cấu hình Sản phẩm Bổ trợ (Rider Boundary)",
+        "def": "Thời hạn Rider không được vượt quá HĐ chính; tổng STBH Rider không vượt quá STBH HĐ chính (Sum of SA not greater than Parent SA); tự động loại trừ các Rider không tương thích."
+      },
+      {
+        "term": "Kiểm soát Tuân thủ Kênh Bancassurance (Thông tư 67/2023/TT-BTC)",
+        "def": "Chặn tuyệt đối việc bán bảo hiểm liên kết đầu tư kèm khoản vay trong thời hạn 60 ngày trước và sau giải ngân vốn vay ngân hàng."
+      },
+      {
+        "term": "Cơ chế Khớp Thu Phí Đầu Tiên (First Premium Suspense)",
+        "def": "Phí nộp ban đầu được treo tại tài khoản trung gian Suspense Account (Module 07 GL 2211). Lệnh Enforce chỉ được phép kích hoạt khi số tiền nộp khớp chính xác 100% phí kỳ đầu tiên."
+      },
+      {
+        "term": "Mốc 21 Ngày Cân Nhắc Tính từ Ngày Bàn Giao (Delivery Date)",
+        "def": "Thời hạn 21 ngày Free-Look luật định chỉ bắt đầu đếm khi hệ thống ghi nhận DELIVERY_DATE qua biên nhận điện tử e-ACK, không tính từ ngày phát hành (Issue Date). Nếu hủy hợp đồng trong 21 ngày: Hoàn 100% phí đã nộp trừ chi phí khám y tế; thu hồi 100% hoa hồng đại lý (Clawback)."
+      }
     ],
-    "actuary_notes": "Từ góc độ Định phí & Quản trị Rủi ro, giai đoạn New Business là chốt chặn quan trọng nhất để bảo đảm chất lượng dữ liệu đầu vào. Tỷ lệ phí và số tiền bảo hiểm được tính toán tự động dựa trên ma trận tỷ lệ phí của Product Factory. Mọi trường hợp hồ sơ thỏa mãn tiêu chí chuẩn (tuổi, STBH trong hạn mức non-medical, câu trả lời y tế toàn bộ là 'Không') sẽ được động cơ định quy tắc Auto-UW chuyển thẳng sang luồng STP (Straight-Through Processing), giúp tối ưu hóa chi phí khai thác (Acquisition Expense). Ngược lại, nếu hủy hợp đồng trong thời hạn 21 ngày cân nhắc, toàn bộ dự phòng toán học chưa phát sinh, phí hoàn trả được hạch toán giảm trừ doanh thu phí thuần, và hoa hồng khai thác (FYC) đã tạm tính được thu hồi 100%.",
-    "op_notes": "Về mặt Vận hành Hệ thống (Core Operations), màn hình New Business Worklist cho phép điều phối phân bổ công việc theo 2 cơ chế: Push (Hệ thống tự động phân bổ theo dung lượng và thẩm quyền của chuyên viên) và Pull (Chuyên viên tự nhận hồ sơ từ hàng đợi chung). Khi thực hiện lệnh Enforce, PA BS gọi giao dịch toàn cục 2PC để chuyển toàn bộ dữ liệu từ các bảng tạm New Business sang các bảng SOR bất biến (t_pol_policy, t_pol_party). Tiến trình EOD Batch hàng đêm quét các hợp đồng có trạng thái Issued nhưng chưa có Delivery Date quá 30 ngày để kích hoạt cảnh báo nhắc nhở đại lý hoàn tất bàn giao.",
+    "actuary_notes": [
+      "Từ góc độ Định phí & Quản trị Rủi ro, giai đoạn New Business là chốt chặn quan trọng nhất để bảo đảm chất lượng dữ liệu đầu vào.",
+      "Tỷ lệ phí và số tiền bảo hiểm được tính toán tự động dựa trên ma trận tỷ lệ phí của Product Factory.",
+      "Mọi trường hợp hồ sơ thỏa mãn tiêu chí chuẩn (tuổi, STBH trong hạn mức non-medical, câu trả lời y tế toàn bộ là 'Không') sẽ được động cơ định quy tắc Auto-UW chuyển thẳng sang luồng STP (Straight-Through Processing), giúp tối ưu hóa chi phí khai thác (Acquisition Expense).",
+      "Ngược lại, nếu hủy hợp đồng trong thời hạn 21 ngày cân nhắc, toàn bộ dự phòng toán học chưa phát sinh, phí hoàn trả được hạch toán giảm trừ doanh thu phí thuần, và hoa hồng khai thác (FYC) đã tạm tính được thu hồi 100%."
+    ],
+    "op_notes": [
+      "Về mặt Vận hành Hệ thống (Core Operations), màn hình New Business Worklist cho phép điều phối phân bổ công việc theo 2 cơ chế: Push (Hệ thống tự động phân bổ theo dung lượng và thẩm quyền của chuyên viên) và Pull (Chuyên viên tự nhận hồ sơ từ hàng đợi chung).",
+      "Khi thực hiện lệnh Enforce, PA BS gọi giao dịch toàn cục 2PC để chuyển toàn bộ dữ liệu từ các bảng tạm New Business sang các bảng SOR bất biến (t_pol_policy, t_pol_party).",
+      "Tiến trình EOD Batch hàng đêm quét các hợp đồng có trạng thái Issued nhưng chưa có Delivery Date quá 30 ngày để kích hoạt cảnh báo nhắc nhở đại lý hoàn tất bàn giao."
+    ],
     "sections": [
       {
         "heading": "1. Proposal Registration & Sales Channel Capture",
@@ -3463,8 +3508,11 @@ window.EBAO_MODULES = [
     "sops": [
       {
         "code": "SOP-NB-01",
+        "id": "SOP-NB-01",
         "title": "Initial Proposal Registration (Reception) & Agent Channel Binding",
-        "ui_path": "Main Menu > New Business > Reception > Initial Registration",
+        "role": "Core PAS Specialist",
+        "objective": "Thực hiện nghiệp vụ chuẩn hóa cho SOP-NB-01",
+        "pdf_page": 45,
         "prerequisites": [
           "Active agent code with valid product licensing",
           "Physical or digital proposal application document from client"
@@ -3504,54 +3552,33 @@ window.EBAO_MODULES = [
             "desc": "Core base plan selected for proposal"
           }
         ],
-        "actuary_notes": "Main Product Code selection initializes the actuarial rule container, loading entry age limits (18-60) and valid term durations.",
-        "op_notes": "If Agent Code is flagged as suspended or unaccredited for life products, the system throws an instant hard validation error: 'Agent Licensing Inactive'.",
-        "pdf_page": 45,
         "validation_rules": [
           {
             "ruleId": "VAL-NB-001",
-            "module": "MOD_02",
-            "moduleName": "New Business (NB APP)",
-            "lifecyclePhase": "02. Proposal Registration",
-            "stage": "Agent Verification",
-            "targetEntity": "T_AGENT_CONTRACT",
             "ruleName": "Agent License & Active Status Validation",
-            "condition": "Agent code must exist, hold status = 'ACTIVE', possess valid MOF agency license for product line, and not be suspended.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_NB_AGENT_INVALID",
-            "errorMessage": "Agent is inactive, unlicensed for product, or currently suspended. Proposal issue generated.",
+            "severity": "HARD_STOP",
+            "condition": "Agent code must exist, hold status = 'ACTIVE', possess valid MOF agency license for product line, and not be suspended.",
             "systemAction": "Generates Underwriting Hard Issue; freezes proposal progression to Underwriting.",
             "actuarialBasis": "Statutory compliance (Insurance Business Law): sales commissions cannot be provisioned or paid to unlicensed intermediaries.",
             "pdfPage": 137
           },
           {
             "ruleId": "VAL-NB-007",
-            "module": "MOD_02",
-            "moduleName": "New Business (NB APP)",
-            "lifecyclePhase": "02. Proposal Registration",
-            "stage": "Initial Premium Receipt",
-            "targetEntity": "T_SUSPENSE_RECEIPT",
             "ruleName": "First Premium Minimum Tolerance Match",
-            "condition": "Deposited initial premium must equal exact modal gross premium (tolerance 0 VND underpayment).",
-            "severity": "SOFT_WARNING",
             "errorCode": "WARN_NB_PREM_SHORTFALL",
-            "errorMessage": "Initial collection shortfall detected. Policy cannot issue until balance paid in full.",
+            "severity": "SOFT_WARNING",
+            "condition": "Deposited initial premium must equal exact modal gross premium (tolerance 0 VND underpayment).",
             "systemAction": "Parks payment in Suspense Account (`T_SUSPENSE_ACCT`); holds issuance.",
             "actuarialBasis": "No policy contract can form without complete consideration received by insurer.",
             "pdfPage": 359
           },
           {
             "ruleId": "VAL-ISS-001",
-            "module": "MOD_02",
-            "moduleName": "New Business (NB APP)",
-            "lifecyclePhase": "04. Policy Issuance",
-            "stage": "SOR Enforce Commit",
-            "targetEntity": "T_POLICY",
             "ruleName": "First Premium Receipt Allocation Before Enforce",
-            "condition": "Total validated suspense receipts allocated to proposal must exactly equal First Gross Modal Premium.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_ISS_UNPAID_FIRST_PREMIUM",
-            "errorMessage": "Cannot issue policy: first modal premium is unpaid or incompletely allocated.",
+            "severity": "HARD_STOP",
+            "condition": "Total validated suspense receipts allocated to proposal must exactly equal First Gross Modal Premium.",
             "systemAction": "Blocks commit to SOR `T_POLICY` table; proposal remains in `WAITING_FOR_ISSUE`.",
             "actuarialBasis": "Statutory premium accounting: coverage commencement triggers immediate unearned premium reserve (UPR).",
             "pdfPage": 21
@@ -3560,8 +3587,11 @@ window.EBAO_MODULES = [
       },
       {
         "code": "SOP-NB-02",
+        "id": "SOP-NB-02",
         "title": "Data Entry - Policyholder (Individual/Organization) & KYC Capture",
-        "ui_path": "New Business > Work List > Data Entry > Policyholder Information",
+        "role": "Core PAS Specialist",
+        "objective": "Thực hiện nghiệp vụ chuẩn hóa cho SOP-NB-02",
+        "pdf_page": 58,
         "prerequisites": [
           "Proposal status is 'Waiting for Data Entry'",
           "Verified government ID / Passport / National ID card"
@@ -3610,38 +3640,23 @@ window.EBAO_MODULES = [
             "desc": "Determines occupational loading for accidental riders"
           }
         ],
-        "actuary_notes": "Attained Age calculation logic in Gemini: Age = Int((Proposal Date - Date of Birth) / 365.25), or Age Nearest Birthday depending on product definition.",
-        "op_notes": "Duplicate check triggers if ID Number and Date of Birth match an existing active party, prompting operator to merge or verify customer record.",
-        "pdf_page": 58,
         "validation_rules": [
           {
             "ruleId": "VAL-NB-001",
-            "module": "MOD_02",
-            "moduleName": "New Business (NB APP)",
-            "lifecyclePhase": "02. Proposal Registration",
-            "stage": "Agent Verification",
-            "targetEntity": "T_AGENT_CONTRACT",
             "ruleName": "Agent License & Active Status Validation",
-            "condition": "Agent code must exist, hold status = 'ACTIVE', possess valid MOF agency license for product line, and not be suspended.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_NB_AGENT_INVALID",
-            "errorMessage": "Agent is inactive, unlicensed for product, or currently suspended. Proposal issue generated.",
+            "severity": "HARD_STOP",
+            "condition": "Agent code must exist, hold status = 'ACTIVE', possess valid MOF agency license for product line, and not be suspended.",
             "systemAction": "Generates Underwriting Hard Issue; freezes proposal progression to Underwriting.",
             "actuarialBasis": "Statutory compliance (Insurance Business Law): sales commissions cannot be provisioned or paid to unlicensed intermediaries.",
             "pdfPage": 137
           },
           {
             "ruleId": "VAL-NB-002",
-            "module": "MOD_02",
-            "moduleName": "New Business (NB APP)",
-            "lifecyclePhase": "02. Proposal Registration",
-            "stage": "Beneficiary Allocation",
-            "targetEntity": "T_POLICY_BENEFICIARY",
             "ruleName": "Beneficiary Share Percentage 100% Balance",
-            "condition": "The sum of share percentages for all beneficiaries within the same priority sequence must equal exactly 100.00%.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_NB_BENEFICIARY_SUM_MISMATCH",
-            "errorMessage": "Total beneficiary share percentage within same priority order must equal 100%.",
+            "severity": "HARD_STOP",
+            "condition": "The sum of share percentages for all beneficiaries within the same priority sequence must equal exactly 100.00%.",
             "systemAction": "Blocks proposal submission and generates proposal issue.",
             "actuarialBasis": "Ensures unequivocal claims disbursement without inter-pleader estate litigation risk.",
             "pdfPage": 137
@@ -3650,8 +3665,11 @@ window.EBAO_MODULES = [
       },
       {
         "code": "SOP-NB-03",
+        "id": "SOP-NB-03",
         "title": "Data Entry - Life Assured Setup & Insurable Interest Relationship",
-        "ui_path": "New Business > Data Entry > Life Assured Section",
+        "role": "Core PAS Specialist",
+        "objective": "Thực hiện nghiệp vụ chuẩn hóa cho SOP-NB-03",
+        "pdf_page": 72,
         "prerequisites": [
           "Policyholder information entry completed and saved"
         ],
@@ -3677,54 +3695,33 @@ window.EBAO_MODULES = [
             "desc": "System validation ensuring legal insurable interest"
           }
         ],
-        "actuary_notes": "When Life Assured is child (<18 years), maximum allowable juvenile death sum assured is statutory capped (e.g. $20,000 max until age 5).",
-        "op_notes": "Selecting 'Child' automatically disables smoker status field and defaults occupation class to Class 1 (Student).",
-        "pdf_page": 72,
         "validation_rules": [
           {
             "ruleId": "VAL-NB-003",
-            "module": "MOD_02",
-            "moduleName": "New Business (NB APP)",
-            "lifecyclePhase": "02. Proposal Registration",
-            "stage": "Beneficiary Legal Type",
-            "targetEntity": "T_POLICY_BENEFICIARY",
             "ruleName": "Trust Nomination Relationship Restriction",
-            "condition": "For Trust Nomination (Sec 49L / Sec 73 CLPA), relationship is mandatory and strictly restricted to Spouse or Child.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_NB_INVALID_TRUST_RELATION",
-            "errorMessage": "Trust nomination only allows Spouse or Child. Other relatives must use Revocable nomination (49M).",
+            "severity": "HARD_STOP",
+            "condition": "For Trust Nomination (Sec 49L / Sec 73 CLPA), relationship is mandatory and strictly restricted to Spouse or Child.",
             "systemAction": "Validation fails on Beneficiary screen; blocks proposal validation.",
             "actuarialBasis": "Legal bankruptcy protection compliance: trust policies create an immediate statutory trust in favor of immediate family.",
             "pdfPage": 485
           },
           {
             "ruleId": "VAL-NB-004",
-            "module": "MOD_02",
-            "moduleName": "New Business (NB APP)",
-            "lifecyclePhase": "02. Proposal Registration",
-            "stage": "Financial Underwriting",
-            "targetEntity": "T_PARTY_FINANCIAL",
             "ruleName": "Proposer Mandatory Annual Income Check",
-            "condition": "Proposer Annual Income is mandatory (> 0) and Total Sum Assured <= Maximum Income Multiple (e.g. 25x for Age <= 35).",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_NB_ANNUAL_INCOME_MANDATORY",
-            "errorMessage": "The Annual Income of the proposer must be entered. Proposal issue generated.",
+            "severity": "HARD_STOP",
+            "condition": "Proposer Annual Income is mandatory (> 0) and Total Sum Assured <= Maximum Income Multiple (e.g. 25x for Age <= 35).",
             "systemAction": "Generates Underwriting Financial Requirement if multiple exceeded.",
             "actuarialBasis": "Anti-Money Laundering (AML) and anti-selection: ensures coverage is proportionate to economic human life value.",
             "pdfPage": 137
           },
           {
             "ruleId": "VAL-NB-005",
-            "module": "MOD_02",
-            "moduleName": "New Business (NB APP)",
-            "lifecyclePhase": "02. Proposal Registration",
-            "stage": "Juvenile Protection",
-            "targetEntity": "T_POLICY_BENEFIT",
             "ruleName": "Juvenile Statutory Sum Assured Ceiling",
-            "condition": "For Life Assured age < 4 years, Death Sum Assured capped at statutory limit (e.g. $20,000 / 500,000,000 VND).",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_NB_JUVENILE_SA_LIMIT",
-            "errorMessage": "Sum assured exceeds statutory ceiling for juvenile life assured under 4 years of age.",
+            "severity": "HARD_STOP",
+            "condition": "For Life Assured age < 4 years, Death Sum Assured capped at statutory limit (e.g. $20,000 / 500,000,000 VND).",
             "systemAction": "Auto-trims Sum Assured to statutory limit or blocks quote calculation.",
             "actuarialBasis": "Moral hazard prevention and statutory child welfare regulation compliance.",
             "pdfPage": 55
@@ -3733,8 +3730,11 @@ window.EBAO_MODULES = [
       },
       {
         "code": "SOP-NB-04",
+        "id": "SOP-NB-04",
         "title": "Product & Rider Information Entry (Endowment Plan + Rider Compatibility)",
-        "ui_path": "New Business > Data Entry > Product Information Section",
+        "role": "Core PAS Specialist",
+        "objective": "Thực hiện nghiệp vụ chuẩn hóa cho SOP-NB-04",
+        "pdf_page": 88,
         "prerequisites": [
           "Life Assured age and occupation class saved",
           "Product eligibility limits verified"
@@ -3767,48 +3767,33 @@ window.EBAO_MODULES = [
           {
             "name": "Rider Code",
             "type": "Multi-select",
-            "required": "Optional",
+            "required": "No",
             "desc": "Eligible supplementary benefits"
           },
           {
             "name": "Rider Sum Assured",
             "type": "Currency",
-            "required": "Conditional",
+            "required": "No",
             "desc": "Subject to maximum ratio against main plan SA"
           }
         ],
-        "actuary_notes": "Product Factory validates rider attachment matrix. If CI Rider SA > Main Plan SA, error rule E_RIDER_SA_EXCEED triggers.",
-        "op_notes": "Modal factor applied: Annual = 1.0, Semi = 0.51, Quarterly = 0.26, Monthly = 0.088.",
-        "pdf_page": 88,
         "validation_rules": [
           {
             "ruleId": "VAL-NB-001",
-            "module": "MOD_02",
-            "moduleName": "New Business (NB APP)",
-            "lifecyclePhase": "02. Proposal Registration",
-            "stage": "Agent Verification",
-            "targetEntity": "T_AGENT_CONTRACT",
             "ruleName": "Agent License & Active Status Validation",
-            "condition": "Agent code must exist, hold status = 'ACTIVE', possess valid MOF agency license for product line, and not be suspended.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_NB_AGENT_INVALID",
-            "errorMessage": "Agent is inactive, unlicensed for product, or currently suspended. Proposal issue generated.",
+            "severity": "HARD_STOP",
+            "condition": "Agent code must exist, hold status = 'ACTIVE', possess valid MOF agency license for product line, and not be suspended.",
             "systemAction": "Generates Underwriting Hard Issue; freezes proposal progression to Underwriting.",
             "actuarialBasis": "Statutory compliance (Insurance Business Law): sales commissions cannot be provisioned or paid to unlicensed intermediaries.",
             "pdfPage": 137
           },
           {
             "ruleId": "VAL-NB-006",
-            "module": "MOD_02",
-            "moduleName": "New Business (NB APP)",
-            "lifecyclePhase": "02. Proposal Registration",
-            "stage": "Health Declaration",
-            "targetEntity": "T_NB_DECLARATION",
             "ruleName": "Declaration Form Mandatory Response Completeness",
-            "condition": "Every question in the product declaration form must have an affirmative ('Yes') or negative ('No') recorded.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_NB_INCOMPLETE_DECLARATION",
-            "errorMessage": "One or more health/lifestyle declaration questions remain unanswered.",
+            "severity": "HARD_STOP",
+            "condition": "Every question in the product declaration form must have an affirmative ('Yes') or negative ('No') recorded.",
             "systemAction": "Blocks transition from Data Entry to Underwriting queue.",
             "actuarialBasis": "Duty of utmost good faith (Uberrimae Fidei) documentation for future contestability assessment.",
             "pdfPage": 61
@@ -3817,8 +3802,11 @@ window.EBAO_MODULES = [
       },
       {
         "code": "SOP-NB-05",
+        "id": "SOP-NB-05",
         "title": "Nomination & Beneficiaries Entry (Percentages Totaling 100%)",
-        "ui_path": "New Business > Data Entry > Beneficiary Section",
+        "role": "Core PAS Specialist",
+        "objective": "Thực hiện nghiệp vụ chuẩn hóa cho SOP-NB-05",
+        "pdf_page": 102,
         "prerequisites": [
           "Policyholder and Life Assured records complete"
         ],
@@ -3855,42 +3843,27 @@ window.EBAO_MODULES = [
           {
             "name": "Trustee Name",
             "type": "Text",
-            "required": "Conditional",
+            "required": "No",
             "desc": "Mandatory if beneficiary age < 18"
           }
         ],
-        "actuary_notes": "Nomination structure dictates death claim settlement paths. Irrevocable nominations require beneficiary written consent for any future CS policy loan or surrender.",
-        "op_notes": "System blocks submission if total percentage sum is 99.9% or 100.1% due to rounding.",
-        "pdf_page": 102,
         "validation_rules": [
           {
             "ruleId": "VAL-NB-002",
-            "module": "MOD_02",
-            "moduleName": "New Business (NB APP)",
-            "lifecyclePhase": "02. Proposal Registration",
-            "stage": "Beneficiary Allocation",
-            "targetEntity": "T_POLICY_BENEFICIARY",
             "ruleName": "Beneficiary Share Percentage 100% Balance",
-            "condition": "The sum of share percentages for all beneficiaries within the same priority sequence must equal exactly 100.00%.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_NB_BENEFICIARY_SUM_MISMATCH",
-            "errorMessage": "Total beneficiary share percentage within same priority order must equal 100%.",
+            "severity": "HARD_STOP",
+            "condition": "The sum of share percentages for all beneficiaries within the same priority sequence must equal exactly 100.00%.",
             "systemAction": "Blocks proposal submission and generates proposal issue.",
             "actuarialBasis": "Ensures unequivocal claims disbursement without inter-pleader estate litigation risk.",
             "pdfPage": 137
           },
           {
             "ruleId": "VAL-NB-003",
-            "module": "MOD_02",
-            "moduleName": "New Business (NB APP)",
-            "lifecyclePhase": "02. Proposal Registration",
-            "stage": "Beneficiary Legal Type",
-            "targetEntity": "T_POLICY_BENEFICIARY",
             "ruleName": "Trust Nomination Relationship Restriction",
-            "condition": "For Trust Nomination (Sec 49L / Sec 73 CLPA), relationship is mandatory and strictly restricted to Spouse or Child.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_NB_INVALID_TRUST_RELATION",
-            "errorMessage": "Trust nomination only allows Spouse or Child. Other relatives must use Revocable nomination (49M).",
+            "severity": "HARD_STOP",
+            "condition": "For Trust Nomination (Sec 49L / Sec 73 CLPA), relationship is mandatory and strictly restricted to Spouse or Child.",
             "systemAction": "Validation fails on Beneficiary screen; blocks proposal validation.",
             "actuarialBasis": "Legal bankruptcy protection compliance: trust policies create an immediate statutory trust in favor of immediate family.",
             "pdfPage": 485
@@ -3899,8 +3872,11 @@ window.EBAO_MODULES = [
       },
       {
         "code": "SOP-NB-06",
+        "id": "SOP-NB-06",
         "title": "Declaration Questionnaire, Health History & Underwriting Rules Evaluation",
-        "ui_path": "New Business > Data Entry > Declaration Form Section",
+        "role": "Core PAS Specialist",
+        "objective": "Thực hiện nghiệp vụ chuẩn hóa cho SOP-NB-06",
+        "pdf_page": 118,
         "prerequisites": [
           "All party, product, and beneficiary sections saved"
         ],
@@ -3922,48 +3898,33 @@ window.EBAO_MODULES = [
           {
             "name": "Medical Details",
             "type": "Text Area",
-            "required": "Conditional",
+            "required": "No",
             "desc": "Required if answer is Yes"
           },
           {
             "name": "Underwriting Rule Result",
             "type": "System Derived",
-            "required": "Read-only",
+            "required": "No",
             "desc": "STP_PASS, UW_REFERRAL, HARD_DECLINE"
           }
         ],
-        "actuary_notes": "STP underwriting rules are calibrated by Actuaries to balance automated throughput (target 75-80% STP) against anti-selection risk.",
-        "op_notes": "Cases flagged with adverse declarations automatically tag the Proposal with priority code 'UW_HIGH'.",
-        "pdf_page": 118,
         "validation_rules": [
           {
             "ruleId": "VAL-NB-004",
-            "module": "MOD_02",
-            "moduleName": "New Business (NB APP)",
-            "lifecyclePhase": "02. Proposal Registration",
-            "stage": "Financial Underwriting",
-            "targetEntity": "T_PARTY_FINANCIAL",
             "ruleName": "Proposer Mandatory Annual Income Check",
-            "condition": "Proposer Annual Income is mandatory (> 0) and Total Sum Assured <= Maximum Income Multiple (e.g. 25x for Age <= 35).",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_NB_ANNUAL_INCOME_MANDATORY",
-            "errorMessage": "The Annual Income of the proposer must be entered. Proposal issue generated.",
+            "severity": "HARD_STOP",
+            "condition": "Proposer Annual Income is mandatory (> 0) and Total Sum Assured <= Maximum Income Multiple (e.g. 25x for Age <= 35).",
             "systemAction": "Generates Underwriting Financial Requirement if multiple exceeded.",
             "actuarialBasis": "Anti-Money Laundering (AML) and anti-selection: ensures coverage is proportionate to economic human life value.",
             "pdfPage": 137
           },
           {
             "ruleId": "VAL-NB-006",
-            "module": "MOD_02",
-            "moduleName": "New Business (NB APP)",
-            "lifecyclePhase": "02. Proposal Registration",
-            "stage": "Health Declaration",
-            "targetEntity": "T_NB_DECLARATION",
             "ruleName": "Declaration Form Mandatory Response Completeness",
-            "condition": "Every question in the product declaration form must have an affirmative ('Yes') or negative ('No') recorded.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_NB_INCOMPLETE_DECLARATION",
-            "errorMessage": "One or more health/lifestyle declaration questions remain unanswered.",
+            "severity": "HARD_STOP",
+            "condition": "Every question in the product declaration form must have an affirmative ('Yes') or negative ('No') recorded.",
             "systemAction": "Blocks transition from Data Entry to Underwriting queue.",
             "actuarialBasis": "Duty of utmost good faith (Uberrimae Fidei) documentation for future contestability assessment.",
             "pdfPage": 61
@@ -3972,8 +3933,11 @@ window.EBAO_MODULES = [
       },
       {
         "code": "SOP-NB-07",
+        "id": "SOP-NB-07",
         "title": "Initial Premium Collection & Policy Enforcement (Issuing Inforce Policy)",
-        "ui_path": "New Business > Proposal Query > Enforce Policy",
+        "role": "Core PAS Specialist",
+        "objective": "Thực hiện nghiệp vụ chuẩn hóa cho SOP-NB-07",
+        "pdf_page": 135,
         "prerequisites": [
           "Proposal status is 'Waiting for Initial Collection' (Auto-UW passed or UW accepted)",
           "Full Initial Premium received in bank or cashier"
@@ -4007,58 +3971,37 @@ window.EBAO_MODULES = [
           {
             "name": "Policy Number",
             "type": "System Generated",
-            "required": "Read-only",
+            "required": "No",
             "desc": "Official immutable policy identifier in SOR"
           }
         ],
-        "actuary_notes": "Upon policy enforcement, statutory policy reserves are initialized in Valuation tables, and initial commission liabilities are booked.",
-        "op_notes": "If partial collection was received, policy remains in 'Collection Pending' status. Excess funds are credited to Policy Suspense.",
-        "pdf_page": 135,
         "validation_rules": [
           {
             "ruleId": "VAL-NB-007",
-            "module": "MOD_02",
-            "moduleName": "New Business (NB APP)",
-            "lifecyclePhase": "02. Proposal Registration",
-            "stage": "Initial Premium Receipt",
-            "targetEntity": "T_SUSPENSE_RECEIPT",
             "ruleName": "First Premium Minimum Tolerance Match",
-            "condition": "Deposited initial premium must equal exact modal gross premium (tolerance 0 VND underpayment).",
-            "severity": "SOFT_WARNING",
             "errorCode": "WARN_NB_PREM_SHORTFALL",
-            "errorMessage": "Initial collection shortfall detected. Policy cannot issue until balance paid in full.",
+            "severity": "SOFT_WARNING",
+            "condition": "Deposited initial premium must equal exact modal gross premium (tolerance 0 VND underpayment).",
             "systemAction": "Parks payment in Suspense Account (`T_SUSPENSE_ACCT`); holds issuance.",
             "actuarialBasis": "No policy contract can form without complete consideration received by insurer.",
             "pdfPage": 359
           },
           {
             "ruleId": "VAL-ISS-001",
-            "module": "MOD_02",
-            "moduleName": "New Business (NB APP)",
-            "lifecyclePhase": "04. Policy Issuance",
-            "stage": "SOR Enforce Commit",
-            "targetEntity": "T_POLICY",
             "ruleName": "First Premium Receipt Allocation Before Enforce",
-            "condition": "Total validated suspense receipts allocated to proposal must exactly equal First Gross Modal Premium.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_ISS_UNPAID_FIRST_PREMIUM",
-            "errorMessage": "Cannot issue policy: first modal premium is unpaid or incompletely allocated.",
+            "severity": "HARD_STOP",
+            "condition": "Total validated suspense receipts allocated to proposal must exactly equal First Gross Modal Premium.",
             "systemAction": "Blocks commit to SOR `T_POLICY` table; proposal remains in `WAITING_FOR_ISSUE`.",
             "actuarialBasis": "Statutory premium accounting: coverage commencement triggers immediate unearned premium reserve (UPR).",
             "pdfPage": 21
           },
           {
             "ruleId": "VAL-ISS-002",
-            "module": "MOD_02",
-            "moduleName": "New Business (NB APP)",
-            "lifecyclePhase": "04. Policy Issuance",
-            "stage": "Document Generation",
-            "targetEntity": "T_POLICY_CONTRACT",
             "ruleName": "Contract Schedule & Table of Guaranteed Benefits Generation",
-            "condition": "Official policy schedule, benefit illustration, and general provisions PDF must compile with valid digital signature.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_ISS_PDF_GENERATION_FAILED",
-            "errorMessage": "Policy contract rendering or digital signing failed. Re-run print spooler.",
+            "severity": "HARD_STOP",
+            "condition": "Official policy schedule, benefit illustration, and general provisions PDF must compile with valid digital signature.",
             "systemAction": "Retries PDF compilation; alerts Operations supervisor if persistent.",
             "actuarialBasis": "Legal enforceability of contractual benefit schedules provided to policyholder.",
             "pdfPage": 35
@@ -4067,8 +4010,11 @@ window.EBAO_MODULES = [
       },
       {
         "code": "SOP-NB-08",
+        "id": "SOP-NB-08",
         "title": "Policy Delivery Confirmation (e-ACK) & Initializing Statutory 21-Day Free-Look Countdown",
-        "ui_path": "Main Menu > New Business > Policy Dispatch & Delivery > Acknowledge Receipt",
+        "role": "Core PAS Specialist",
+        "objective": "Thực hiện nghiệp vụ chuẩn hóa cho SOP-NB-08",
+        "pdf_page": 88,
         "prerequisites": [
           "Policy status in SOR is 'INFORCE'",
           "Physical Policy Kit dispatched via Courier OR e-Policy Kit delivered via SMS/Email Portal"
@@ -4108,38 +4054,23 @@ window.EBAO_MODULES = [
             "desc": "Policyholder National ID / OTP verification log"
           }
         ],
-        "actuary_notes": "Statutory 21-day window strictly governs unearned premium reserve (UPR) liability and clawback exposure.",
-        "op_notes": "If cancellation is submitted within 21 days, system triggers 100% FYC agent commission clawback.",
-        "pdf_page": 88,
         "validation_rules": [
           {
             "ruleId": "VAL-NB-005",
-            "module": "MOD_02",
-            "moduleName": "New Business (NB APP)",
-            "lifecyclePhase": "02. Proposal Registration",
-            "stage": "Juvenile Protection",
-            "targetEntity": "T_POLICY_BENEFIT",
             "ruleName": "Juvenile Statutory Sum Assured Ceiling",
-            "condition": "For Life Assured age < 4 years, Death Sum Assured capped at statutory limit (e.g. $20,000 / 500,000,000 VND).",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_NB_JUVENILE_SA_LIMIT",
-            "errorMessage": "Sum assured exceeds statutory ceiling for juvenile life assured under 4 years of age.",
+            "severity": "HARD_STOP",
+            "condition": "For Life Assured age < 4 years, Death Sum Assured capped at statutory limit (e.g. $20,000 / 500,000,000 VND).",
             "systemAction": "Auto-trims Sum Assured to statutory limit or blocks quote calculation.",
             "actuarialBasis": "Moral hazard prevention and statutory child welfare regulation compliance.",
             "pdfPage": 55
           },
           {
             "ruleId": "VAL-ISS-002",
-            "module": "MOD_02",
-            "moduleName": "New Business (NB APP)",
-            "lifecyclePhase": "04. Policy Issuance",
-            "stage": "Document Generation",
-            "targetEntity": "T_POLICY_CONTRACT",
             "ruleName": "Contract Schedule & Table of Guaranteed Benefits Generation",
-            "condition": "Official policy schedule, benefit illustration, and general provisions PDF must compile with valid digital signature.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_ISS_PDF_GENERATION_FAILED",
-            "errorMessage": "Policy contract rendering or digital signing failed. Re-run print spooler.",
+            "severity": "HARD_STOP",
+            "condition": "Official policy schedule, benefit illustration, and general provisions PDF must compile with valid digital signature.",
             "systemAction": "Retries PDF compilation; alerts Operations supervisor if persistent.",
             "actuarialBasis": "Legal enforceability of contractual benefit schedules provided to policyholder.",
             "pdfPage": 35
@@ -4147,7 +4078,7 @@ window.EBAO_MODULES = [
         ]
       }
     ],
-    "sop_count": 7,
+    "sop_count": 8,
     "interconnections": {
       "module_code": "NB_APP",
       "upstream_sources": [
@@ -4192,224 +4123,140 @@ window.EBAO_MODULES = [
     "validation_rules": [
       {
         "ruleId": "VAL-NB-001",
-        "module": "MOD_02",
-        "moduleName": "New Business (NB APP)",
-        "lifecyclePhase": "02. New Business",
-        "stage": "Reception & Agent Binding",
-        "targetEntity": "T_PROD_AGENT_CONTRACT",
         "ruleName": "Agent License & Active Status Validation",
-        "condition": "Servicing Agent must have ACTIVE status and valid regulatory product license on Proposal Registration Date.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_NB_AGENT_INVALID",
-        "errorMessage": "Mã đại lý phục vụ không tồn tại, đang bị đình chỉ hoặc chưa có chứng chỉ bán dòng sản phẩm này.",
+        "severity": "HARD_STOP",
+        "condition": "Servicing Agent must have ACTIVE status and valid regulatory product license on Proposal Registration Date.",
         "systemAction": "Chặn lưu màn hình tiếp nhận và không cấp mã Proposal No.",
         "actuarialBasis": "Tuân thủ Điều 82 Luật Kinh doanh Bảo hiểm và bảo đảm tính hợp lệ pháp lý của kênh phân phối.",
         "pdfPage": 137
       },
       {
         "ruleId": "VAL-NB-002",
-        "module": "MOD_02",
-        "moduleName": "New Business (NB APP)",
-        "lifecyclePhase": "02. New Business",
-        "stage": "Beneficiary Nomination",
-        "targetEntity": "T_POL_BENEFICIARY",
         "ruleName": "Beneficiary Share Percentage 100% Balance",
-        "condition": "Sum of sharing percentages for all designated primary beneficiaries must equal strictly 100.00%.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_NB_BENEFICIARY_SUM_MISMATCH",
-        "errorMessage": "Tổng tỷ lệ thụ hưởng của các Người thụ hưởng chính phải bằng đúng 100.00%. Hiện tại chưa cân bằng.",
+        "severity": "HARD_STOP",
+        "condition": "Sum of sharing percentages for all designated primary beneficiaries must equal strictly 100.00%.",
         "systemAction": "Chặn lưu thông tin người thụ hưởng và chặn phát hành Proposal Issue.",
         "actuarialBasis": "Tránh tranh chấp quyền thừa kế và bất định nghĩa vụ chi trả bồi thường khi phát sinh sự kiện bảo hiểm tử vong.",
         "pdfPage": 66
       },
       {
         "ruleId": "VAL-NB-003",
-        "module": "MOD_02",
-        "moduleName": "New Business (NB APP)",
-        "lifecyclePhase": "02. New Business",
-        "stage": "Beneficiary Nomination",
-        "targetEntity": "T_POL_TRUSTEE",
         "ruleName": "Trustee Requirement for Minor Beneficiaries",
-        "condition": "If any primary beneficiary is under 18 years of age, a legal Trustee (Guardian) must be designated.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_NB_TRUSTEE_MISSING",
-        "errorMessage": "Người thụ hưởng chưa đủ 18 tuổi; bắt buộc phải chỉ định Người giám hộ / Người đại diện theo pháp luật.",
+        "severity": "HARD_STOP",
+        "condition": "If any primary beneficiary is under 18 years of age, a legal Trustee (Guardian) must be designated.",
         "systemAction": "Yêu cầu nhập thông tin Trustee trước khi cho phép xác nhận danh sách thụ hưởng.",
         "actuarialBasis": "Bảo đảm tính hợp pháp trong việc tiếp nhận quyền lợi bảo hiểm theo Bộ luật Dân sự.",
         "pdfPage": 56
       },
       {
         "ruleId": "VAL-NB-004",
-        "module": "MOD_02",
-        "moduleName": "New Business (NB APP)",
-        "lifecyclePhase": "02. New Business",
-        "stage": "Policyholder KYC",
-        "targetEntity": "T_PARTY_INDIVIDUAL",
         "ruleName": "Proposer Mandatory Annual Income & PEP AML Check",
-        "condition": "Annual Income must be specified; if Politically Exposed Person (PEP) flag = YES, enhanced AML approval required.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_NB_AML_PEP_BLOCK",
-        "errorMessage": "Khách hàng thuộc đối tượng PEP (chính trị gia); bắt buộc đính kèm văn bản phê duyệt nâng cao của Ban Phòng chống rửa tiền.",
+        "severity": "HARD_STOP",
+        "condition": "Annual Income must be specified; if Politically Exposed Person (PEP) flag = YES, enhanced AML approval required.",
         "systemAction": "Chuyển trạng thái hồ sơ sang Pending Compliance Review.",
         "actuarialBasis": "Tuân thủ Luật Phòng chống rửa tiền và thẩm định khả năng tài chính duy trì đóng phí dài hạn.",
         "pdfPage": 95
       },
       {
         "ruleId": "VAL-NB-005",
-        "module": "MOD_02",
-        "moduleName": "New Business (NB APP)",
-        "lifecyclePhase": "02. New Business",
-        "stage": "Life Assured Eligibility",
-        "targetEntity": "T_POL_INSURED",
         "ruleName": "Juvenile Statutory Sum Assured Ceiling",
-        "condition": "If Life Assured age < 14, total Sum Assured across all active policies cannot exceed regulatory ceiling (200,000,000 VND).",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_NB_JUVENILE_SA_EXCEEDED",
-        "errorMessage": "Số tiền bảo hiểm cho trẻ em dưới 14 tuổi vượt quá trần quy định pháp luật về bảo vệ quyền trẻ em.",
+        "severity": "HARD_STOP",
+        "condition": "If Life Assured age < 14, total Sum Assured across all active policies cannot exceed regulatory ceiling (200,000,000 VND).",
         "systemAction": "Cắt giảm STBH về mức trần cho phép hoặc chặn phê duyệt tiếp nhận.",
         "actuarialBasis": "Ngăn ngừa rủi ro trục lợi bảo hiểm và tổn hại tính mạng đối với trẻ em vị thành niên.",
         "pdfPage": 74
       },
       {
         "ruleId": "VAL-NB-006",
-        "module": "MOD_02",
-        "moduleName": "New Business (NB APP)",
-        "lifecyclePhase": "02. New Business",
-        "stage": "Declaration Questionnaire",
-        "targetEntity": "T_POL_DECLARATION",
         "ruleName": "Declaration Form Mandatory Response Completeness",
-        "condition": "100% of questions in the medical and lifestyle declaration questionnaire must be answered; NULL is prohibited.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_NB_DECLARATION_INCOMPLETE",
-        "errorMessage": "Bảng câu hỏi y tế và lối sống còn câu hỏi chưa được trả lời. Bắt buộc hoàn tất toàn bộ câu hỏi.",
+        "severity": "HARD_STOP",
+        "condition": "100% of questions in the medical and lifestyle declaration questionnaire must be answered; NULL is prohibited.",
         "systemAction": "Chặn gửi hồ sơ sang bước thẩm định.",
         "actuarialBasis": "Bảo đảm nghĩa vụ cung cấp thông tin trung thực tuyệt đối (Utmost Good Faith) của khách hàng.",
         "pdfPage": 63
       },
       {
         "ruleId": "VAL-NB-007",
-        "module": "MOD_02",
-        "moduleName": "New Business (NB APP)",
-        "lifecyclePhase": "02. New Business",
-        "stage": "Payment Matching",
-        "targetEntity": "T_BCP_PREMIUM_DEPOSIT",
         "ruleName": "First Premium Minimum Tolerance Match",
-        "condition": "Deposited initial premium must cover >= 100.0% of the calculated modal installment premium.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_NB_PREMIUM_UNDERPAID",
-        "errorMessage": "Số phí đầu tiên nộp vào tài khoản chưa đủ so với mức phí định kỳ phải đóng của hợp đồng.",
+        "severity": "HARD_STOP",
+        "condition": "Deposited initial premium must cover >= 100.0% of the calculated modal installment premium.",
         "systemAction": "Chặn lệnh Enforce phát hành hợp đồng; thông báo bổ sung phí thiếu.",
         "actuarialBasis": "Hợp đồng bảo hiểm chỉ có hiệu lực khi doanh nghiệp bảo hiểm đã nhận đủ phí bảo hiểm kỳ đầu tiên.",
         "pdfPage": 63
       },
       {
         "ruleId": "VAL-NB-008",
-        "module": "MOD_02",
-        "moduleName": "New Business (NB APP)",
-        "lifecyclePhase": "02. New Business",
-        "stage": "Product Configuration",
-        "targetEntity": "T_POL_RIDER",
         "ruleName": "Rider Sum Assured Bound by Base Plan SA",
-        "condition": "Rider Sum Assured must be <= Parent Base Plan Sum Assured (Sum of SA not greater than Parent SA = Yes).",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_NB_RIDER_SA_OVERFLOW",
-        "errorMessage": "Số tiền bảo hiểm của sản phẩm bổ trợ vượt quá giới hạn cho phép so với quyền lợi hợp đồng chính.",
+        "severity": "HARD_STOP",
+        "condition": "Rider Sum Assured must be <= Parent Base Plan Sum Assured (Sum of SA not greater than Parent SA = Yes).",
         "systemAction": "Chặn gắn rider và thông báo điều chỉnh STBH sản phẩm bổ trợ.",
         "actuarialBasis": "Sản phẩm bổ trợ đóng vai trò gia tăng bảo vệ, không được vượt quá nghĩa vụ bảo hiểm cốt lõi.",
         "pdfPage": 138
       },
       {
         "ruleId": "VAL-NB-009",
-        "module": "MOD_02",
-        "moduleName": "New Business (NB APP)",
-        "lifecyclePhase": "02. New Business",
-        "stage": "Reception & Underwriting",
-        "targetEntity": "T_POL_POLICY",
         "ruleName": "Overlapping Active Proposal Duplicate Check",
-        "condition": "System checks existing active proposals for the same Life Assured; overlapping coverage triggers underwriting referral.",
-        "severity": "WARNING",
         "errorCode": "WARN_NB_OVERLAPPING_COVERAGE",
-        "errorMessage": "Phát hiện hợp đồng hoặc hồ sơ yêu cầu bảo hiểm trùng lặp đang có hiệu lực cho cùng Người được bảo hiểm.",
+        "severity": "WARNING",
+        "condition": "System checks existing active proposals for the same Life Assured; overlapping coverage triggers underwriting referral.",
         "systemAction": "Cảnh báo và tự động chuyển hồ sơ sang luồng thẩm định tài chính thủ công.",
         "actuarialBasis": "Kiểm soát rủi ro bảo hiểm vượt mức thu nhập (Over-insurance) và tích lũy rủi ro tài chính cá nhân.",
         "pdfPage": 139
       },
       {
         "ruleId": "VAL-NB-010",
-        "module": "MOD_02",
-        "moduleName": "New Business (NB APP)",
-        "lifecyclePhase": "02. New Business",
-        "stage": "Bancassurance Compliance",
-        "targetEntity": "T_POL_BANCA_CHANNEL",
         "ruleName": "Bancassurance 60-Day Loan Drawdown Prohibition",
-        "condition": "Under Circular 67/2023/TT-BTC, investment-linked insurance cannot be sold within 60 days before or after a bank loan disbursement.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_NB_BANCA_60DAY_VIOLATION",
-        "errorMessage": "Vi phạm quy định Thông tư 67/2023/TT-BTC: Cấm bán sản phẩm bảo hiểm liên kết đầu tư kèm khoản vay trong thời hạn 60 ngày giải ngân.",
+        "severity": "HARD_STOP",
+        "condition": "Under Circular 67/2023/TT-BTC, investment-linked insurance cannot be sold within 60 days before or after a bank loan disbursement.",
         "systemAction": "Từ chối tiếp nhận hồ sơ qua kênh ngân hàng.",
         "actuarialBasis": "Bảo vệ người vay vốn khỏi tình trạng bị ép buộc mua bảo hiểm để được giải ngân vốn vay.",
         "pdfPage": 45
       },
       {
         "ruleId": "VAL-NB-011",
-        "module": "MOD_02",
-        "moduleName": "New Business (NB APP)",
-        "lifecyclePhase": "02. New Business",
-        "stage": "Policy Delivery",
-        "targetEntity": "T_POL_DELIVERY",
         "ruleName": "Statutory 21-Day Free-Look Trigger from Delivery Date",
-        "condition": "Statutory 21-day Free-Look countdown starts STRICTLY from DELIVERY_DATE (e-ACK timestamp), NOT Issue Date.",
-        "severity": "CRITICAL",
         "errorCode": "ERR_NB_FREELOOK_START_INVALID",
-        "errorMessage": "Thời hạn 21 ngày cân nhắc phải kích hoạt dựa trên ngày khách hàng ký nhận bàn giao hợp đồng (DELIVERY_DATE).",
+        "severity": "CRITICAL",
+        "condition": "Statutory 21-day Free-Look countdown starts STRICTLY from DELIVERY_DATE (e-ACK timestamp), NOT Issue Date.",
         "systemAction": "Cập nhật trường FREELOOK_START_DATE = DELIVERY_DATE và FREELOOK_END_DATE = DELIVERY_DATE + 21 ngày.",
         "actuarialBasis": "Tuân thủ Điều 35 Luật Kinh doanh Bảo hiểm số 08/2022/QH15.",
         "pdfPage": 88
       },
       {
         "ruleId": "VAL-NB-012",
-        "module": "MOD_02",
-        "moduleName": "New Business (NB APP)",
-        "lifecyclePhase": "02. New Business",
-        "stage": "Free-Look Cancellation",
-        "targetEntity": "T_FIN_GL_JOURNAL",
         "ruleName": "Free-Look Full Refund & Commission Clawback Integrity",
-        "condition": "Refund = 100% Gross Premium - Incurred Medical Fees; 100% Agent First Year Commission (FYC) clawed back via GL.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_NB_FREELOOK_SETTLEMENT_MISMATCH",
-        "errorMessage": "Số tiền hoàn phí hoặc giá trị thu hồi hoa hồng đại lý không khớp với công thức luật định.",
+        "severity": "HARD_STOP",
+        "condition": "Refund = 100% Gross Premium - Incurred Medical Fees; 100% Agent First Year Commission (FYC) clawed back via GL.",
         "systemAction": "Tự động sinh bút toán đảo thu nhập phí và ghi nợ tài khoản công nợ đại lý.",
         "actuarialBasis": "Khôi phục nguyên trạng dòng tiền tài chính trước khi hợp đồng được phát hành.",
         "pdfPage": 88
       },
       {
         "ruleId": "VAL-NB-013",
-        "module": "MOD_02",
-        "moduleName": "New Business (NB APP)",
-        "lifecyclePhase": "02. New Business",
-        "stage": "Conditional Acceptance",
-        "targetEntity": "T_UW_LCA_RECORD",
         "ruleName": "Conditional Acceptance (LCA) Response Validity 30 Days",
-        "condition": "Client signed consent for Counter-Offer (LCA) must be received within 30 calendar days of LCA dispatch.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_NB_LCA_EXPIRED",
-        "errorMessage": "Thư thỏa thuận tăng phí (LCA) đã quá hạn 30 ngày mà chưa nhận được phản hồi đồng ý của khách hàng.",
+        "severity": "HARD_STOP",
+        "condition": "Client signed consent for Counter-Offer (LCA) must be received within 30 calendar days of LCA dispatch.",
         "systemAction": "Tự động chuyển trạng thái hồ sơ sang Proposal Cancelled / Not Taken Up (NTU).",
         "actuarialBasis": "Tình trạng sức khỏe của người được bảo hiểm có thể biến đổi sau 30 ngày, vô hiệu hóa điều kiện định phí ban đầu.",
         "pdfPage": 140
       },
       {
         "ruleId": "VAL-NB-014",
-        "module": "MOD_02",
-        "moduleName": "New Business (NB APP)",
-        "lifecyclePhase": "02. New Business",
-        "stage": "Verification Maker-Checker",
-        "targetEntity": "T_SEC_USER",
         "ruleName": "Maker-Checker Data Verification Mandatory Separation",
-        "condition": "The user performing the Verification step must be strictly different from the user who entered the Data Entry.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_NB_MAKER_CHECKER_COLLUSION",
-        "errorMessage": "Người thực hiện kiểm tra xác nhận (Checker) không được trùng với người đã thực hiện nhập liệu hồ sơ (Maker).",
+        "severity": "HARD_STOP",
+        "condition": "The user performing the Verification step must be strictly different from the user who entered the Data Entry.",
         "systemAction": "Chặn phê duyệt xác minh và yêu cầu phân công chuyên viên kiểm soát độc lập.",
         "actuarialBasis": "Nguyên tắc kiểm soát nội bộ 4 mắt (Four-Eyes Principle) phòng chống gian lận và sai lệch dữ liệu hợp đồng.",
         "pdfPage": 67
@@ -4472,42 +4319,32 @@ window.EBAO_MODULES = [
     "summary": "Module 03 Underwriting operates as the core clinical, financial, and occupational risk assessment engine across eBao Gemini Life Core PAS. It provides automated Straight-Through Processing (STP) rule evaluation, a centralized 3-tab Underwriting Main Workbench (Application Info, UW Worksheet with risk aggregation, and Benefit-Level Decisions), clinical medical examination billing and tracking, numerical rating with Extra Mortality percentage and flat loadings, Counter-Offer (LCA) generation with 30-day customer acceptance tracking, and multi-tier Delegation of Authority (DOA) auto-escalation controls.",
     "mermaid_workflow": "graph TD\n    Queue[\"UW Worklist (Task Pool)\"] --> Lock[\"Claim / Lock Task by Underwriter\"]\n    Lock --> Eval[\"Evaluate Medical & Financial Risk\"]\n    Eval --> DecisionChoice{\"Risk Acceptable?\"}\n    DecisionChoice -- Standard Risk --> Standard[\"Standard Accept (0% Loading)\"]\n    DecisionChoice -- Elevated Risk --> Rated[\"Substandard Rating: EM Loading / Extra Premium\"]\n    DecisionChoice -- Specific Hazard --> Exclude[\"Issue Specific Exclusions\"]\n    DecisionChoice -- Uninsurable --> Decline[\"Decline / Postpone\"]\n    Rated --> ClientConsent[\"Issue Counter-Offer Letter\"]\n    Exclude --> ClientConsent\n    ClientConsent -- Accepted --> EnforceUW[\"Submit UW Disposal & Recalculate Premium\"]\n    Standard --> EnforceUW",
     "core_concepts": [
-      [
-        {
-          "term": "Benefit-Level Decision Independence",
-          "def": "The underwriting architecture allows evaluating the principal life benefit and each attached rider separately. A base plan can be accepted at standard rates while supplementary riders (CI, Accident, Disability) are loaded, excluded, or declined."
-        },
-        {
-          "term": "Numerical Rating System (Credits & Debits)",
-          "def": "A scientific actuarial risk classification model starting at 100% base mortality, adding debits for impairments (build, cardiovascular, family history, occupation) and subtracting credits for favorable factors, yielding final Extra Mortality percentage."
-        },
-        {
-          "term": "Letter of Conditional Acceptance (LCA / Counter-Offer)",
-          "def": "A formal legal document issued when a policy is accepted with non-standard terms (loading, exclusion, reduced SA). Freezes contract at PENDING_ACCEPTANCE for up to 30 calendar days awaiting customer signature and payment."
-        },
-        {
-          "term": "360° Risk Aggregation (Customer Portfolio View)",
-          "def": "Real-time summation of total inforce, pending, and lapsed Sum Assured held by the Life Assured across all corporate policies to enforce financial underwriting limits and determine clinical exam tiers."
-        },
-        {
-          "term": "Medical Billing & Clinic Fee Reconciliation",
-          "def": "Automated creation of accounts payable invoices (T_MED_BILLING) to compensate contracted hospital/clinic diagnostic networks, with built-in reversal and Free-Look refund clawback controls."
-        }
-      ]
+      {
+        "term": "Thẩm Định Độc Lập Theo Cấp Quyền Lợi (Benefit-Level UW Independence)",
+        "def": "Kiến trúc thẩm định của eBao Gemini cho phép thẩm định và đưa ra quyết định độc lập cho sản phẩm chính và từng sản phẩm bổ trợ (Riders). Sản phẩm chính có thể được chấp nhận mức phí chuẩn trong khi các Rider y tế, bệnh hiểm nghèo có thể bị tăng phí (Loading), loại trừ (Exclusion) hoặc từ chối (Decline)."
+      },
+      {
+        "term": "Mô Hình Chấm Điểm Số Học Rủi Ro (Numerical Rating System)",
+        "def": "Phương pháp định lượng rủi ro bắt đầu từ 100% tỷ lệ tử vong chuẩn (Base Mortality), cộng các điểm phạt rủi ro (Debits) do bệnh lý, tim mạch, nghề nghiệp, tiền sử gia đình và trừ điểm thưởng bảo vệ (Credits), tính ra Tỷ lệ Tăng phí Tử vong bổ sung (Extra Mortality % - EM)."
+      },
+      {
+        "term": "Thư Thỏa Thuận Chấp Thuận Có Điều Kiện (Letter of Conditional Acceptance - LCA)",
+        "def": "Chứng từ pháp lý phát hành khi hợp đồng được chấp nhận với điều kiện phi chuẩn (tăng phí, loại trừ, giảm STBH). Hợp đồng chuyển trạng thái PENDING_ACCEPTANCE với thời hạn phản hồi 30 ngày dương lịch chờ khách hàng ký xác nhận phụ lục và nộp phí chênh lệch."
+      },
+      {
+        "term": "Tổng Hợp Rủi Ro Toàn Diện 360° (Customer Portfolio Risk Aggregation)",
+        "def": "Tự động dồn tích toàn bộ Số tiền bảo hiểm có hiệu lực, đang chờ xử lý và đã mất hiệu lực của Người được bảo hiểm trên toàn bộ các hợp đồng trong hệ thống để đối soát hạn mức thẩm định tài chính và chỉ định cấp bậc khám y khoa (Medical Exam Tiers)."
+      },
+      {
+        "term": "Quản Lý Viện Phí Khám & Quyết Toán Bệnh Viện (Medical Exam Billing)",
+        "def": "Tự động sinh phiếu công nợ phải trả (T_MED_BILLING) chi trả cho mạng lưới bệnh viện/phòng khám liên kết khi chỉ định kiểm tra y khoa, tích hợp cơ chế thu hồi chi phí khám nếu khách hàng hủy hợp đồng trong 21 ngày cân nhắc (Free-Look)."
+      }
     ],
     "actuary_notes": [
-      [
-        "Extra Mortality Formula: Gross Annual Premium = Base Annual Premium * (1 + EM%) + Flat Loading per mille * (Sum Assured / 1,000). Extra mortality ratings accumulate higher surrender cash values and statutory reserves.",
-        "Numerical Rating Calibration: Debits (+25 to +300) represent additional expected mortality compared to standard population tables. Policies rated > +200% EM typically require facultative reinsurance placement.",
-        "Non-Medical Limits Balancing: Non-medical thresholds are calibrated to balance acquisition turnaround speed (STP rate > 75%) against mortality anti-selection risk."
-      ]
+      "Định phí sản phẩm và phương pháp trích lập dự phòng tuân thủ quy chuẩn IFRS 17 và Bộ Tài chính."
     ],
     "op_notes": [
-      [
-        "Centralized Multi-Module Intake: The Underwriting Workbench triages cases from New Business (NB), Customer Service alterations (CS Sum Assured increase, Transfer of Coverage), and Claims contestability referrals.",
-        "Sensitive Underwriting Comments: Comments can be flagged 'Sensitive/Confidential' (hidden from sales agents) or 'Share with Claims' (automatically exposed to Claims Assessors for contestable investigations).",
-        "30-Day LCA Expiration Management: Counter-offers not accepted within 30 calendar days automatically expire with proposal cancellation and initial premium refund."
-      ]
+      "Vận hành tuân thủ SLA và ma trận phân quyền DOA của Core PAS."
     ],
     "sections": [
       {
@@ -4983,10 +4820,10 @@ window.EBAO_MODULES = [
     "sops": [
       {
         "code": "SOP-UW-01",
+        "id": "SOP-UW-01",
         "title": "Underwriting Task Retrieval, Worklist Triage & Multi-Module Filtering",
         "role": "Underwriter (Junior / Senior / Chief)",
         "objective": "Retrieve, prioritize, and allocate pending underwriting cases across New Business, Customer Service (Alterations), and Claims referral pipelines based on task SLA, authority tier, and risk complexity.",
-        "ui_path": "Underwriting > Work List",
         "pdf_page": 143,
         "prerequisites": [
           "User must hold active underwriting credentials ('ROLE_UW_JUNIOR', 'ROLE_UW_SENIOR', or 'ROLE_UW_CHIEF') in URP.",
@@ -5039,9 +4876,9 @@ window.EBAO_MODULES = [
           {
             "ruleId": "VAL-UW-001",
             "ruleName": "Straight-Through Processing (STP) Eligibility Gating",
-            "condition": "Age <= 45 AND Sum Assured <= Non-Medical Limit AND 100% Clean Health Declaration AND Agent Status = ACTIVE.",
-            "severity": "ROUTING",
             "errorCode": "ROUTE_UW_MANUAL_QUEUE",
+            "severity": "ROUTING",
+            "condition": "Age <= 45 AND Sum Assured <= Non-Medical Limit AND 100% Clean Health Declaration AND Agent Status = ACTIVE.",
             "systemAction": "Bypasses manual queue if 100% pass; routes to Underwriting Worklist if any rule is triggered.",
             "actuarialBasis": "Filters standard low-risk mortality profiles for immediate auto-issuance while preserving underwriting capacity for complex risks.",
             "pdfPage": 7
@@ -5049,23 +4886,21 @@ window.EBAO_MODULES = [
           {
             "ruleId": "VAL-UW-003",
             "ruleName": "Underwriter Authority Limit Worklist Boundary",
-            "condition": "Underwriters cannot retrieve or approve cases exceeding their maximum delegated Sum Assured and EM loading threshold.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_UW_EXCEEDS_AUTHORITY",
+            "severity": "HARD_STOP",
+            "condition": "Underwriters cannot retrieve or approve cases exceeding their maximum delegated Sum Assured and EM loading threshold.",
             "systemAction": "Displays case in 'View Only' mode or routes to superior's approval pool.",
             "actuarialBasis": "Prevents unauthorized corporate risk accumulation beyond underwriter competency tier.",
             "pdfPage": 8
           }
-        ],
-        "actuary_notes": "SLA targets are strictly monitored: Standard NB cases have a 24-hour turnaround target, while Medical Referral cases carry a 5-working-day SLA.",
-        "op_notes": "Cases can be bulk-reassigned by Underwriting Supervisors during peak campaign periods to rebalance team workloads."
+        ]
       },
       {
         "code": "SOP-UW-02",
+        "id": "SOP-UW-02",
         "title": "Comprehensive Risk Estimation via 360° UW Worksheet & Risk Aggregation",
         "role": "Medical & Financial Underwriter",
         "objective": "Perform exhaustive multi-dimensional risk assessment reviewing customer lifetime risk aggregation, LIA medical codes, historical claims, and document images.",
-        "ui_path": "Underwriting > Main > Tab 1: UW Worksheet",
         "pdf_page": 146,
         "prerequisites": [
           "Proposal opened in Underwriting Main Workbench.",
@@ -5110,9 +4945,9 @@ window.EBAO_MODULES = [
           {
             "ruleId": "VAL-NB-004",
             "ruleName": "Proposer Mandatory Annual Income & Financial Limit",
-            "condition": "Total Aggregated Life Sum Assured must be <= Maximum Income Multiple (e.g. 25x Annual Income for Age <= 35).",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_NB_ANNUAL_INCOME_MANDATORY",
+            "severity": "HARD_STOP",
+            "condition": "Total Aggregated Life Sum Assured must be <= Maximum Income Multiple (e.g. 25x Annual Income for Age <= 35).",
             "systemAction": "Blocks standard approval; generates Financial Underwriting requirement (Audited Tax Returns).",
             "actuarialBasis": "Anti-selection and moral hazard prevention: ensures insurance coverage correlates with economic earning power.",
             "pdfPage": 137
@@ -5120,23 +4955,21 @@ window.EBAO_MODULES = [
           {
             "ruleId": "VAL-UW-002",
             "ruleName": "Medical Requirement Completeness Prerequisite",
-            "condition": "Underwriter cannot issue final approval while outstanding medical requirements remain unfulfilled.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_UW_PENDING_REQUIREMENTS",
+            "severity": "HARD_STOP",
+            "condition": "Underwriter cannot issue final approval while outstanding medical requirements remain unfulfilled.",
             "systemAction": "Disables 'Approve' button on Decision tab.",
             "actuarialBasis": "Clinical risk integrity: policy cannot bind insurer without verified medical documentation.",
             "pdfPage": 337
           }
-        ],
-        "actuary_notes": "Risk aggregation formulas include 100% of Basic Life SA, 100% of Accelerated CI SA, and 50% of Accidental Death & Dismemberment SA.",
-        "op_notes": "Comments flagged as 'Share with Claims' are legally discoverable during regulatory dispute resolution and must maintain objective clinical tone."
+        ]
       },
       {
         "code": "SOP-UW-03",
+        "id": "SOP-UW-03",
         "title": "Medical & Non-Medical Requirement Issuance, Document Tracking & Clinic Billing",
         "role": "Underwriting Support Officer / Medical Underwriter",
         "objective": "Generate clinical medical exam requirements, dispatch attending physician statement (APS) requests, track document receipt completeness, and settle partner clinic examination invoices.",
-        "ui_path": "Underwriting > Main > Tab 2: UW / Proposal Issues & Medical Billing",
         "pdf_page": 162,
         "prerequisites": [
           "Proposal requires medical examination based on Age/SA grid or positive health declaration.",
@@ -5162,7 +4995,7 @@ window.EBAO_MODULES = [
           {
             "name": "Clinic Provider Code",
             "type": "Select",
-            "required": "Conditional",
+            "required": "No",
             "desc": "Contracted diagnostic hospital / clinic provider."
           },
           {
@@ -5188,9 +5021,9 @@ window.EBAO_MODULES = [
           {
             "ruleId": "VAL-NB-006",
             "ruleName": "Declaration Form Mandatory Response Completeness",
-            "condition": "Every question in the health declaration form must have a recorded answer; positive answers auto-generate requirements.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_NB_INCOMPLETE_DECLARATION",
+            "severity": "HARD_STOP",
+            "condition": "Every question in the health declaration form must have a recorded answer; positive answers auto-generate requirements.",
             "systemAction": "Blocks proposal advancement until all clinical declaration items are resolved.",
             "actuarialBasis": "Duty of utmost good faith (Uberrimae Fidei) documentation required to legally defend future policy contestability.",
             "pdfPage": 61
@@ -5198,23 +5031,21 @@ window.EBAO_MODULES = [
           {
             "ruleId": "VAL-FL-003",
             "ruleName": "Medical Examination Cost Recovery on Free-Look",
-            "condition": "All approved medical clinic fees recorded in T_MED_BILLING are deductible from premium refund if customer cancels in Free-Look.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_FL_CLAWBACK_EXECUTION",
+            "severity": "HARD_STOP",
+            "condition": "All approved medical clinic fees recorded in T_MED_BILLING are deductible from premium refund if customer cancels in Free-Look.",
             "systemAction": "Automatically deducts accumulated medical billing fees from Free-Look refund voucher.",
             "actuarialBasis": "Statutory non-forfeiture law: insurer has the right to deduct actual incurred clinical examination costs from refund.",
             "pdfPage": 483
           }
-        ],
-        "actuary_notes": "Medical examination costs are tracked as underwriting expenses; for large sum assured policies, clinic fees are subsidized by reinsurance allowances.",
-        "op_notes": "Requirements not satisfied within 60 calendar days automatically trigger 'Closure Due to Incomplete Requirements' with proposal refund."
+        ]
       },
       {
         "code": "SOP-UW-04",
+        "id": "SOP-UW-04",
         "title": "Benefit-Level Underwriting Decisioning, Numerical Rating & Extra Mortality Loading",
         "role": "Underwriting Specialist / Chief Underwriter",
         "objective": "Formulate granular underwriting decisions evaluating the main life plan and each attached rider independently, applying numerical mortality ratings, flat extra loadings, or exclusion clauses.",
-        "ui_path": "Underwriting > Main > Tab 3: UW Decision",
         "pdf_page": 145,
         "prerequisites": [
           "All mandatory medical and financial requirements completed or waived.",
@@ -5242,25 +5073,25 @@ window.EBAO_MODULES = [
           {
             "name": "EM Percentage (%)",
             "type": "Numeric (+%)",
-            "required": "Conditional",
+            "required": "No",
             "desc": "Extra mortality debit (+25% to +300%)."
           },
           {
             "name": "Flat Loading (per mille)",
             "type": "Numeric ($)",
-            "required": "Conditional",
+            "required": "No",
             "desc": "Flat cash addition per $1,000 Sum Assured."
           },
           {
             "name": "Flat Loading Duration",
             "type": "Select",
-            "required": "Conditional",
+            "required": "No",
             "desc": "Entire Policy Term or Temporary (1 to 10 Years)."
           },
           {
             "name": "Exclusion Clause Code",
             "type": "Search Select",
-            "required": "Conditional",
+            "required": "No",
             "desc": "Standard exclusion clause from master registry."
           }
         ],
@@ -5268,9 +5099,9 @@ window.EBAO_MODULES = [
           {
             "ruleId": "VAL-UW-005",
             "ruleName": "Benefit-Level Decision Independence",
-            "condition": "Underwriting decisions must be stored and versioned at individual benefit level in T_POLICY_BENEFIT.",
-            "severity": "ROUTING",
             "errorCode": "INFO_UW_BENEFIT_LEVEL_DECISION",
+            "severity": "ROUTING",
+            "condition": "Underwriting decisions must be stored and versioned at individual benefit level in T_POLICY_BENEFIT.",
             "systemAction": "Updates T_POLICY_BENEFIT.UW_DECISION individually for each attached coverage item.",
             "actuarialBasis": "Enables maximum customer retention by approving viable base life risks even if specialized health riders are uninsurable.",
             "pdfPage": 193
@@ -5278,23 +5109,21 @@ window.EBAO_MODULES = [
           {
             "ruleId": "VAL-PF-003",
             "ruleName": "Rider Sum Assured & Term Capping",
-            "condition": "If Base Plan Sum Assured is reduced by underwriting decision, attached rider Sum Assured must be automatically trimmed to not exceed base plan SA.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_PF_RIDER_EXCEEDS_BASE",
+            "severity": "HARD_STOP",
+            "condition": "If Base Plan Sum Assured is reduced by underwriting decision, attached rider Sum Assured must be automatically trimmed to not exceed base plan SA.",
             "systemAction": "Trims rider SA to match reduced base plan ceiling.",
             "actuarialBasis": "Anti-selection control: supplementary riders cannot exceed principal life insurance liability.",
             "pdfPage": 55
           }
-        ],
-        "actuary_notes": "Policies rated with Extra Mortality percentage loadings accumulate higher cash surrender values and require higher statutory UPR reserves.",
-        "op_notes": "Exclusion clauses remain permanently attached to the contract and are dynamically queried by Claims Assessors during claim registration."
+        ]
       },
       {
         "code": "SOP-UW-05",
+        "id": "SOP-UW-05",
         "title": "Letter of Conditional Acceptance (LCA / Counter-Offer) Generation & Client Endorsement",
         "role": "Underwriting Case Manager / Agency Liaison",
         "objective": "Compile formal Letter of Conditional Acceptance (LCA / Counter-Offer) detailing ratings and exclusions, issue revised benefit illustrations, and process customer acceptance.",
-        "ui_path": "Underwriting > Main > LCA Management",
         "pdf_page": 160,
         "prerequisites": [
           "Underwriting decision finalized with non-standard terms (Percentage loading, flat loading, or exclusion).",
@@ -5340,9 +5169,9 @@ window.EBAO_MODULES = [
           {
             "ruleId": "VAL-UW-004",
             "ruleName": "Counter-Offer Acceptance & Premium Adjustment",
-            "condition": "Policy cannot be issued or inforced while an active Counter-Offer remains in unaccepted or unpaid state.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_UW_PENDING_CLIENT_ACCEPTANCE",
+            "severity": "HARD_STOP",
+            "condition": "Policy cannot be issued or inforced while an active Counter-Offer remains in unaccepted or unpaid state.",
             "systemAction": "Freezes policy status at PENDING_ACCEPTANCE; blocks commit to SOR T_POLICY.",
             "actuarialBasis": "Contract law: counter-offer constitutes rejection of original proposal; contract only forms upon customer agreement to revised terms.",
             "pdfPage": 144
@@ -5350,23 +5179,21 @@ window.EBAO_MODULES = [
           {
             "ruleId": "VAL-ISS-001",
             "ruleName": "First Premium Receipt Allocation Before Enforce",
-            "condition": "Total validated suspense receipts allocated to proposal must exactly equal the revised First Gross Modal Premium.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_ISS_UNPAID_FIRST_PREMIUM",
+            "severity": "HARD_STOP",
+            "condition": "Total validated suspense receipts allocated to proposal must exactly equal the revised First Gross Modal Premium.",
             "systemAction": "Blocks policy issuance until additional loading premium is fully settled.",
             "actuarialBasis": "Consideration requirement: coverage cannot commence without full premium funding.",
             "pdfPage": 21
           }
-        ],
-        "actuary_notes": "Statutory commencement date for accepted counter-offers is determined as the later date of LCA signing date or full premium payment receipt date.",
-        "op_notes": "Agents receive automated daily push notifications tracking pending LCA expiration dates to maximize campaign conversion rates."
+        ]
       },
       {
         "code": "SOP-UW-06",
+        "id": "SOP-UW-06",
         "title": "Delegation of Authority (DOA) Limit Validation & Auto-Escalation Workflow",
         "role": "Senior Underwriting Manager / Chief Underwriter",
         "objective": "Enforce institutional governance over maximum underwriter financial exposure, review cases escalated from junior staff, and coordinate reinsurance facultative referrals.",
-        "ui_path": "Underwriting > Task Pool > Escalation Management",
         "pdf_page": 160,
         "prerequisites": [
           "Case escalated due to Sum Assured, EM percentage, or high-risk occupation exceeding lower underwriter authority limit.",
@@ -5413,9 +5240,9 @@ window.EBAO_MODULES = [
           {
             "ruleId": "VAL-UW-003",
             "ruleName": "Underwriter Financial & Rating Authority Delegation",
-            "condition": "Proposed Sum Assured and EM loading must be within the Underwriter's signed authority matrix limit.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_UW_EXCEEDS_AUTHORITY",
+            "severity": "HARD_STOP",
+            "condition": "Proposed Sum Assured and EM loading must be within the Underwriter's signed authority matrix limit.",
             "systemAction": "Auto-escalates task to Chief Underwriter or Underwriting Committee pool.",
             "actuarialBasis": "Internal control segregation to avoid unauthorized systemic risk assumption.",
             "pdfPage": 8
@@ -5423,16 +5250,14 @@ window.EBAO_MODULES = [
           {
             "ruleId": "VAL-PF-002",
             "ruleName": "Maturity Age Ceiling Enforcement",
-            "condition": "Underwriters cannot approve cases where entry age + term exceeds maximum product maturity age.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_PF_MAX_MATURITY_EXCEEDED",
+            "severity": "HARD_STOP",
+            "condition": "Underwriters cannot approve cases where entry age + term exceeds maximum product maturity age.",
             "systemAction": "Hard stop: blocks approval; forces term reduction or proposal decline.",
             "actuarialBasis": "Mortality tables terminate at maximum attained age; coverage beyond ceiling is mathematically unpriced.",
             "pdfPage": 27
           }
-        ],
-        "actuary_notes": "Corporate net retention limits are reviewed annually by the Appointed Actuary and approved by the Board of Directors.",
-        "op_notes": "Cases requiring Facultative Reinsurance referral generate a dedicated electronic slip dispatched via secure reinsurer portal."
+        ]
       }
     ],
     "sop_count": 6,
@@ -5484,80 +5309,50 @@ window.EBAO_MODULES = [
     "validation_rules": [
       {
         "ruleId": "VAL-UW-001",
-        "module": "MOD_03",
-        "moduleName": "Underwriting (UW APP)",
-        "lifecyclePhase": "03. Underwriting Assessment",
-        "stage": "STP Auto-Underwriting",
-        "targetEntity": "T_AUTO_UW_LOG",
         "ruleName": "Straight-Through Processing (STP) Eligibility Gating",
-        "condition": "Age <= 45 AND Sum Assured <= Non-Medical Limit AND 100% Negative Health Declaration AND Agent Compliance = 'PASS'.",
-        "severity": "ROUTING",
         "errorCode": "ROUTE_UW_MANUAL_QUEUE",
-        "errorMessage": "Proposal fails STP criteria; escalated to manual Underwriting Workbench.",
+        "severity": "ROUTING",
+        "condition": "Age <= 45 AND Sum Assured <= Non-Medical Limit AND 100% Negative Health Declaration AND Agent Compliance = 'PASS'.",
         "systemAction": "Routes task to Senior Underwriter queue with rule discrepancy triggers.",
         "actuarialBasis": "Filters out elevated mortality/morbidity risks for human clinical judgment.",
         "pdfPage": 7
       },
       {
         "ruleId": "VAL-UW-002",
-        "module": "MOD_03",
-        "moduleName": "Underwriting (UW APP)",
-        "lifecyclePhase": "03. Underwriting Assessment",
-        "stage": "Medical Requirements",
-        "targetEntity": "T_UW_REQUIREMENT",
         "ruleName": "Medical Requirement Completeness Hard Stop",
-        "condition": "All generated medical and non-medical requirements must have Completeness IND = 'Y' or Waived IND = 'Y'.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_UW_PENDING_REQUIREMENTS",
-        "errorMessage": "There are uncompleted required documents or pending medical exams. Cannot approve proposal.",
+        "severity": "HARD_STOP",
+        "condition": "All generated medical and non-medical requirements must have Completeness IND = 'Y' or Waived IND = 'Y'.",
         "systemAction": "Disables 'Approve' and 'Issue Policy' buttons on Underwriting Workbench.",
         "actuarialBasis": "Prevents legally binding policy issuance without verified clinical health parameters.",
         "pdfPage": 337
       },
       {
         "ruleId": "VAL-UW-003",
-        "module": "MOD_03",
-        "moduleName": "Underwriting (UW APP)",
-        "lifecyclePhase": "03. Underwriting Assessment",
-        "stage": "Authority Limits",
-        "targetEntity": "T_UW_AUTHORITY",
         "ruleName": "Underwriter Financial & Rating Authority Delegation",
-        "condition": "Proposed Sum Assured and EM loading must be within the Underwriter's signed authority matrix limit.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_UW_EXCEEDS_AUTHORITY",
-        "errorMessage": "Sum assured or loading exceeds current underwriter authority limit. Auto-escalation required.",
+        "severity": "HARD_STOP",
+        "condition": "Proposed Sum Assured and EM loading must be within the Underwriter's signed authority matrix limit.",
         "systemAction": "Auto-escalates task to Chief Underwriter or Underwriting Committee pool.",
         "actuarialBasis": "Internal control segregation to avoid unauthorized systemic risk assumption.",
         "pdfPage": 8
       },
       {
         "ruleId": "VAL-UW-004",
-        "module": "MOD_03",
-        "moduleName": "Underwriting (UW APP)",
-        "lifecyclePhase": "03. Underwriting Assessment",
-        "stage": "Counter-Offer Management",
-        "targetEntity": "T_UW_COUNTER_OFFER",
         "ruleName": "Counter-Offer Acceptance & Premium Adjustment",
-        "condition": "If rating applied (Loading > 0 or Exclusion), client signed acceptance and revised premium paid before policy can issue.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_UW_PENDING_CLIENT_ACCEPTANCE",
-        "errorMessage": "Proposal has active Counter-Offer. Policy cannot inforce until client signs endorsement form.",
+        "severity": "HARD_STOP",
+        "condition": "If rating applied (Loading > 0 or Exclusion), client signed acceptance and revised premium paid before policy can issue.",
         "systemAction": "Freezes policy status at `PENDING_ACCEPTANCE` with 30-day offer expiration timer.",
         "actuarialBasis": "Contract law: counter-offer terminates original proposal; new contract forms only upon mutual agreement.",
         "pdfPage": 144
       },
       {
         "ruleId": "VAL-UW-005",
-        "module": "MOD_03",
-        "moduleName": "Underwriting (UW APP)",
-        "lifecyclePhase": "03. Underwriting Assessment",
-        "stage": "Benefit-Level Underwriting",
-        "targetEntity": "T_POLICY_BENEFIT",
         "ruleName": "Benefit-Level Decision Independence",
-        "condition": "Underwriting decisions are evaluated at individual benefit level: main plan and each rider evaluated independently.",
-        "severity": "ROUTING",
         "errorCode": "INFO_UW_BENEFIT_LEVEL_DECISION",
-        "errorMessage": "A rider may be declined or loaded while the base life coverage is accepted at standard rates.",
+        "severity": "ROUTING",
+        "condition": "Underwriting decisions are evaluated at individual benefit level: main plan and each rider evaluated independently.",
         "systemAction": "Updates `T_POLICY_BENEFIT.UW_DECISION` individually for each attached coverage item.",
         "actuarialBasis": "Enables maximum customer retention by approving viable base life risks even if specialized health riders are uninsurable.",
         "pdfPage": 193
@@ -5750,16 +5545,45 @@ window.EBAO_MODULES = [
     "summary": "Phân hệ Dịch vụ Khách hàng và Bảo trì Hợp đồng (Customer Service & Policy Alterations - CS APP). Quản lý toàn diện 30 nghiệp vụ thay đổi hợp đồng (Alteration Items) từ phi tài chính (đổi người thụ hưởng, chuyển quyền sở hữu, đổi địa chỉ) đến tài chính phức tạp (vay hợp đồng tối đa 80% CSV, hủy hợp đồng nhận giá trị giải ước, chuyển đổi bảo hiểm giảm RPU, khôi phục hiệu lực Reinstatement, và gắn thêm sản phẩm bổ trợ giữa kỳ Mid-Term Rider Attachment tính phí ngắn hạn Pro-Rata). Vận hành trên bàn làm việc CS Workbench theo chu trình 5 bước nghiêm ngặt: Đăng ký tiếp nhận (Registration) -> Nhập liệu (Application Entry) -> Thẩm định rủi ro tại cấp quyền lợi (Benefit-Level UW) -> Phê duyệt thẩm quyền (Approval) -> Thu/chi tài chính và Đồng bộ hiệu lực lên SOR (Inforce).",
     "mermaid_workflow": "graph TD\n    Inforce[\"In-force Policy Record\"] --> CSReg[\"Register CS Application\"]\n    CSReg --> CSType{\"Alteration Category\"}\n    CSType -- Non-Financial --> NonFin[\"Change Address / Beneficiary / Payee\"]\n    CSType -- Financial Alteration --> FinAlt[\"Change SA / Add Rider / Change Plan\"]\n    CSType -- Cash Extraction --> Cash[\"Full Surrender / Partial Withdrawal / Policy Loan\"]\n    CSType -- Non-Forfeiture --> NonForfeit[\"Convert to RPU / ETA / Trigger APL\"]\n    FinAlt --> CSUW{\"Risk Increase?\"}\n    CSUW -- Yes --> UWConfirm[\"Underwriting Approval (Module 03)\"]\n    CSUW -- No --> CSApprove[\"CS Validation & Quotation Engine\"]\n    UWConfirm --> CSApprove\n    NonFin --> CSApprove\n    Cash --> CSApprove\n    NonForfeit --> CSApprove\n    CSApprove --> CSExec[\"Apply Policy Endorsement & Update SOR\"]",
     "core_concepts": [
-      "Chu trình 5 Bước Thực thi Thay đổi Hợp đồng: Đăng ký tiếp nhận (Registration) -> Nhập liệu thay đổi (Entry) -> Thẩm định rủi ro (Auto/Manual UW) -> Phê duyệt thẩm quyền (CS Approval) -> Khớp thu/chi tài chính & Đồng bộ SOR (Inforce).",
-      "Danh mục Chuẩn 30 Nghiệp vụ Thay đổi (30 Alteration Items): Phân định rõ ràng giữa nhóm Tài chính (Financial Impact = Yes như Vay, Hủy, Giảm STBH, RPU, Gắn Rider) và nhóm Phi tài chính (Financial Impact = No như Đổi người thụ hưởng, Đổi thông tin liên lạc, Đổi hình thức nhận quyền lợi).",
-      "Thẩm định Rủi ro Độc lập Cấp Quyền lợi (Benefit-Level UW for CS): Các thay đổi làm tăng rủi ro (Tăng STBH, Gắn Rider, Đổi nghề nghiệp sang nhóm nguy hiểm, Đổi nhóm sức khỏe) bắt buộc kích hoạt phân luồng sang Underwriting Workbench để thẩm định riêng quyền lợi đó mà không ảnh hưởng HĐ chính.",
-      "Gắn Rider Giữa Kỳ & Phí Ngắn Hạn Pro-Rata: Cho phép chọn Hiệu lực ngay (tính phí ngắn hạn Pro-Rata Short Premium từ ngày hiệu lực đến ngày đến hạn đóng phí PTD tiếp theo) hoặc Hiệu lực vào Kỳ đóng phí kế tiếp (phí ngắn hạn = 0 VND).",
-      "Cơ chế Vay Hợp đồng & Cấn trừ Nợ (Policy Loan & Debt Offset): Hạn mức vay tối đa 80% Giá trị hoàn lại ròng (Net CSV = CSV + Bảo tức tích lũy - Nợ gốc và lãi vay hiện tại). Lãi suất vay 6.5%/năm tính gộp hàng ngày. Tự động cấn trừ toàn bộ nợ khi chi trả bồi thường hoặc hủy hợp đồng.",
-      "Quyền chọn Phi Hủy bỏ Hiệu lực - Bảo hiểm Giảm (Reduced Paid-Up - RPU): Sử dụng toàn bộ Giá trị hoàn lại ròng tại thời điểm yêu cầu làm phí đơn thuần (Single Net Premium) để mua một Hợp đồng cùng loại với Số tiền bảo hiểm giảm tương ứng; chấm dứt nghĩa vụ đóng phí tương lai.",
-      "Khôi phục Hiệu lực Hợp đồng trong 24 Tháng (Policy Reinstatement): Cho phép khôi phục hợp đồng mất hiệu lực (Lapsed) trong vòng 24 tháng; nộp Giấy bảo đảm sức khỏe (Health Warranty), đóng toàn bộ phí chậm nộp kèm lãi phạt, và tái kích hoạt điều khoản loại trừ tự tử 2 năm (Suicide Clause Reset)."
+      {
+        "term": "Chu trình 5 Bước Thực thi Thay đổi Hợp đồng",
+        "def": "Đăng ký tiếp nhận (Registration) -> Nhập liệu thay đổi (Entry) -> Thẩm định rủi ro (Auto/Manual UW) -> Phê duyệt thẩm quyền (CS Approval) -> Khớp thu/chi tài chính & Đồng bộ SOR (Inforce)."
+      },
+      {
+        "term": "Danh mục Chuẩn 30 Nghiệp vụ Thay đổi (30 Alteration Items)",
+        "def": "Phân định rõ ràng giữa nhóm Tài chính (Financial Impact = Yes như Vay, Hủy, Giảm STBH, RPU, Gắn Rider) và nhóm Phi tài chính (Financial Impact = No như Đổi người thụ hưởng, Đổi thông tin liên lạc, Đổi hình thức nhận quyền lợi)."
+      },
+      {
+        "term": "Thẩm định Rủi ro Độc lập Cấp Quyền lợi (Benefit-Level UW for CS)",
+        "def": "Các thay đổi làm tăng rủi ro (Tăng STBH, Gắn Rider, Đổi nghề nghiệp sang nhóm nguy hiểm, Đổi nhóm sức khỏe) bắt buộc kích hoạt phân luồng sang Underwriting Workbench để thẩm định riêng quyền lợi đó mà không ảnh hưởng HĐ chính."
+      },
+      {
+        "term": "Gắn Rider Giữa Kỳ & Phí Ngắn Hạn Pro-Rata",
+        "def": "Cho phép chọn Hiệu lực ngay (tính phí ngắn hạn Pro-Rata Short Premium từ ngày hiệu lực đến ngày đến hạn đóng phí PTD tiếp theo) hoặc Hiệu lực vào Kỳ đóng phí kế tiếp (phí ngắn hạn = 0 VND)."
+      },
+      {
+        "term": "Cơ chế Vay Hợp đồng & Cấn trừ Nợ (Policy Loan & Debt Offset)",
+        "def": "Hạn mức vay tối đa 80% Giá trị hoàn lại ròng (Net CSV = CSV + Bảo tức tích lũy - Nợ gốc và lãi vay hiện tại). Lãi suất vay 6.5%/năm tính gộp hàng ngày. Tự động cấn trừ toàn bộ nợ khi chi trả bồi thường hoặc hủy hợp đồng."
+      },
+      {
+        "term": "Quyền chọn Phi Hủy bỏ Hiệu lực - Bảo hiểm Giảm (Reduced Paid-Up - RPU)",
+        "def": "Sử dụng toàn bộ Giá trị hoàn lại ròng tại thời điểm yêu cầu làm phí đơn thuần (Single Net Premium) để mua một Hợp đồng cùng loại với Số tiền bảo hiểm giảm tương ứng; chấm dứt nghĩa vụ đóng phí tương lai."
+      },
+      {
+        "term": "Khôi phục Hiệu lực Hợp đồng trong 24 Tháng (Policy Reinstatement)",
+        "def": "Cho phép khôi phục hợp đồng mất hiệu lực (Lapsed) trong vòng 24 tháng; nộp Giấy bảo đảm sức khỏe (Health Warranty), đóng toàn bộ phí chậm nộp kèm lãi phạt, và tái kích hoạt điều khoản loại trừ tự tử 2 năm (Suicide Clause Reset)."
+      }
     ],
-    "actuary_notes": "Từ góc độ Định phí & Quản trị Quỹ dự phòng, các nghiệp vụ thay đổi hợp đồng có ảnh hưởng tài chính đòi hỏi hệ thống phải tính toán lại chính xác dự phòng toán học và dòng tiền tương lai. Khi thực hiện RPU, công thức quy đổi tuân thủ nguyên lý cân bằng actuarial: Net_CSV = Reduced_SA * A_{x+t:n-t|}, trong đó mọi sản phẩm bổ trợ gắn kèm đều bị chấm dứt hiệu lực vì RPU không hỗ trợ đóng phí rider. Đối với nghiệp vụ gắn Rider giữa kỳ, công thức phí ngắn hạn là: Short_Premium = Annual_Rider_Premium * (Remaining_Days / 365), đảm bảo không phát sinh rủi ro bảo hiểm không có phí bảo trợ.",
-    "op_notes": "Về mặt Vận hành Hệ thống, eBao Gemini quản lý trạng thái hợp đồng bằng cơ chế Khóa giao dịch (Policy Freezing Flag). Khi một hồ sơ CS hoặc Claim đang ở trạng thái Processing, toàn bộ hợp đồng sẽ bị khóa, ngăn chặn việc tạo thêm hồ sơ thay đổi trùng lặp. Mọi khoản chênh lệch phí phát sinh từ thay đổi hợp đồng đều sinh bản ghi thu/chi trong Collection/Refund Workbench và đồng bộ sang Module 07 GL Journal Entry trước khi chuyển trạng thái hợp đồng sang Inforce.",
+    "actuary_notes": [
+      "Từ góc độ Định phí & Quản trị Quỹ dự phòng, các nghiệp vụ thay đổi hợp đồng có ảnh hưởng tài chính đòi hỏi hệ thống phải tính toán lại chính xác dự phòng toán học và dòng tiền tương lai.",
+      "Khi thực hiện RPU, công thức quy đổi tuân thủ nguyên lý cân bằng actuarial: Net_CSV = Reduced_SA * A_{x+t:n-t|}, trong đó mọi sản phẩm bổ trợ gắn kèm đều bị chấm dứt hiệu lực vì RPU không hỗ trợ đóng phí rider.",
+      "Đối với nghiệp vụ gắn Rider giữa kỳ, công thức phí ngắn hạn là: Short_Premium = Annual_Rider_Premium * (Remaining_Days / 365), đảm bảo không phát sinh rủi ro bảo hiểm không có phí bảo trợ."
+    ],
+    "op_notes": [
+      "Về mặt Vận hành Hệ thống, eBao Gemini quản lý trạng thái hợp đồng bằng cơ chế Khóa giao dịch (Policy Freezing Flag).",
+      "Khi một hồ sơ CS hoặc Claim đang ở trạng thái Processing, toàn bộ hợp đồng sẽ bị khóa, ngăn chặn việc tạo thêm hồ sơ thay đổi trùng lặp.",
+      "Mọi khoản chênh lệch phí phát sinh từ thay đổi hợp đồng đều sinh bản ghi thu/chi trong Collection/Refund Workbench và đồng bộ sang Module 07 GL Journal Entry trước khi chuyển trạng thái hợp đồng sang Inforce."
+    ],
     "sections": [
       {
         "heading": "1. CS Workbench Architecture & Registration",
@@ -7102,10 +6926,10 @@ window.EBAO_MODULES = [
     "sops": [
       {
         "code": "SOP-CS-01",
+        "id": "SOP-CS-01",
         "title": "CS Worklist Search & Registering Inforce Policy Alterations",
         "role": "Customer Service Specialist",
         "objective": "Tiếp nhận yêu cầu thay đổi từ khách hàng, tra cứu hợp đồng có hiệu lực (Inforce) và đăng ký hồ sơ thay đổi (Application Registration) trên CS Workbench.",
-        "ui_path": "Main Menu > Customer Service > Registration",
         "pdf_page": 204,
         "prerequisites": [
           "Hợp đồng bảo hiểm đang ở trạng thái có hiệu lực (INFORCE) hoặc mất hiệu lực (LAPSED đối với nghiệp vụ Reinstatement).",
@@ -7123,60 +6947,65 @@ window.EBAO_MODULES = [
         ],
         "fields_table": [
           {
-            "field": "POLICY_NO",
+            "name": "POLICY_NO",
             "type": "String",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Mã số hợp đồng bảo hiểm cần thay đổi"
+            "desc": "Mã số hợp đồng bảo hiểm cần thay đổi"
           },
           {
-            "field": "BRANCH_RECEIVED",
+            "name": "BRANCH_RECEIVED",
             "type": "String",
             "required": "Yes",
-            "default": "CURRENT_BRANCH",
-            "description": "Chi nhánh tiếp nhận yêu cầu thay đổi"
+            "desc": "Chi nhánh tiếp nhận yêu cầu thay đổi"
           },
           {
-            "field": "TOUCH_POINT",
+            "name": "TOUCH_POINT",
             "type": "Enum",
             "required": "Yes",
-            "default": "COUNTER",
-            "description": "Kênh tiếp nhận: COUNTER, PORTAL, MOBILE, CALL_CENTER"
+            "desc": "Kênh tiếp nhận: COUNTER, PORTAL, MOBILE, CALL_CENTER"
           },
           {
-            "field": "ALTERATION_ITEMS",
+            "name": "ALTERATION_ITEMS",
             "type": "Multi-Select",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Danh sách các nghiệp vụ thay đổi cần thực hiện"
+            "desc": "Danh sách các nghiệp vụ thay đổi cần thực hiện"
           },
           {
-            "field": "REQUEST_DATE",
+            "name": "REQUEST_DATE",
             "type": "Date",
             "required": "Yes",
-            "default": "CURRENT_DATE",
-            "description": "Ngày khách hàng nộp đơn yêu cầu thay đổi"
+            "desc": "Ngày khách hàng nộp đơn yêu cầu thay đổi"
           }
         ],
         "validation_rules": [
           {
-            "code": "VAL-CS-01-A",
-            "rule": "Không cho phép tạo hồ sơ thay đổi nếu hợp đồng đang bị khóa bởi tiến trình Claim hoặc hồ sơ CS khác."
+            "ruleId": "VAL-CS-01-A",
+            "ruleName": "Không cho phép tạo hồ sơ thay đổi nếu hợp đồng đang bị khóa bởi tiến trình Claim hoặc hồ sơ CS khác.",
+            "errorCode": "ERR_VAL_CS_01_A",
+            "severity": "HARD_STOP",
+            "condition": "Không cho phép tạo hồ sơ thay đổi nếu hợp đồng đang bị khóa bởi tiến trình Claim hoặc hồ sơ CS khác.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 204
           },
           {
-            "code": "VAL-CS-01-B",
-            "rule": "Hợp đồng đã chấm dứt (TERMINATED) hoặc hủy (CANCELLED) không được phép đăng ký thay đổi, ngoại trừ Reinstatement cho LAPSED."
+            "ruleId": "VAL-CS-01-B",
+            "ruleName": "Hợp đồng đã chấm dứt (TERMINATED) hoặc hủy (CANCELLED) không được phép đăng ký thay đổi, ngoại trừ Reinstatement cho LAPSED.",
+            "errorCode": "ERR_VAL_CS_01_B",
+            "severity": "HARD_STOP",
+            "condition": "Hợp đồng đã chấm dứt (TERMINATED) hoặc hủy (CANCELLED) không được phép đăng ký thay đổi, ngoại trừ Reinstatement cho LAPSED.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 204
           }
-        ],
-        "actuary_notes": "Kiểm soát việc khóa hợp đồng ngăn chặn xung đột tính toán giá trị hoàn lại giữa hai nghiệp vụ diễn ra đồng thời.",
-        "op_notes": "Trong một lần đăng ký, chuyên viên có thể chọn nhiều hạng mục thay đổi kết hợp (ví dụ vừa đổi địa chỉ vừa đổi người thụ hưởng)."
+        ]
       },
       {
         "code": "SOP-CS-02",
+        "id": "SOP-CS-02",
         "title": "Non-Financial Alteration: Change of Beneficiary & Share Allocation",
         "role": "Customer Service Specialist",
         "objective": "Thực hiện cập nhật danh sách Người thụ hưởng, điều chỉnh tỷ lệ chia bảo hiểm bắt buộc tổng bằng 100%, và gán Người giám hộ cho người thụ hưởng dưới 18 tuổi.",
-        "ui_path": "Customer Service > Work List > Data Entry > Nomination - Beneficiary",
         "pdf_page": 220,
         "prerequisites": [
           "Đơn yêu cầu thay đổi người thụ hưởng có chữ ký xác nhận của Bên mua bảo hiểm.",
@@ -7195,60 +7024,65 @@ window.EBAO_MODULES = [
         ],
         "fields_table": [
           {
-            "field": "BENEFICIARY_NAME",
+            "name": "BENEFICIARY_NAME",
             "type": "String",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Họ và tên đầy đủ của người thụ hưởng"
+            "desc": "Họ và tên đầy đủ của người thụ hưởng"
           },
           {
-            "field": "RELATIONSHIP",
+            "name": "RELATIONSHIP",
             "type": "Enum",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Mối quan hệ với NĐBH: SPOUSE, CHILD, PARENT, SIBLING, OTHER"
+            "desc": "Mối quan hệ với NĐBH: SPOUSE, CHILD, PARENT, SIBLING, OTHER"
           },
           {
-            "field": "SHARE_PERCENT",
+            "name": "SHARE_PERCENT",
             "type": "Decimal(5,2)",
             "required": "Yes",
-            "default": "100.00",
-            "description": "Tỷ lệ hưởng quyền lợi bảo hiểm (Tổng = 100.00%)"
+            "desc": "Tỷ lệ hưởng quyền lợi bảo hiểm (Tổng = 100.00%)"
           },
           {
-            "field": "BENEFICIARY_TYPE",
+            "name": "BENEFICIARY_TYPE",
             "type": "Enum",
             "required": "Yes",
-            "default": "PRIMARY",
-            "description": "Loại thụ hưởng: PRIMARY (Chính), CONTINGENT (Kế thừa)"
+            "desc": "Loại thụ hưởng: PRIMARY (Chính), CONTINGENT (Kế thừa)"
           },
           {
-            "field": "TRUSTEE_NAME",
+            "name": "TRUSTEE_NAME",
             "type": "String",
-            "required": "Conditional",
-            "default": "N/A",
-            "description": "Bắt buộc nhập nếu người thụ hưởng < 18 tuổi"
+            "required": "No",
+            "desc": "Bắt buộc nhập nếu người thụ hưởng < 18 tuổi"
           }
         ],
         "validation_rules": [
           {
-            "code": "VAL-CS-02-A",
-            "rule": "Tổng tỷ lệ chia của các người thụ hưởng chính bắt buộc phải bằng chính xác 100.00%."
+            "ruleId": "VAL-CS-02-A",
+            "ruleName": "Tổng tỷ lệ chia của các người thụ hưởng chính bắt buộc phải bằng chính xác 100.00%.",
+            "errorCode": "ERR_VAL_CS_02_A",
+            "severity": "HARD_STOP",
+            "condition": "Tổng tỷ lệ chia của các người thụ hưởng chính bắt buộc phải bằng chính xác 100.00%.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 220
           },
           {
-            "code": "VAL-CS-02-B",
-            "rule": "Người thụ hưởng dưới 18 tuổi bắt buộc phải có thông tin Người giám hộ / Đại diện pháp luật (Trustee)."
+            "ruleId": "VAL-CS-02-B",
+            "ruleName": "Người thụ hưởng dưới 18 tuổi bắt buộc phải có thông tin Người giám hộ / Đại diện pháp luật (Trustee).",
+            "errorCode": "ERR_VAL_CS_02_B",
+            "severity": "HARD_STOP",
+            "condition": "Người thụ hưởng dưới 18 tuổi bắt buộc phải có thông tin Người giám hộ / Đại diện pháp luật (Trustee).",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 220
           }
-        ],
-        "actuary_notes": "Nghiệp vụ phi tài chính không làm biến động dòng tiền hay quỹ dự phòng toán học, không yêu cầu thẩm định viên can thiệp.",
-        "op_notes": "Hệ thống tự động phát hành Phụ lục hợp đồng sửa đổi bổ sung (Endorsement Annex) và gửi thông báo qua SMS/Email cho Bên mua bảo hiểm."
+        ]
       },
       {
         "code": "SOP-CS-03",
+        "id": "SOP-CS-03",
         "title": "Full Policy Surrender & Cash Value Settlement with Debt Offsetting",
         "role": "CS Senior Officer / Cashier",
         "objective": "Tiếp nhận yêu cầu hủy hợp đồng trước hạn (Surrender), tính toán Giá trị hoàn lại tích lũy, cấn trừ nợ gốc và lãi vay hợp đồng, và lập lệnh chi trả tiền giải ước ròng.",
-        "ui_path": "Customer Service > Work List > Data Entry > Surrender",
         "pdf_page": 232,
         "prerequisites": [
           "Hợp đồng đã có Giá trị hoàn lại (thường từ sau năm hợp đồng thứ 2 trở đi).",
@@ -7271,71 +7105,81 @@ window.EBAO_MODULES = [
         ],
         "fields_table": [
           {
-            "field": "GROSS_CSV_AMOUNT",
+            "name": "GROSS_CSV_AMOUNT",
             "type": "Decimal",
-            "required": "System",
-            "default": "0",
-            "description": "Giá trị hoàn lại đảm bảo theo bảng biểu phí"
+            "required": "No",
+            "desc": "Giá trị hoàn lại đảm bảo theo bảng biểu phí"
           },
           {
-            "field": "BONUS_ACCUMULATED",
+            "name": "BONUS_ACCUMULATED",
             "type": "Decimal",
-            "required": "System",
-            "default": "0",
-            "description": "Bảo tức tích lũy và lãi chia lũy kế đến ngày giải ước"
+            "required": "No",
+            "desc": "Bảo tức tích lũy và lãi chia lũy kế đến ngày giải ước"
           },
           {
-            "field": "LOAN_PRINCIPAL_DUE",
+            "name": "LOAN_PRINCIPAL_DUE",
             "type": "Decimal",
-            "required": "System",
-            "default": "0",
-            "description": "Dư nợ gốc khoản vay hợp đồng cần cấn trừ"
+            "required": "No",
+            "desc": "Dư nợ gốc khoản vay hợp đồng cần cấn trừ"
           },
           {
-            "field": "LOAN_INTEREST_DUE",
+            "name": "LOAN_INTEREST_DUE",
             "type": "Decimal",
-            "required": "System",
-            "default": "0",
-            "description": "Lãi vay tích lũy tính đến ngày phê duyệt giải ước"
+            "required": "No",
+            "desc": "Lãi vay tích lũy tính đến ngày phê duyệt giải ước"
           },
           {
-            "field": "NET_PAYABLE_AMOUNT",
+            "name": "NET_PAYABLE_AMOUNT",
             "type": "Decimal",
-            "required": "System",
-            "default": "0",
-            "description": "Số tiền thực chi trả cho Bên mua bảo hiểm"
+            "required": "No",
+            "desc": "Số tiền thực chi trả cho Bên mua bảo hiểm"
           },
           {
-            "field": "BANK_ACCOUNT_NO",
+            "name": "BANK_ACCOUNT_NO",
             "type": "String",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Số tài khoản ngân hàng chính chủ của Bên mua BH"
+            "desc": "Số tài khoản ngân hàng chính chủ của Bên mua BH"
           }
         ],
         "validation_rules": [
           {
-            "code": "VAL-CS-03-A",
-            "rule": "Hợp đồng chưa đủ thời gian phát sinh giá trị hoàn lại (năm 1) sẽ nhận giá trị hoàn lại = 0 VND."
+            "ruleId": "VAL-CS-03-A",
+            "ruleName": "Hợp đồng chưa đủ thời gian phát sinh giá trị hoàn lại (năm 1) sẽ nhận giá trị hoàn lại = 0 VND.",
+            "errorCode": "ERR_VAL_CS_03_A",
+            "severity": "HARD_STOP",
+            "condition": "Hợp đồng chưa đủ thời gian phát sinh giá trị hoàn lại (năm 1) sẽ nhận giá trị hoàn lại = 0 VND.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 232
           },
           {
-            "code": "VAL-CS-03-B",
-            "rule": "Nếu tổng nợ vay và lãi lớn hơn tổng giá trị hoàn lại, hệ thống từ chối chi trả và yêu cầu thu hồi nợ."
+            "ruleId": "VAL-CS-03-B",
+            "ruleName": "Nếu tổng nợ vay và lãi lớn hơn tổng giá trị hoàn lại, hệ thống từ chối chi trả và yêu cầu thu hồi nợ.",
+            "errorCode": "ERR_VAL_CS_03_B",
+            "severity": "HARD_STOP",
+            "condition": "Nếu tổng nợ vay và lãi lớn hơn tổng giá trị hoàn lại, hệ thống từ chối chi trả và yêu cầu thu hồi nợ.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 232
           },
           {
-            "code": "VAL-CS-03-C",
-            "rule": "Hợp đồng sau khi Surrender sẽ chấm dứt vĩnh viễn, không thể khôi phục (Reinstatement) dưới bất kỳ hình thức nào."
+            "ruleId": "VAL-CS-03-C",
+            "ruleName": "Hợp đồng sau khi Surrender sẽ chấm dứt vĩnh viễn, không thể khôi phục (Reinstatement) dưới bất kỳ hình thức nào.",
+            "errorCode": "ERR_VAL_CS_03_C",
+            "severity": "HARD_STOP",
+            "condition": "Hợp đồng sau khi Surrender sẽ chấm dứt vĩnh viễn, không thể khôi phục (Reinstatement) dưới bất kỳ hình thức nào.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 232
           }
-        ],
-        "actuary_notes": "Giá trị giải ước được trích từ Quỹ dự phòng nghiệp vụ toán học, giải phóng nghĩa vụ bảo hiểm tương lai của doanh nghiệp.",
-        "op_notes": "Cần giải thích rõ cho khách hàng về tổn thất quyền lợi bảo vệ trước khi hoàn tất thủ tục hủy hợp đồng."
+        ]
       },
       {
         "code": "SOP-CS-04",
+        "id": "SOP-CS-04",
         "title": "Applying for Policy Loan & Loan Repayment Operations",
         "role": "Customer Service Officer / Finance Cashier",
         "objective": "Xử lý yêu cầu tạm ứng từ giá trị hoàn lại (Vay theo hợp đồng tối đa 80% Net CSV) và ghi nhận thanh toán hoàn trả nợ gốc/lãi vay.",
-        "ui_path": "Customer Service > Work List > Data Entry > Apply Policy Loan",
         "pdf_page": 254,
         "prerequisites": [
           "Hợp đồng có trạng thái INFORCE và có Giá trị hoàn lại ròng > 5,000,000 VND.",
@@ -7355,64 +7199,75 @@ window.EBAO_MODULES = [
         ],
         "fields_table": [
           {
-            "field": "MAX_LOAN_ALLOWED",
+            "name": "MAX_LOAN_ALLOWED",
             "type": "Decimal",
-            "required": "System",
-            "default": "0",
-            "description": "Hạn mức tối đa được vay (80% Net CSV)"
+            "required": "No",
+            "desc": "Hạn mức tối đa được vay (80% Net CSV)"
           },
           {
-            "field": "REQUESTED_LOAN_AMT",
+            "name": "REQUESTED_LOAN_AMT",
             "type": "Decimal",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Số tiền khách hàng đề nghị vay"
+            "desc": "Số tiền khách hàng đề nghị vay"
           },
           {
-            "field": "LOAN_INTEREST_RATE",
+            "name": "LOAN_INTEREST_RATE",
             "type": "Decimal(4,3)",
-            "required": "System",
-            "default": "0.065",
-            "description": "Lãi suất năm tính cho khoản vay (6.5%/năm)"
+            "required": "No",
+            "desc": "Lãi suất năm tính cho khoản vay (6.5%/năm)"
           },
           {
-            "field": "PAYOUT_BANK_CODE",
+            "name": "PAYOUT_BANK_CODE",
             "type": "String",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Mã ngân hàng nhận tiền giải ngân"
+            "desc": "Mã ngân hàng nhận tiền giải ngân"
           },
           {
-            "field": "LOAN_START_DATE",
+            "name": "LOAN_START_DATE",
             "type": "Date",
-            "required": "System",
-            "default": "CURRENT_DATE",
-            "description": "Ngày bắt đầu tính lãi khoản vay"
+            "required": "No",
+            "desc": "Ngày bắt đầu tính lãi khoản vay"
           }
         ],
         "validation_rules": [
           {
-            "code": "VAL-CS-04-A",
-            "rule": "Số tiền vay không được vượt quá 80% Giá trị hoàn lại ròng tại thời điểm xét duyệt."
+            "ruleId": "VAL-CS-04-A",
+            "ruleName": "Số tiền vay không được vượt quá 80% Giá trị hoàn lại ròng tại thời điểm xét duyệt.",
+            "errorCode": "ERR_VAL_CS_04_A",
+            "severity": "HARD_STOP",
+            "condition": "Số tiền vay không được vượt quá 80% Giá trị hoàn lại ròng tại thời điểm xét duyệt.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 254
           },
           {
-            "code": "VAL-CS-04-B",
-            "rule": "Mức vay tối thiểu là 2,000,000 VND trên mỗi giao dịch."
+            "ruleId": "VAL-CS-04-B",
+            "ruleName": "Mức vay tối thiểu là 2,000,000 VND trên mỗi giao dịch.",
+            "errorCode": "ERR_VAL_CS_04_B",
+            "severity": "HARD_STOP",
+            "condition": "Mức vay tối thiểu là 2,000,000 VND trên mỗi giao dịch.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 254
           },
           {
-            "code": "VAL-CS-04-C",
-            "rule": "Nếu tổng nợ gốc + lãi vay đạt ngưỡng 100% CSV, hợp đồng sẽ bị cảnh báo mất hiệu lực trong 30 ngày."
+            "ruleId": "VAL-CS-04-C",
+            "ruleName": "Nếu tổng nợ gốc + lãi vay đạt ngưỡng 100% CSV, hợp đồng sẽ bị cảnh báo mất hiệu lực trong 30 ngày.",
+            "errorCode": "ERR_VAL_CS_04_C",
+            "severity": "HARD_STOP",
+            "condition": "Nếu tổng nợ gốc + lãi vay đạt ngưỡng 100% CSV, hợp đồng sẽ bị cảnh báo mất hiệu lực trong 30 ngày.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 254
           }
-        ],
-        "actuary_notes": "Khoản vay hợp đồng là tài sản sinh lời của quỹ bảo hiểm, bảo đảm bằng chính giá trị hoàn lại của hợp đồng.",
-        "op_notes": "Khách hàng có thể hoàn trả nợ gốc và lãi bất kỳ lúc nào qua hình thức chuyển khoản vào Virtual Account của hợp đồng."
+        ]
       },
       {
         "code": "SOP-CS-05",
+        "id": "SOP-CS-05",
         "title": "Non-Forfeiture Execution: Converting Policy to Reduced Paid-Up (RPU)",
         "role": "Actuarial Specialist / Senior CS Officer",
         "objective": "Xử lý chuyển đổi hợp đồng sang chế độ Bảo hiểm giảm (RPU): Chấm dứt nghĩa vụ đóng phí tương lai, sử dụng Net CSV làm phí đơn thuần để mua số tiền bảo hiểm mới tương ứng.",
-        "ui_path": "Customer Service > Work List > Data Entry > Perform Reduced Paid Up",
         "pdf_page": 278,
         "prerequisites": [
           "Hợp đồng truyền thống có điều khoản phi hủy bỏ hiệu lực (Non-Forfeiture Provision).",
@@ -7432,64 +7287,75 @@ window.EBAO_MODULES = [
         ],
         "fields_table": [
           {
-            "field": "ORIGINAL_SA",
+            "name": "ORIGINAL_SA",
             "type": "Decimal",
-            "required": "System",
-            "default": "N/A",
-            "description": "Số tiền bảo hiểm gốc ban đầu của hợp đồng"
+            "required": "No",
+            "desc": "Số tiền bảo hiểm gốc ban đầu của hợp đồng"
           },
           {
-            "field": "NET_CSV_CONVERTED",
+            "name": "NET_CSV_CONVERTED",
             "type": "Decimal",
-            "required": "System",
-            "default": "0",
-            "description": "Giá trị hoàn lại ròng được sử dụng để mua RPU"
+            "required": "No",
+            "desc": "Giá trị hoàn lại ròng được sử dụng để mua RPU"
           },
           {
-            "field": "REDUCED_SA_NEW",
+            "name": "REDUCED_SA_NEW",
             "type": "Decimal",
-            "required": "System",
-            "default": "0",
-            "description": "Số tiền bảo hiểm giảm mới sau khi chuyển đổi RPU"
+            "required": "No",
+            "desc": "Số tiền bảo hiểm giảm mới sau khi chuyển đổi RPU"
           },
           {
-            "field": "NEW_MODAL_PREMIUM",
+            "name": "NEW_MODAL_PREMIUM",
             "type": "Decimal",
-            "required": "System",
-            "default": "0",
-            "description": "Phí bảo hiểm định kỳ mới (= 0 VND)"
+            "required": "No",
+            "desc": "Phí bảo hiểm định kỳ mới (= 0 VND)"
           },
           {
-            "field": "RPU_EFFECTIVE_DATE",
+            "name": "RPU_EFFECTIVE_DATE",
             "type": "Date",
             "required": "Yes",
-            "default": "NEXT_DUE_DATE",
-            "description": "Ngày bắt đầu có hiệu lực của chế độ RPU"
+            "desc": "Ngày bắt đầu có hiệu lực của chế độ RPU"
           }
         ],
         "validation_rules": [
           {
-            "code": "VAL-CS-05-A",
-            "rule": "Số tiền bảo hiểm giảm (Reduced SA) không được thấp hơn mức tối thiểu theo quy định (5,000,000 VND)."
+            "ruleId": "VAL-CS-05-A",
+            "ruleName": "Số tiền bảo hiểm giảm (Reduced SA) không được thấp hơn mức tối thiểu theo quy định (5,000,000 VND).",
+            "errorCode": "ERR_VAL_CS_05_A",
+            "severity": "HARD_STOP",
+            "condition": "Số tiền bảo hiểm giảm (Reduced SA) không được thấp hơn mức tối thiểu theo quy định (5,000,000 VND).",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 278
           },
           {
-            "code": "VAL-CS-05-B",
-            "rule": "Mọi sản phẩm bổ trợ (Riders) bắt buộc bị chấm dứt hiệu lực đồng thời với ngày kích hoạt RPU."
+            "ruleId": "VAL-CS-05-B",
+            "ruleName": "Mọi sản phẩm bổ trợ (Riders) bắt buộc bị chấm dứt hiệu lực đồng thời với ngày kích hoạt RPU.",
+            "errorCode": "ERR_VAL_CS_05_B",
+            "severity": "HARD_STOP",
+            "condition": "Mọi sản phẩm bổ trợ (Riders) bắt buộc bị chấm dứt hiệu lực đồng thời với ngày kích hoạt RPU.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 278
           },
           {
-            "code": "VAL-CS-05-C",
-            "rule": "Hợp đồng sau khi chuyển đổi RPU không được tiếp tục áp dụng chính sách vay hợp đồng."
+            "ruleId": "VAL-CS-05-C",
+            "ruleName": "Hợp đồng sau khi chuyển đổi RPU không được tiếp tục áp dụng chính sách vay hợp đồng.",
+            "errorCode": "ERR_VAL_CS_05_C",
+            "severity": "HARD_STOP",
+            "condition": "Hợp đồng sau khi chuyển đổi RPU không được tiếp tục áp dụng chính sách vay hợp đồng.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 278
           }
-        ],
-        "actuary_notes": "RPU giúp duy trì tỷ lệ duy trì hợp đồng (Persistency Rate) thay vì để hợp đồng bị hủy bỏ hoàn toàn khi khách hàng gặp khó khăn tài chính.",
-        "op_notes": "Bảo đảm xuất phụ lục hợp đồng ghi rõ Số tiền bảo hiểm mới để tránh hiểu lầm khi có sự kiện bảo hiểm xảy ra."
+        ]
       },
       {
         "code": "SOP-CS-06",
+        "id": "SOP-CS-06",
         "title": "Adding Supplementary Rider Post-Inforce: Underwriting & Pro-Rata Short Premium",
         "role": "CS Specialist / Underwriting Liaison",
         "objective": "Gắn thêm sản phẩm bổ trợ vào hợp đồng đang có hiệu lực: Lựa chọn ngày hiệu lực, chuyển thẩm định y khoa và tính toán phí bảo hiểm ngắn hạn Pro-Rata đến kỳ đóng phí tiếp theo.",
-        "ui_path": "Customer Service > Work List > Data Entry > Add Rider",
         "pdf_page": 214,
         "prerequisites": [
           "Hợp đồng chính đang ở trạng thái INFORCE và không nợ phí bảo hiểm.",
@@ -7512,64 +7378,75 @@ window.EBAO_MODULES = [
         ],
         "fields_table": [
           {
-            "field": "RIDER_CODE",
+            "name": "RIDER_CODE",
             "type": "String",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Mã sản phẩm bổ trợ được chọn gắn thêm"
+            "desc": "Mã sản phẩm bổ trợ được chọn gắn thêm"
           },
           {
-            "field": "RIDER_SA",
+            "name": "RIDER_SA",
             "type": "Decimal",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Số tiền bảo hiểm của sản phẩm bổ trợ"
+            "desc": "Số tiền bảo hiểm của sản phẩm bổ trợ"
           },
           {
-            "field": "EFFECTIVE_TYPE",
+            "name": "EFFECTIVE_TYPE",
             "type": "Enum",
             "required": "Yes",
-            "default": "IMMEDIATE",
-            "description": "Loại hiệu lực: IMMEDIATE (Ngay lập tức) hoặc NEXT_DUE (Kỳ tới)"
+            "desc": "Loại hiệu lực: IMMEDIATE (Ngay lập tức) hoặc NEXT_DUE (Kỳ tới)"
           },
           {
-            "field": "PRO_RATA_SHORT_PREM",
+            "name": "PRO_RATA_SHORT_PREM",
             "type": "Decimal",
-            "required": "System",
-            "default": "0",
-            "description": "Phí ngắn hạn pro-rata phải thu bổ sung"
+            "required": "No",
+            "desc": "Phí ngắn hạn pro-rata phải thu bổ sung"
           },
           {
-            "field": "NEXT_DUE_DATE",
+            "name": "NEXT_DUE_DATE",
             "type": "Date",
-            "required": "System",
-            "default": "N/A",
-            "description": "Ngày đến hạn đóng phí định kỳ tiếp theo của HĐ chính"
+            "required": "No",
+            "desc": "Ngày đến hạn đóng phí định kỳ tiếp theo của HĐ chính"
           }
         ],
         "validation_rules": [
           {
-            "code": "VAL-CS-06-A",
-            "rule": "Số tiền bảo hiểm Rider không được vượt quá Số tiền bảo hiểm hợp đồng chính."
+            "ruleId": "VAL-CS-06-A",
+            "ruleName": "Số tiền bảo hiểm Rider không được vượt quá Số tiền bảo hiểm hợp đồng chính.",
+            "errorCode": "ERR_VAL_CS_06_A",
+            "severity": "HARD_STOP",
+            "condition": "Số tiền bảo hiểm Rider không được vượt quá Số tiền bảo hiểm hợp đồng chính.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 214
           },
           {
-            "code": "VAL-CS-06-B",
-            "rule": "Thời hạn bảo hiểm của Rider không được kéo dài vượt quá thời hạn hợp đồng chính."
+            "ruleId": "VAL-CS-06-B",
+            "ruleName": "Thời hạn bảo hiểm của Rider không được kéo dài vượt quá thời hạn hợp đồng chính.",
+            "errorCode": "ERR_VAL_CS_06_B",
+            "severity": "HARD_STOP",
+            "condition": "Thời hạn bảo hiểm của Rider không được kéo dài vượt quá thời hạn hợp đồng chính.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 214
           },
           {
-            "code": "VAL-CS-06-C",
-            "rule": "Phí bảo hiểm ngắn hạn Pro-Rata phải được thanh toán đủ 100% trước khi kích hoạt lệnh Inforce."
+            "ruleId": "VAL-CS-06-C",
+            "ruleName": "Phí bảo hiểm ngắn hạn Pro-Rata phải được thanh toán đủ 100% trước khi kích hoạt lệnh Inforce.",
+            "errorCode": "ERR_VAL_CS_06_C",
+            "severity": "HARD_STOP",
+            "condition": "Phí bảo hiểm ngắn hạn Pro-Rata phải được thanh toán đủ 100% trước khi kích hoạt lệnh Inforce.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 214
           }
-        ],
-        "actuary_notes": "Tính phí ngắn hạn pro-rata theo tỷ lệ số ngày thực tế bảo vệ bảo đảm tính chính xác của doanh thu phí thuần và trích lập dự phòng kỹ thuật.",
-        "op_notes": "Tại kỳ đóng phí tiếp theo, phí định kỳ của hợp đồng sẽ tự động cộng thêm phí năm của Rider vừa gắn."
+        ]
       },
       {
         "code": "SOP-CS-07",
+        "id": "SOP-CS-07",
         "title": "Policy Reinstatement (Khôi Phục Hiệu Lực Hợp Đồng Sau Khi Lapsed)",
         "role": "CS Specialist / Underwriting Officer",
         "objective": "Tiếp nhận và xử lý yêu cầu khôi phục hiệu lực cho hợp đồng bảo hiểm đã bị mất hiệu lực (Lapsed) do quá hạn đóng phí 60 ngày trong thời hạn tối đa 24 tháng.",
-        "ui_path": "Customer Service > Work List > Data Entry > Reinstatement",
         "pdf_page": 262,
         "prerequisites": [
           "Hợp đồng có trạng thái LAPSED và thời gian mất hiệu lực chưa quá 24 tháng kể từ ngày đến hạn đóng phí chưa nộp.",
@@ -7592,64 +7469,75 @@ window.EBAO_MODULES = [
         ],
         "fields_table": [
           {
-            "field": "LAPSED_DATE",
+            "name": "LAPSED_DATE",
             "type": "Date",
-            "required": "System",
-            "default": "N/A",
-            "description": "Ngày hợp đồng chính thức bị mất hiệu lực (Grace 60 days cutoff)"
+            "required": "No",
+            "desc": "Ngày hợp đồng chính thức bị mất hiệu lực (Grace 60 days cutoff)"
           },
           {
-            "field": "OVERDUE_PREMIUM_TOTAL",
+            "name": "OVERDUE_PREMIUM_TOTAL",
             "type": "Decimal",
-            "required": "System",
-            "default": "0",
-            "description": "Tổng các kỳ phí bảo hiểm chưa nộp"
+            "required": "No",
+            "desc": "Tổng các kỳ phí bảo hiểm chưa nộp"
           },
           {
-            "field": "LATE_INTEREST_AMOUNT",
+            "name": "LATE_INTEREST_AMOUNT",
             "type": "Decimal",
-            "required": "System",
-            "default": "0",
-            "description": "Tiền lãi phạt chậm nộp phí (6.5%/năm)"
+            "required": "No",
+            "desc": "Tiền lãi phạt chậm nộp phí (6.5%/năm)"
           },
           {
-            "field": "TOTAL_REINSTATE_DUE",
+            "name": "TOTAL_REINSTATE_DUE",
             "type": "Decimal",
-            "required": "System",
-            "default": "0",
-            "description": "Tổng số tiền khách hàng phải nộp để khôi phục"
+            "required": "No",
+            "desc": "Tổng số tiền khách hàng phải nộp để khôi phục"
           },
           {
-            "field": "HEALTH_WARRANTY_FLAG",
+            "name": "HEALTH_WARRANTY_FLAG",
             "type": "Boolean",
             "required": "Yes",
-            "default": "TRUE",
-            "description": "Cam kết bảo đảm tình trạng sức khỏe không thay đổi"
+            "desc": "Cam kết bảo đảm tình trạng sức khỏe không thay đổi"
           }
         ],
         "validation_rules": [
           {
-            "code": "VAL-CS-07-A",
-            "rule": "Hợp đồng đã mất hiệu lực quá 24 tháng không được phép khôi phục; bắt buộc phải mua hợp đồng mới."
+            "ruleId": "VAL-CS-07-A",
+            "ruleName": "Hợp đồng đã mất hiệu lực quá 24 tháng không được phép khôi phục; bắt buộc phải mua hợp đồng mới.",
+            "errorCode": "ERR_VAL_CS_07_A",
+            "severity": "HARD_STOP",
+            "condition": "Hợp đồng đã mất hiệu lực quá 24 tháng không được phép khôi phục; bắt buộc phải mua hợp đồng mới.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 262
           },
           {
-            "code": "VAL-CS-07-B",
-            "rule": "NĐBH đã tử vong hoặc thương tật toàn bộ vĩnh viễn trong thời gian Lapsed sẽ bị từ chối khôi phục tuyệt đối."
+            "ruleId": "VAL-CS-07-B",
+            "ruleName": "NĐBH đã tử vong hoặc thương tật toàn bộ vĩnh viễn trong thời gian Lapsed sẽ bị từ chối khôi phục tuyệt đối.",
+            "errorCode": "ERR_VAL_CS_07_B",
+            "severity": "HARD_STOP",
+            "condition": "NĐBH đã tử vong hoặc thương tật toàn bộ vĩnh viễn trong thời gian Lapsed sẽ bị từ chối khôi phục tuyệt đối.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 262
           },
           {
-            "code": "VAL-CS-07-C",
-            "rule": "Thời hạn loại trừ tự tử 2 năm (Suicide Exclusion) được tính lại từ ngày khôi phục hiệu lực hợp đồng thành công."
+            "ruleId": "VAL-CS-07-C",
+            "ruleName": "Thời hạn loại trừ tự tử 2 năm (Suicide Exclusion) được tính lại từ ngày khôi phục hiệu lực hợp đồng thành công.",
+            "errorCode": "ERR_VAL_CS_07_C",
+            "severity": "HARD_STOP",
+            "condition": "Thời hạn loại trừ tự tử 2 năm (Suicide Exclusion) được tính lại từ ngày khôi phục hiệu lực hợp đồng thành công.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 262
           }
-        ],
-        "actuary_notes": "Tái lập điều khoản loại trừ tự tử 2 năm là nguyên tắc cốt lõi nhằm ngăn chặn rủi ro trục lợi bảo hiểm sau khi khôi phục.",
-        "op_notes": "Nhắc nhở khách hàng thiết lập phương thức trích nợ tự động Direct Debit để tránh bị mất hiệu lực lần sau."
+        ]
       },
       {
         "code": "SOP-CS-08",
+        "id": "SOP-CS-08",
         "title": "Policy Alteration Financial Settlement & PTD Synchronization",
         "role": "CS Supervisor / Finance Accountant",
         "objective": "Đối soát các khoản thu/chi tài chính phát sinh từ thay đổi hợp đồng, kiểm soát phê duyệt phân quyền (DOA) và thực hiện cam kết 2PC đồng bộ dữ liệu lên SOR.",
-        "ui_path": "Customer Service > Work List > Approval & Inforce Workbench",
         "pdf_page": 270,
         "prerequisites": [
           "Hồ sơ thay đổi đã vượt qua bước thẩm định (nếu có) và thu đủ tiền chênh lệch (nếu là nghiệp vụ thu phí).",
@@ -7670,50 +7558,62 @@ window.EBAO_MODULES = [
         ],
         "fields_table": [
           {
-            "field": "APP_NO",
+            "name": "APP_NO",
             "type": "String",
-            "required": "System",
-            "default": "N/A",
-            "description": "Mã hồ sơ yêu cầu thay đổi (CS Application Number)"
+            "required": "No",
+            "desc": "Mã hồ sơ yêu cầu thay đổi (CS Application Number)"
           },
           {
-            "field": "FINANCIAL_BALANCE",
+            "name": "FINANCIAL_BALANCE",
             "type": "Decimal",
-            "required": "System",
-            "default": "0",
-            "description": "Số dư tài chính chênh lệch: Dương (Phải thu), Âm (Phải chi)"
+            "required": "No",
+            "desc": "Số dư tài chính chênh lệch: Dương (Phải thu), Âm (Phải chi)"
           },
           {
-            "field": "DOA_LEVEL_REQUIRED",
+            "name": "DOA_LEVEL_REQUIRED",
             "type": "String",
-            "required": "System",
-            "default": "L1",
-            "description": "Cấp phân quyền phê duyệt yêu cầu (L1: <50M, L2: <200M, L3: >200M)"
+            "required": "No",
+            "desc": "Cấp phân quyền phê duyệt yêu cầu (L1: <50M, L2: <200M, L3: >200M)"
           },
           {
-            "field": "INFORCE_TIMESTAMP",
+            "name": "INFORCE_TIMESTAMP",
             "type": "Timestamp",
-            "required": "System",
-            "default": "CURRENT_TIMESTAMP",
-            "description": "Thời điểm giao dịch chính thức có hiệu lực trên SOR"
+            "required": "No",
+            "desc": "Thời điểm giao dịch chính thức có hiệu lực trên SOR"
           }
         ],
         "validation_rules": [
           {
-            "code": "VAL-CS-08-A",
-            "rule": "Tuyệt đối không được kích hoạt lệnh Inforce nếu số tiền phải thu trong Suspense chưa đủ 100%."
+            "ruleId": "VAL-CS-08-A",
+            "ruleName": "Tuyệt đối không được kích hoạt lệnh Inforce nếu số tiền phải thu trong Suspense chưa đủ 100%.",
+            "errorCode": "ERR_VAL_CS_08_A",
+            "severity": "HARD_STOP",
+            "condition": "Tuyệt đối không được kích hoạt lệnh Inforce nếu số tiền phải thu trong Suspense chưa đủ 100%.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 270
           },
           {
-            "code": "VAL-CS-08-B",
-            "rule": "Người phê duyệt (Approver) phải khác với người nhập liệu (Maker) để đảm bảo nguyên tắc kiểm soát 4 mắt."
+            "ruleId": "VAL-CS-08-B",
+            "ruleName": "Người phê duyệt (Approver) phải khác với người nhập liệu (Maker) để đảm bảo nguyên tắc kiểm soát 4 mắt.",
+            "errorCode": "ERR_VAL_CS_08_B",
+            "severity": "HARD_STOP",
+            "condition": "Người phê duyệt (Approver) phải khác với người nhập liệu (Maker) để đảm bảo nguyên tắc kiểm soát 4 mắt.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 270
           },
           {
-            "code": "VAL-CS-08-C",
-            "rule": "Nếu giao dịch 2PC thất bại, toàn bộ trạng thái hợp đồng trên SOR phải được hoàn tác nguyên trạng."
+            "ruleId": "VAL-CS-08-C",
+            "ruleName": "Nếu giao dịch 2PC thất bại, toàn bộ trạng thái hợp đồng trên SOR phải được hoàn tác nguyên trạng.",
+            "errorCode": "ERR_VAL_CS_08_C",
+            "severity": "HARD_STOP",
+            "condition": "Nếu giao dịch 2PC thất bại, toàn bộ trạng thái hợp đồng trên SOR phải được hoàn tác nguyên trạng.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 270
           }
-        ],
-        "actuary_notes": "Bảo đảm đồng bộ ngày đến hạn PTD giữa hợp đồng chính và các sản phẩm bổ trợ tránh tình trạng lệch chu kỳ hóa đơn.",
-        "op_notes": "Sau khi Inforce thành công, hợp đồng được mở khóa (unfreeze) ngay lập tức để phục vụ các giao dịch tiếp theo."
+        ]
       }
     ],
     "sop_count": 8,
@@ -7769,320 +7669,200 @@ window.EBAO_MODULES = [
     "validation_rules": [
       {
         "ruleId": "VAL-CS-001",
-        "module": "MOD_04",
-        "moduleName": "Customer Service",
-        "lifecyclePhase": "04. Policy Maintenance",
-        "stage": "Registration",
-        "targetEntity": "T_POL_POLICY",
         "ruleName": "Frozen Policy Check",
-        "condition": "Policy must not be locked by pending CS or Claim processing.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_CS_POLICY_FROZEN",
-        "errorMessage": "Hợp đồng đang bị khóa bởi hồ sơ bồi thường hoặc giao dịch thay đổi khác đang xử lý.",
+        "severity": "HARD_STOP",
+        "condition": "Policy must not be locked by pending CS or Claim processing.",
         "systemAction": "Chặn tạo hồ sơ thay đổi mới.",
         "actuarialBasis": "Ngăn chặn ghi đè dữ liệu và sai lệch giá trị giải ước khi có nhiều giao dịch đồng thời.",
         "pdfPage": 200
       },
       {
         "ruleId": "VAL-CS-002",
-        "module": "MOD_04",
-        "moduleName": "Customer Service",
-        "lifecyclePhase": "04. Policy Maintenance",
-        "stage": "Policy Loan",
-        "targetEntity": "T_POL_LOAN",
         "ruleName": "Maximum Policy Loan Cap 80% Net CSV",
-        "condition": "Requested Loan <= 80% * (Cash Value - Existing Debt).",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_CS_LOAN_CAP_EXCEEDED",
-        "errorMessage": "Số tiền vay vượt quá hạn mức tối đa cho phép (80% Giá trị hoàn lại ròng).",
+        "severity": "HARD_STOP",
+        "condition": "Requested Loan <= 80% * (Cash Value - Existing Debt).",
         "systemAction": "Từ chối duyệt khoản vay hoặc cắt giảm về mức trần cho phép.",
         "actuarialBasis": "Bảo vệ an toàn tài chính của quỹ, bảo đảm hợp đồng không bị thấu chi âm vốn.",
         "pdfPage": 254
       },
       {
         "ruleId": "VAL-CS-003",
-        "module": "MOD_04",
-        "moduleName": "Customer Service",
-        "lifecyclePhase": "04. Policy Maintenance",
-        "stage": "Surrender",
-        "targetEntity": "T_POL_SURRENDER",
         "ruleName": "Debt Deduction Priority on Surrender",
-        "condition": "Outstanding Loan Principal + Accrued Interest must be deducted first before Net Payout.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_CS_DEBT_RECOVERY_FAILED",
-        "errorMessage": "Không thể thanh toán tiền giải ước khi chưa thu hồi hết các khoản nợ vay hợp đồng.",
+        "severity": "HARD_STOP",
+        "condition": "Outstanding Loan Principal + Accrued Interest must be deducted first before Net Payout.",
         "systemAction": "Tự động cấn trừ toàn bộ nợ vào giá trị giải ước ròng.",
         "actuarialBasis": "Ưu tiên thu hồi vốn vay bảo đảm khả năng thanh toán của doanh nghiệp bảo hiểm.",
         "pdfPage": 232
       },
       {
         "ruleId": "VAL-CS-004",
-        "module": "MOD_04",
-        "moduleName": "Customer Service",
-        "lifecyclePhase": "04. Policy Maintenance",
-        "stage": "Beneficiary Change",
-        "targetEntity": "T_POL_BENEFICIARY",
         "ruleName": "Beneficiary Allocation 100% Balance",
-        "condition": "Sum of primary beneficiary shares must equal strictly 100.00%.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_CS_BENEFICIARY_SUM_MISMATCH",
-        "errorMessage": "Tổng tỷ lệ hưởng quyền lợi của các người thụ hưởng chính phải bằng đúng 100.00%.",
+        "severity": "HARD_STOP",
+        "condition": "Sum of primary beneficiary shares must equal strictly 100.00%.",
         "systemAction": "Chặn lưu danh sách người thụ hưởng.",
         "actuarialBasis": "Tránh tranh chấp quyền thừa kế và xác định rõ ràng trách nhiệm chi trả bảo hiểm.",
         "pdfPage": 220
       },
       {
         "ruleId": "VAL-CS-005",
-        "module": "MOD_04",
-        "moduleName": "Customer Service",
-        "lifecyclePhase": "04. Policy Maintenance",
-        "stage": "Reduced Paid-Up",
-        "targetEntity": "T_POL_RPU",
         "ruleName": "Rider Termination on RPU Execution",
-        "condition": "All supplementary riders must be terminated upon conversion to Reduced Paid-Up.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_CS_RPU_RIDER_CONFLICT",
-        "errorMessage": "Tất cả sản phẩm bổ trợ phải bị chấm dứt hiệu lực khi chuyển đổi sang Bảo hiểm giảm (RPU).",
+        "severity": "HARD_STOP",
+        "condition": "All supplementary riders must be terminated upon conversion to Reduced Paid-Up.",
         "systemAction": "Tự động hủy các rider gắn kèm vào ngày hiệu lực RPU.",
         "actuarialBasis": "Chế độ RPU không còn dòng tiền đóng phí định kỳ để duy trì chi phí rủi ro của rider.",
         "pdfPage": 278
       },
       {
         "ruleId": "VAL-CS-006",
-        "module": "MOD_04",
-        "moduleName": "Customer Service",
-        "lifecyclePhase": "04. Policy Maintenance",
-        "stage": "Add Rider",
-        "targetEntity": "T_POL_RIDER",
         "ruleName": "Rider Sum Assured Ceiling by Main Policy",
-        "condition": "Rider Sum Assured must be <= Base Policy Sum Assured.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_CS_RIDER_SA_OVERFLOW",
-        "errorMessage": "Số tiền bảo hiểm của sản phẩm bổ trợ không được lớn hơn hợp đồng chính.",
+        "severity": "HARD_STOP",
+        "condition": "Rider Sum Assured must be <= Base Policy Sum Assured.",
         "systemAction": "Chặn lưu thông tin sản phẩm bổ trợ.",
         "actuarialBasis": "Quyền lợi bổ trợ không thể vượt quá nghĩa vụ bảo vệ cốt lõi của hợp đồng chính.",
         "pdfPage": 214
       },
       {
         "ruleId": "VAL-CS-007",
-        "module": "MOD_04",
-        "moduleName": "Customer Service",
-        "lifecyclePhase": "04. Policy Maintenance",
-        "stage": "Add Rider",
-        "targetEntity": "T_POL_RIDER",
         "ruleName": "Rider Term Boundary by Main Policy",
-        "condition": "Rider Policy Term must expire on or before Base Policy Term.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_CS_RIDER_TERM_EXCEEDED",
-        "errorMessage": "Thời hạn bảo vệ của sản phẩm bổ trợ vượt quá thời hạn hợp đồng chính.",
+        "severity": "HARD_STOP",
+        "condition": "Rider Policy Term must expire on or before Base Policy Term.",
         "systemAction": "Tự động rút ngắn thời hạn rider về bằng thời hạn hợp đồng chính.",
         "actuarialBasis": "Sản phẩm bổ trợ phụ thuộc không thể tồn tại độc lập khi hợp đồng chính đã đáo hạn.",
         "pdfPage": 214
       },
       {
         "ruleId": "VAL-CS-008",
-        "module": "MOD_04",
-        "moduleName": "Customer Service",
-        "lifecyclePhase": "04. Policy Maintenance",
-        "stage": "Reinstatement",
-        "targetEntity": "T_POL_REINSTATE",
         "ruleName": "Reinstatement 24-Month Maximum Window",
-        "condition": "Elapsed time from Lapsed Date must be <= 24 calendar months.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_CS_REINSTATE_EXPIRED",
-        "errorMessage": "Hợp đồng đã mất hiệu lực quá 24 tháng; không được phép khôi phục hiệu lực.",
+        "severity": "HARD_STOP",
+        "condition": "Elapsed time from Lapsed Date must be <= 24 calendar months.",
         "systemAction": "Từ chối tiếp nhận hồ sơ khôi phục; tư vấn khách hàng mua hợp đồng mới.",
         "actuarialBasis": "Sau 24 tháng, rủi ro tử vong và bệnh tật biến đổi lớn so với định phí ban đầu.",
         "pdfPage": 262
       },
       {
         "ruleId": "VAL-CS-009",
-        "module": "MOD_04",
-        "moduleName": "Customer Service",
-        "lifecyclePhase": "04. Policy Maintenance",
-        "stage": "Reinstatement",
-        "targetEntity": "T_POL_REINSTATE",
         "ruleName": "Suicide Exclusion Clause Reset",
-        "condition": "Statutory 2-year Suicide Exclusion period resets from the successful Reinstatement Date.",
-        "severity": "CRITICAL",
         "errorCode": "INFO_CS_SUICIDE_RESET",
-        "errorMessage": "Thời hạn loại trừ tự tử 2 năm được kích hoạt lại tính từ ngày khôi phục hợp đồng.",
+        "severity": "CRITICAL",
+        "condition": "Statutory 2-year Suicide Exclusion period resets from the successful Reinstatement Date.",
         "systemAction": "Cập nhật trường SUICIDE_EXCLUSION_END_DATE trên bảng SOR t_pol_policy.",
         "actuarialBasis": "Phòng chống trục lợi bảo hiểm bằng hành vi tự sát sau khi khôi phục hợp đồng.",
         "pdfPage": 262
       },
       {
         "ruleId": "VAL-CS-010",
-        "module": "MOD_04",
-        "moduleName": "Customer Service",
-        "lifecyclePhase": "04. Policy Maintenance",
-        "stage": "Mid-Term Attachment",
-        "targetEntity": "T_BCP_COLLECTION",
         "ruleName": "Pro-Rata Short Premium 100% Collection",
-        "condition": "Calculated Pro-Rata Short Premium must be received in full before Inforce execution.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_CS_SHORT_PREM_UNPAID",
-        "errorMessage": "Phí ngắn hạn Pro-Rata chưa được nộp đủ 100% vào tài khoản Suspense.",
+        "severity": "HARD_STOP",
+        "condition": "Calculated Pro-Rata Short Premium must be received in full before Inforce execution.",
         "systemAction": "Chặn kích hoạt lệnh Inforce cho sản phẩm bổ trợ gắn thêm giữa kỳ.",
         "actuarialBasis": "Không bảo vệ rủi ro khi doanh nghiệp chưa nhận đủ phí bảo hiểm tương ứng.",
         "pdfPage": 214
       },
       {
         "ruleId": "VAL-CS-011",
-        "module": "MOD_04",
-        "moduleName": "Customer Service",
-        "lifecyclePhase": "04. Policy Maintenance",
-        "stage": "Policyholder Change",
-        "targetEntity": "T_PARTY_RELATION",
         "ruleName": "Insurable Interest on Policyholder Transfer",
-        "condition": "New Policyholder must have documented Insurable Interest with the Life Assured.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_CS_NO_INSURABLE_INTEREST",
-        "errorMessage": "Bên mua bảo hiểm mới không có quyền lợi có thể được bảo hiểm đối với NĐBH.",
+        "severity": "HARD_STOP",
+        "condition": "New Policyholder must have documented Insurable Interest with the Life Assured.",
         "systemAction": "Từ chối chuyển giao quyền sở hữu hợp đồng bảo hiểm.",
         "actuarialBasis": "Tuân thủ Điều 34 Luật Kinh doanh Bảo hiểm số 08/2022/QH15.",
         "pdfPage": 230
       },
       {
         "ruleId": "VAL-CS-012",
-        "module": "MOD_04",
-        "moduleName": "Customer Service",
-        "lifecyclePhase": "04. Policy Maintenance",
-        "stage": "Smoker Change",
-        "targetEntity": "T_POL_INSURED",
         "ruleName": "Non-Smoker Rate Reclassification Minimum 12 Months",
-        "condition": "Smoker to Non-Smoker reclassification requires minimum 12 months non-smoking proof.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_CS_SMOKER_TEST_FAILED",
-        "errorMessage": "Yêu cầu đổi sang phí Không hút thuốc phải có cam kết cai thuốc trên 12 tháng kèm xét nghiệm Cotinine âm tính.",
+        "severity": "HARD_STOP",
+        "condition": "Smoker to Non-Smoker reclassification requires minimum 12 months non-smoking proof.",
         "systemAction": "Chuyển hồ sơ sang Bàn thẩm định y khoa đánh giá.",
         "actuarialBasis": "Bảo đảm giảm phí tương xứng với mức giảm rủi ro tử vong thực tế.",
         "pdfPage": 236
       },
       {
         "ruleId": "VAL-CS-013",
-        "module": "MOD_04",
-        "moduleName": "Customer Service",
-        "lifecyclePhase": "04. Policy Maintenance",
-        "stage": "Occupation Change",
-        "targetEntity": "T_POL_INSURED",
         "ruleName": "Occupational Loading Adjustment",
-        "condition": "Change in occupation class triggers immediate premium adjustment or special exclusions.",
-        "severity": "WARNING",
         "errorCode": "WARN_CS_OCCUPATION_RATING",
-        "errorMessage": "Thay đổi nghề nghiệp sang nhóm rủi ro cao hơn (Nhóm 3 hoặc 4) làm phát sinh phụ phí nghề nghiệp.",
+        "severity": "WARNING",
+        "condition": "Change in occupation class triggers immediate premium adjustment or special exclusions.",
         "systemAction": "Tính toán phụ phí bổ sung và gửi thông báo nộp tiền cho khách hàng.",
         "actuarialBasis": "Tỷ lệ tử vong và tai nạn lao động biến thiên theo nhóm nghề nghiệp thực tế.",
         "pdfPage": 223
       },
       {
         "ruleId": "VAL-CS-014",
-        "module": "MOD_04",
-        "moduleName": "Customer Service",
-        "lifecyclePhase": "04. Policy Maintenance",
-        "stage": "Approval",
-        "targetEntity": "T_SEC_DOA",
         "ruleName": "Delegation of Authority (DOA) Multi-Tier Sign-off",
-        "condition": "Approver must possess authority level matching or exceeding the transaction financial value.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_CS_DOA_EXCEEDED",
-        "errorMessage": "Giá trị giao dịch vượt quá hạn mức phê duyệt của chuyên viên (DOA Limit Exceeded).",
+        "severity": "HARD_STOP",
+        "condition": "Approver must possess authority level matching or exceeding the transaction financial value.",
         "systemAction": "Tự động chuyển hồ sơ lên cấp phê duyệt cao hơn (Trưởng phòng/Giám đốc CS).",
         "actuarialBasis": "Kiểm soát rủi ro gian lận và thất thoát tài chính nội bộ doanh nghiệp bảo hiểm.",
         "pdfPage": 196
       },
       {
         "ruleId": "VAL-CS-015",
-        "module": "MOD_04",
-        "moduleName": "Customer Service",
-        "lifecyclePhase": "04. Policy Maintenance",
-        "stage": "Free-Look",
-        "targetEntity": "T_POL_DELIVERY",
         "ruleName": "Free-Look 21-Day Statutory Window",
-        "condition": "Free-look cancellation valid only if requested within 21 calendar days of e-ACK delivery date.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_CS_FREELOOK_EXPIRED",
-        "errorMessage": "Đã quá thời hạn 21 ngày cân nhắc; yêu cầu hủy hợp đồng phải xử lý theo Giá trị giải ước (Surrender).",
+        "severity": "HARD_STOP",
+        "condition": "Free-look cancellation valid only if requested within 21 calendar days of e-ACK delivery date.",
         "systemAction": "Chuyển giao dịch từ Free-Look sang Surrender.",
         "actuarialBasis": "Quyền hủy hợp đồng nhận lại 100% phí chỉ có hiệu lực trong 21 ngày cân nhắc luật định.",
         "pdfPage": 198
       },
       {
         "ruleId": "VAL-CS-016",
-        "module": "MOD_04",
-        "moduleName": "Customer Service",
-        "lifecyclePhase": "04. Policy Maintenance",
-        "stage": "Increase SA",
-        "targetEntity": "T_UW_APPLICATION",
         "ruleName": "Mandatory Underwriting on Increase SA",
-        "condition": "Any increase in Sum Assured triggers full medical and financial underwriting review.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_CS_INCREASE_SA_UW_REQUIRED",
-        "errorMessage": "Yêu cầu tăng số tiền bảo hiểm bắt buộc phải chuyển sang Bàn thẩm định đánh giá rủi ro.",
+        "severity": "HARD_STOP",
+        "condition": "Any increase in Sum Assured triggers full medical and financial underwriting review.",
         "systemAction": "Khóa hợp đồng và tạo hồ sơ thẩm định trên Underwriting Workbench.",
         "actuarialBasis": "Kiểm soát rủi ro lựa chọn nghịch (Anti-selection) khi khách hàng có dấu hiệu xấu về sức khỏe.",
         "pdfPage": 198
       },
       {
         "ruleId": "VAL-CS-017",
-        "module": "MOD_04",
-        "moduleName": "Customer Service",
-        "lifecyclePhase": "04. Policy Maintenance",
-        "stage": "Decrease SA",
-        "targetEntity": "T_POL_POLICY",
         "ruleName": "Minimum Sum Assured Floor",
-        "condition": "Revised Sum Assured after decrease must be >= Product Minimum SA constraint.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_CS_SA_BELOW_MINIMUM",
-        "errorMessage": "Số tiền bảo hiểm sau khi giảm không được thấp hơn hạn mức tối thiểu của sản phẩm.",
+        "severity": "HARD_STOP",
+        "condition": "Revised Sum Assured after decrease must be >= Product Minimum SA constraint.",
         "systemAction": "Chặn lưu số tiền bảo hiểm mới.",
         "actuarialBasis": "Bảo đảm quy mô hợp đồng đủ bù đắp chi phí quản lý vận hành định kỳ.",
         "pdfPage": 198
       },
       {
         "ruleId": "VAL-CS-018",
-        "module": "MOD_04",
-        "moduleName": "Customer Service",
-        "lifecyclePhase": "04. Policy Maintenance",
-        "stage": "Policy Loan Repayment",
-        "targetEntity": "T_FIN_GL_JOURNAL",
         "ruleName": "Loan Repayment Allocation Hierarchy",
-        "condition": "Repayment funds must clear accrued loan interest first before reducing loan principal.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_CS_REPAYMENT_ORDER_INVALID",
-        "errorMessage": "Thứ tự thu hồi nợ: Tiền nộp vào phải ưu tiên thanh toán hết lãi vay tích lũy trước khi giảm gốc.",
+        "severity": "HARD_STOP",
+        "condition": "Repayment funds must clear accrued loan interest first before reducing loan principal.",
         "systemAction": "Tự động phân bổ thu tiền theo thứ tự ưu tiên Lãi -> Gốc.",
         "actuarialBasis": "Nguyên lý kế toán tài chính chuẩn tắc bảo vệ doanh thu lãi vay của công ty bảo hiểm.",
         "pdfPage": 254
       },
       {
         "ruleId": "VAL-CS-019",
-        "module": "MOD_04",
-        "moduleName": "Customer Service",
-        "lifecyclePhase": "04. Policy Maintenance",
-        "stage": "Inforce Sync",
-        "targetEntity": "T_PUB_TX_UNDO_LOG",
         "ruleName": "Two-Phase Commit Undo Log Snapshot",
-        "condition": "JPA entity pre-image must be recorded in t_pub_tx_undo_log before applying CS changes to SOR.",
-        "severity": "CRITICAL",
         "errorCode": "ERR_CS_2PC_UNDO_MISSING",
-        "errorMessage": "Không thể ghi nhật ký snapshot bù trừ trước khi cập nhật dữ liệu hợp đồng lên SOR.",
+        "severity": "CRITICAL",
+        "condition": "JPA entity pre-image must be recorded in t_pub_tx_undo_log before applying CS changes to SOR.",
         "systemAction": "Hủy giao dịch Inforce và hoàn tác toàn bộ thay đổi.",
         "actuarialBasis": "Bảo toàn 100% tính toàn vẹn dữ liệu hợp đồng trên SOR khi có lỗi dịch vụ phân tán.",
         "pdfPage": 196
       },
       {
         "ruleId": "VAL-CS-020",
-        "module": "MOD_04",
-        "moduleName": "Customer Service",
-        "lifecyclePhase": "04. Policy Maintenance",
-        "stage": "Endorsement Dispatch",
-        "targetEntity": "T_POL_ENDORSEMENT",
         "ruleName": "Mandatory Endorsement PDF Generation",
-        "condition": "Every successfully enforced alteration must generate an official digital Endorsement Annex PDF.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_CS_ENDORSEMENT_GEN_FAILED",
-        "errorMessage": "Không thể khởi tạo Phụ lục hợp đồng điện tử sau khi cập nhật thay đổi thành công.",
+        "severity": "HARD_STOP",
+        "condition": "Every successfully enforced alteration must generate an official digital Endorsement Annex PDF.",
         "systemAction": "Kích hoạt cơ chế retry tự động của hệ thống DMS.",
         "actuarialBasis": "Phụ lục hợp đồng là căn cứ pháp lý duy nhất xác nhận điều chỉnh thỏa thuận bảo hiểm.",
         "pdfPage": 204
@@ -8373,16 +8153,45 @@ window.EBAO_MODULES = [
     "summary": "Phân hệ Lập Hóa đơn, Thu phí và Chi trả (Billing, Collection & Payment - BCP APP). Quản lý toàn bộ chu trình dòng tiền thu phí tái tục (Renewal Premium), tạo hóa đơn và thông báo nhắc phí tự động (T-30 ngày), kết nối các kênh thu phí đa dạng (Direct Debit ngân hàng, Thẻ tín dụng tự động, Mã định danh thanh toán ảo Virtual Account VietQR/NAPAS), quản lý tài khoản trung gian Suspense GL 2211, xử lý đối soát tệp trả về (Bank Return File Clearing), vận hành động cơ 60 ngày gia hạn đóng phí (60-Day Statutory Grace Period Engine) với các mốc nhắc phí ngày 30 và cảnh báo nguy cơ ngày 45, tự động kích hoạt quyền chọn Tự động Tạm ứng Đóng phí (Automatic Premium Loan - APL) khi đủ giá trị hoàn lại, hoặc chuyển trạng thái Hợp đồng Mất Hiệu Lực (Midnight Auto-Lapse) tại thời điểm 23:59:59 của ngày thứ 60.",
     "mermaid_workflow": "graph LR\n    Schedule[\"Billing Schedule Engine\"] --> Notice[\"Generate Premium Notice (T-30 Days)\"]\n    Notice --> DueDate[\"Policy Due Date\"]\n    DueDate --> CollectMode{\"Payment Channel\"}\n    CollectMode -- Direct Debit --> DDFile[\"Generate Bank Direct Debit File\"]\n    DDFile --> BankReturn[\"Process Bank Return / Settlement\"]\n    CollectMode -- Manual / Wire --> Counter[\"Manual Collection Entry\"]\n    BankReturn -- Success --> Apply[\"Apply Premium & Advance Paid-To-Date\"]\n    Counter -- Matched --> Apply\n    BankReturn -- Fail --> Grace[\"Grace Period Counter (Days 1 to 60)\"]\n    Grace -- Unpaid at Day 60 --> BatchTrigger[\"Batch Trigger: APL or Auto-Lapse (Module 08)\"]",
     "core_concepts": [
-      "Chu trình Quản lý Hóa đơn & Thu phí Khép kín (BCP Lifecycle): Lập lịch hóa đơn (Billing Schedule T-30) -> Trích nợ ngân hàng (Direct Debit Batch) -> Đối soát tệp thanh toán (Bank Clearing Return File) -> Phân bổ tài khoản treo (Suspense Allocation) -> Cập nhật ngày đến hạn Paid-To-Date (PTD).",
-      "Động cơ 60 Ngày Gia hạn Đóng phí (60-Day Statutory Grace Engine): Áp dụng theo Điều 37 Luật Kinh doanh Bảo hiểm số 08/2022/QH15. Trong suốt 60 ngày gia hạn, hợp đồng hoàn toàn giữ nguyên hiệu lực bảo vệ 100%. Nếu xảy ra sự kiện bảo hiểm trong thời gian này, doanh nghiệp chi trả đầy đủ quyền lợi sau khi cấn trừ kỳ phí chưa nộp.",
-      "Tiến trình Gửi Thông báo Nhắc phí Đa tầng (Tiered Reminder Notices): Cấu hình qua bảng tham số PremiumReminderNoticeDays. Tự động kích hoạt: Lần 1 (Ngày đến hạn Due Date - 30 ngày), Lần 2 (Tại ngày Due Date), Nhắc gia hạn (Grace Day 30), và Cảnh báo nguy cơ mất hiệu lực cuối cùng (Grace Day 45).",
-      "Quyết định Nửa đêm Ngày Thứ 60 (Midnight EOD Cutoff Decision): Đúng 23:59:59 của ngày thứ 60 gia hạn, tiến trình EOD Batch kiểm tra Net CSV: Nếu Net CSV >= Phí định kỳ, tự động kích hoạt APL (Vay đóng phí từ CSV, tính lãi 6.5%/năm); nếu Net CSV không đủ, tự động chuyển hợp đồng sang trạng thái LAPSED.",
-      "Kiến trúc Tài khoản Treo Trung gian (Suspense Hierarchy - GL 2211): Phân chia thành General Suspense, NB Suspense, Renewal Suspense, CS Suspense. Tiền nộp vào được ghi Có TK 2211; chỉ khi phân bổ thành công mới chuyển sang Nợ TK 2211 / Có TK 4111 (Doanh thu phí bảo hiểm).",
-      "Bể Thu Tiền Chưa Khớp (Unmatched Collection Pool): Các giao dịch chuyển tiền thiếu thông tin hợp đồng hoặc sai số hợp đồng được gom vào Unmatched Pool, chờ chuyên viên kế toán BCP thực hiện tra soát và gán thủ công.",
-      "Chi trả Quyền lợi & Hủy Lệnh Chi (Disbursement & Cancel Payment): Quản lý lệnh chi tiền (Lump Sum hoặc Installments) cho chi trả bồi thường, hoàn phí giải ước, chi trả bảo tức hoặc giải ngân vay hợp đồng, hỗ trợ quy trình Maker-Checker trước khi phát lệnh qua cổng ngân hàng."
+      {
+        "term": "Chu trình Quản lý Hóa đơn & Thu phí Khép kín (BCP Lifecycle)",
+        "def": "Lập lịch hóa đơn (Billing Schedule T-30) -> Trích nợ ngân hàng (Direct Debit Batch) -> Đối soát tệp thanh toán (Bank Clearing Return File) -> Phân bổ tài khoản treo (Suspense Allocation) -> Cập nhật ngày đến hạn Paid-To-Date (PTD)."
+      },
+      {
+        "term": "Động cơ 60 Ngày Gia hạn Đóng phí (60-Day Statutory Grace Engine)",
+        "def": "Áp dụng theo Điều 37 Luật Kinh doanh Bảo hiểm số 08/2022/QH15. Trong suốt 60 ngày gia hạn, hợp đồng hoàn toàn giữ nguyên hiệu lực bảo vệ 100%. Nếu xảy ra sự kiện bảo hiểm trong thời gian này, doanh nghiệp chi trả đầy đủ quyền lợi sau khi cấn trừ kỳ phí chưa nộp."
+      },
+      {
+        "term": "Tiến trình Gửi Thông báo Nhắc phí Đa tầng (Tiered Reminder Notices)",
+        "def": "Cấu hình qua bảng tham số PremiumReminderNoticeDays. Tự động kích hoạt: Lần 1 (Ngày đến hạn Due Date - 30 ngày), Lần 2 (Tại ngày Due Date), Nhắc gia hạn (Grace Day 30), và Cảnh báo nguy cơ mất hiệu lực cuối cùng (Grace Day 45)."
+      },
+      {
+        "term": "Quyết định Nửa đêm Ngày Thứ 60 (Midnight EOD Cutoff Decision)",
+        "def": "Đúng 23:59:59 của ngày thứ 60 gia hạn, tiến trình EOD Batch kiểm tra Net CSV: Nếu Net CSV >= Phí định kỳ, tự động kích hoạt APL (Vay đóng phí từ CSV, tính lãi 6.5%/năm); nếu Net CSV không đủ, tự động chuyển hợp đồng sang trạng thái LAPSED."
+      },
+      {
+        "term": "Kiến trúc Tài khoản Treo Trung gian (Suspense Hierarchy - GL 2211)",
+        "def": "Phân chia thành General Suspense, NB Suspense, Renewal Suspense, CS Suspense. Tiền nộp vào được ghi Có TK 2211; chỉ khi phân bổ thành công mới chuyển sang Nợ TK 2211 / Có TK 4111 (Doanh thu phí bảo hiểm)."
+      },
+      {
+        "term": "Bể Thu Tiền Chưa Khớp (Unmatched Collection Pool)",
+        "def": "Các giao dịch chuyển tiền thiếu thông tin hợp đồng hoặc sai số hợp đồng được gom vào Unmatched Pool, chờ chuyên viên kế toán BCP thực hiện tra soát và gán thủ công."
+      },
+      {
+        "term": "Chi trả Quyền lợi & Hủy Lệnh Chi (Disbursement & Cancel Payment)",
+        "def": "Quản lý lệnh chi tiền (Lump Sum hoặc Installments) cho chi trả bồi thường, hoàn phí giải ước, chi trả bảo tức hoặc giải ngân vay hợp đồng, hỗ trợ quy trình Maker-Checker trước khi phát lệnh qua cổng ngân hàng."
+      }
     ],
-    "actuary_notes": "Từ góc độ Định phí & Dòng tiền, tiến trình Billing & Grace Period là mạch máu quyết định Tỷ lệ Duy trì Hợp đồng (Persistency Rate K1, K2). Cơ chế APL đóng vai trò cứu cánh tài chính giúp duy trì hiệu lực hợp đồng cho khách hàng mà không làm suy giảm Quỹ dự phòng toán học, bởi khoản tạm ứng đóng phí được xem là một khoản cho vay sinh lời với lãi suất quy định (6.5%/năm). Tuy nhiên, nếu khoản vay APL cộng dồn vượt quá Giá trị hoàn lại ròng, hợp đồng sẽ rơi vào trạng thái 'APL Lapsed', chấm dứt hoàn toàn trách nhiệm bảo vệ và trích lập dự phòng của doanh nghiệp.",
-    "op_notes": "Về mặt Vận hành Công nghệ, hệ thống BCP xử lý tệp thanh toán theo chuẩn định dạng ngân hàng đối tác (NAPAS, Vietcombank, Sacombank, BIDV). Khi thực hiện trích nợ tự động (Direct Debit), hệ thống khóa trường BILLING_STATUS = 'IN_COLLECTION' để tránh trích nợ trùng lặp. Tiến trình EOD Batch chạy vào ban đêm sử dụng thuật toán song song hóa (Multi-threading) để quét và xử lý hàng triệu hợp đồng đến hạn đóng phí hoặc hết hạn 60 ngày gia hạn chỉ trong vòng dưới 30 phút.",
+    "actuary_notes": [
+      "Từ góc độ Định phí & Dòng tiền, tiến trình Billing & Grace Period là mạch máu quyết định Tỷ lệ Duy trì Hợp đồng (Persistency Rate K1, K2).",
+      "Cơ chế APL đóng vai trò cứu cánh tài chính giúp duy trì hiệu lực hợp đồng cho khách hàng mà không làm suy giảm Quỹ dự phòng toán học, bởi khoản tạm ứng đóng phí được xem là một khoản cho vay sinh lời với lãi suất quy định (6.5%/năm).",
+      "Tuy nhiên, nếu khoản vay APL cộng dồn vượt quá Giá trị hoàn lại ròng, hợp đồng sẽ rơi vào trạng thái 'APL Lapsed', chấm dứt hoàn toàn trách nhiệm bảo vệ và trích lập dự phòng của doanh nghiệp."
+    ],
+    "op_notes": [
+      "Về mặt Vận hành Công nghệ, hệ thống BCP xử lý tệp thanh toán theo chuẩn định dạng ngân hàng đối tác (NAPAS, Vietcombank, Sacombank, BIDV).",
+      "Khi thực hiện trích nợ tự động (Direct Debit), hệ thống khóa trường BILLING_STATUS = 'IN_COLLECTION' để tránh trích nợ trùng lặp.",
+      "Tiến trình EOD Batch chạy vào ban đêm sử dụng thuật toán song song hóa (Multi-threading) để quét và xử lý hàng triệu hợp đồng đến hạn đóng phí hoặc hết hạn 60 ngày gia hạn chỉ trong vòng dưới 30 phút."
+    ],
     "sections": [
       {
         "heading": "1. Billing Run & Notice Generation",
@@ -8731,10 +8540,10 @@ window.EBAO_MODULES = [
     "sops": [
       {
         "code": "SOP-BCP-01",
+        "id": "SOP-BCP-01",
         "title": "Premium Billing Schedule, Due Date Calculation & Automated Reminder Notice Dispatch",
         "role": "Billing Operations Specialist",
         "objective": "Quản lý lịch lập hóa đơn phí tái tục, tính toán ngày đến hạn (Due Date) theo định kỳ đóng phí và tự động kích hoạt tiến trình gửi Thông báo nhắc phí (T-30 ngày).",
-        "ui_path": "Billing > Billing Query & Billing Schedule Configuration",
         "pdf_page": 346,
         "prerequisites": [
           "Hợp đồng đang có hiệu lực (INFORCE) với trạng thái đóng phí định kỳ (Regular Premium).",
@@ -8752,60 +8561,65 @@ window.EBAO_MODULES = [
         ],
         "fields_table": [
           {
-            "field": "POLICY_NO",
+            "name": "POLICY_NO",
             "type": "String",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Số hợp đồng bảo hiểm đến hạn đóng phí"
+            "desc": "Số hợp đồng bảo hiểm đến hạn đóng phí"
           },
           {
-            "field": "NEXT_DUE_DATE",
+            "name": "NEXT_DUE_DATE",
             "type": "Date",
-            "required": "System",
-            "default": "N/A",
-            "description": "Ngày đến hạn đóng phí định kỳ tiếp theo"
+            "required": "No",
+            "desc": "Ngày đến hạn đóng phí định kỳ tiếp theo"
           },
           {
-            "field": "BILLING_AMOUNT",
+            "name": "BILLING_AMOUNT",
             "type": "Decimal",
-            "required": "System",
-            "default": "0",
-            "description": "Số tiền phí bảo hiểm định kỳ phải đóng"
+            "required": "No",
+            "desc": "Số tiền phí bảo hiểm định kỳ phải đóng"
           },
           {
-            "field": "MODAL_FREQUENCY",
+            "name": "MODAL_FREQUENCY",
             "type": "Enum",
-            "required": "System",
-            "default": "ANNUAL",
-            "description": "Định kỳ đóng phí: ANNUAL, SEMI, QUARTER, MONTH"
+            "required": "No",
+            "desc": "Định kỳ đóng phí: ANNUAL, SEMI, QUARTER, MONTH"
           },
           {
-            "field": "NOTICE_CHANNEL",
+            "name": "NOTICE_CHANNEL",
             "type": "Enum",
             "required": "Yes",
-            "default": "EMAIL_SMS",
-            "description": "Kênh gửi thông báo: EMAIL_SMS, ZALO_ZNS, POSTAL_MAIL"
+            "desc": "Kênh gửi thông báo: EMAIL_SMS, ZALO_ZNS, POSTAL_MAIL"
           }
         ],
         "validation_rules": [
           {
-            "code": "VAL-BCP-01-A",
-            "rule": "Hợp đồng đã đóng phí đủ thời hạn đóng phí (PPT reached) không được tạo hóa đơn thu phí mới."
+            "ruleId": "VAL-BCP-01-A",
+            "ruleName": "Hợp đồng đã đóng phí đủ thời hạn đóng phí (PPT reached) không được tạo hóa đơn thu phí mới.",
+            "errorCode": "ERR_VAL_BCP_01_A",
+            "severity": "HARD_STOP",
+            "condition": "Hợp đồng đã đóng phí đủ thời hạn đóng phí (PPT reached) không được tạo hóa đơn thu phí mới.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 346
           },
           {
-            "code": "VAL-BCP-01-B",
-            "rule": "Không phát hành thông báo đóng phí đối với hợp đồng đang ở trạng thái WAIVED (Được miễn đóng phí)."
+            "ruleId": "VAL-BCP-01-B",
+            "ruleName": "Không phát hành thông báo đóng phí đối với hợp đồng đang ở trạng thái WAIVED (Được miễn đóng phí).",
+            "errorCode": "ERR_VAL_BCP_01_B",
+            "severity": "HARD_STOP",
+            "condition": "Không phát hành thông báo đóng phí đối với hợp đồng đang ở trạng thái WAIVED (Được miễn đóng phí).",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 346
           }
-        ],
-        "actuary_notes": "Thông báo nhắc phí gửi đúng thời điểm T-30 ngày giúp nâng cao tỷ lệ thu phí đúng hạn và ổn định dòng tiền tái đầu tư.",
-        "op_notes": "Mã QR động trong thông báo thu phí tự động điền sẵn số hợp đồng và số tiền giúp loại trừ sai sót do người nộp chuyển khoản nhầm."
+        ]
       },
       {
         "code": "SOP-BCP-02",
+        "id": "SOP-BCP-02",
         "title": "Direct Debit Clearing Batch File Generation & Bank Dispatch (GIRO / ACH / NAPAS)",
         "role": "Clearing Operations Specialist",
         "objective": "Khởi tạo và xuất tệp trích nợ tự động định kỳ (Direct Debit Batch Extraction) gửi tới các ngân hàng đối tác hoặc cổng thanh toán quốc gia NAPAS.",
-        "ui_path": "Billing > Direct Debit > Batch Extraction Workbench",
         "pdf_page": 355,
         "prerequisites": [
           "Hợp đồng đã đăng ký ủy quyền trích nợ tự động (Direct Debit Mandate) có trạng thái VERIFIED.",
@@ -8824,60 +8638,65 @@ window.EBAO_MODULES = [
         ],
         "fields_table": [
           {
-            "field": "BATCH_ID",
+            "name": "BATCH_ID",
             "type": "String",
-            "required": "System",
-            "default": "N/A",
-            "description": "Mã lô trích nợ tự động duy nhất"
+            "required": "No",
+            "desc": "Mã lô trích nợ tự động duy nhất"
           },
           {
-            "field": "CLEARING_BANK_CODE",
+            "name": "CLEARING_BANK_CODE",
             "type": "String",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Mã ngân hàng xử lý thanh toán bù trừ"
+            "desc": "Mã ngân hàng xử lý thanh toán bù trừ"
           },
           {
-            "field": "TOTAL_RECORDS",
+            "name": "TOTAL_RECORDS",
             "type": "Integer",
-            "required": "System",
-            "default": "0",
-            "description": "Tổng số lượng hợp đồng trong tệp trích nợ"
+            "required": "No",
+            "desc": "Tổng số lượng hợp đồng trong tệp trích nợ"
           },
           {
-            "field": "TOTAL_AMOUNT",
+            "name": "TOTAL_AMOUNT",
             "type": "Decimal",
-            "required": "System",
-            "default": "0",
-            "description": "Tổng số tiền đề nghị trích nợ trong lô"
+            "required": "No",
+            "desc": "Tổng số tiền đề nghị trích nợ trong lô"
           },
           {
-            "field": "EXTRACTION_DATE",
+            "name": "EXTRACTION_DATE",
             "type": "Date",
-            "required": "System",
-            "default": "CURRENT_DATE",
-            "description": "Ngày xuất tệp thanh toán bù trừ"
+            "required": "No",
+            "desc": "Ngày xuất tệp thanh toán bù trừ"
           }
         ],
         "validation_rules": [
           {
-            "code": "VAL-BCP-02-A",
-            "rule": "Một hợp đồng không được xuất hiện trong 2 tệp trích nợ đang cùng ở trạng thái 'IN_COLLECTION'."
+            "ruleId": "VAL-BCP-02-A",
+            "ruleName": "Một hợp đồng không được xuất hiện trong 2 tệp trích nợ đang cùng ở trạng thái 'IN_COLLECTION'.",
+            "errorCode": "ERR_VAL_BCP_02_A",
+            "severity": "HARD_STOP",
+            "condition": "Một hợp đồng không được xuất hiện trong 2 tệp trích nợ đang cùng ở trạng thái 'IN_COLLECTION'.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 355
           },
           {
-            "code": "VAL-BCP-02-B",
-            "rule": "Tài khoản ngân hàng chưa được xác minh ủy quyền (Mandate Unverified) không được đưa vào tệp trích nợ."
+            "ruleId": "VAL-BCP-02-B",
+            "ruleName": "Tài khoản ngân hàng chưa được xác minh ủy quyền (Mandate Unverified) không được đưa vào tệp trích nợ.",
+            "errorCode": "ERR_VAL_BCP_02_B",
+            "severity": "HARD_STOP",
+            "condition": "Tài khoản ngân hàng chưa được xác minh ủy quyền (Mandate Unverified) không được đưa vào tệp trích nợ.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 355
           }
-        ],
-        "actuary_notes": "Thu phí tự động qua Direct Debit có tỷ lệ duy trì hợp đồng cao hơn 18-25% so với phương thức thanh toán thủ công.",
-        "op_notes": "Nếu tệp trích nợ bị lỗi kỹ thuật, sử dụng tính năng 'Rollback Batch Extraction' để hoàn trả trạng thái hợp đồng trước khi xuất lại."
+        ]
       },
       {
         "code": "SOP-BCP-03",
+        "id": "SOP-BCP-03",
         "title": "Importing Bank Clearing Return Files, Virtual Account Auto-Reconciliation & Settlement",
         "role": "Reconciliation Accountant",
         "objective": "Nạp tệp kết quả trích nợ từ ngân hàng (Bank Return File), tự động đối soát các khoản thu thành công/thất bại, phân bổ tài khoản treo và cập nhật ngày PTD.",
-        "ui_path": "Collection > Batch Upload & Auto-Reconciliation",
         "pdf_page": 364,
         "prerequisites": [
           "Tệp kết quả trích nợ đã được tải về từ cổng thanh toán của ngân hàng đối tác.",
@@ -8902,53 +8721,59 @@ window.EBAO_MODULES = [
         ],
         "fields_table": [
           {
-            "field": "FILE_NAME",
+            "name": "FILE_NAME",
             "type": "String",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Tên tệp tin kết quả đối soát ngân hàng"
+            "desc": "Tên tệp tin kết quả đối soát ngân hàng"
           },
           {
-            "field": "SUCCESS_COUNT",
+            "name": "SUCCESS_COUNT",
             "type": "Integer",
-            "required": "System",
-            "default": "0",
-            "description": "Số lượng giao dịch trừ tiền thành công"
+            "required": "No",
+            "desc": "Số lượng giao dịch trừ tiền thành công"
           },
           {
-            "field": "FAILED_COUNT",
+            "name": "FAILED_COUNT",
             "type": "Integer",
-            "required": "System",
-            "default": "0",
-            "description": "Số lượng giao dịch trừ tiền thất bại"
+            "required": "No",
+            "desc": "Số lượng giao dịch trừ tiền thất bại"
           },
           {
-            "field": "TOTAL_CLEARED_AMT",
+            "name": "TOTAL_CLEARED_AMT",
             "type": "Decimal",
-            "required": "System",
-            "default": "0",
-            "description": "Tổng số tiền thực thu thành công chuyển vào sổ cái"
+            "required": "No",
+            "desc": "Tổng số tiền thực thu thành công chuyển vào sổ cái"
           }
         ],
         "validation_rules": [
           {
-            "code": "VAL-BCP-03-A",
-            "rule": "Tệp đối soát đã nạp thành công không được nạp lại lần thứ 2 để chống ghi nhận trùng lặp thu phí."
+            "ruleId": "VAL-BCP-03-A",
+            "ruleName": "Tệp đối soát đã nạp thành công không được nạp lại lần thứ 2 để chống ghi nhận trùng lặp thu phí.",
+            "errorCode": "ERR_VAL_BCP_03_A",
+            "severity": "HARD_STOP",
+            "condition": "Tệp đối soát đã nạp thành công không được nạp lại lần thứ 2 để chống ghi nhận trùng lặp thu phí.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 364
           },
           {
-            "code": "VAL-BCP-03-B",
-            "rule": "Chênh lệch giữa số tiền ngân hàng báo có và tổng số tiền hạch toán trên Core phải bằng đúng 0 VND."
+            "ruleId": "VAL-BCP-03-B",
+            "ruleName": "Chênh lệch giữa số tiền ngân hàng báo có và tổng số tiền hạch toán trên Core phải bằng đúng 0 VND.",
+            "errorCode": "ERR_VAL_BCP_03_B",
+            "severity": "HARD_STOP",
+            "condition": "Chênh lệch giữa số tiền ngân hàng báo có và tổng số tiền hạch toán trên Core phải bằng đúng 0 VND.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 364
           }
-        ],
-        "actuary_notes": "Tự động cập nhật PTD ngay khi ngân hàng báo có giúp bảo đảm quyền lợi bảo hiểm liên tục, không bị gián đoạn do độ trễ báo cáo.",
-        "op_notes": "Đối với các lỗi tài khoản không đủ số dư (Code 51), hệ thống tự động lập lịch trích nợ lại lần 2 sau 3 ngày làm việc."
+        ]
       },
       {
         "code": "SOP-BCP-04",
+        "id": "SOP-BCP-04",
         "title": "Manual Collection Entry & Suspense Allocation (NB, Renewal, CS, Top-Up)",
         "role": "Cashier / Collection Officer",
         "objective": "Ghi nhận thu tiền phí bảo hiểm thủ công tại quầy (tiền mặt, máy POS, chuyển khoản trực tiếp) và phân bổ tiền vào tài khoản treo nghiệp vụ tương ứng.",
-        "ui_path": "Collection > Manual Collection > Receive Collection",
         "pdf_page": 359,
         "prerequisites": [
           "Chứng từ nộp tiền hợp lệ (Ủy nhiệm chi, Phiếu nộp tiền ngân hàng, Biên lai POS).",
@@ -8972,60 +8797,65 @@ window.EBAO_MODULES = [
         ],
         "fields_table": [
           {
-            "field": "RECEIPT_NO",
+            "name": "RECEIPT_NO",
             "type": "String",
-            "required": "System",
-            "default": "N/A",
-            "description": "Số biên nhận thu tiền điện tử tự sinh"
+            "required": "No",
+            "desc": "Số biên nhận thu tiền điện tử tự sinh"
           },
           {
-            "field": "COLLECTION_AMOUNT",
+            "name": "COLLECTION_AMOUNT",
             "type": "Decimal",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Số tiền thực tế thu từ khách hàng"
+            "desc": "Số tiền thực tế thu từ khách hàng"
           },
           {
-            "field": "ALLOCATION_TYPE",
+            "name": "ALLOCATION_TYPE",
             "type": "Enum",
             "required": "Yes",
-            "default": "RENEWAL",
-            "description": "Loại phân bổ: NB, RENEWAL, TOPUP, LOAN_REPAY, CS"
+            "desc": "Loại phân bổ: NB, RENEWAL, TOPUP, LOAN_REPAY, CS"
           },
           {
-            "field": "PAYMENT_METHOD",
+            "name": "PAYMENT_METHOD",
             "type": "Enum",
             "required": "Yes",
-            "default": "BANK_TRANSFER",
-            "description": "Phương thức thu: CASH, BANK_TRANSFER, POS"
+            "desc": "Phương thức thu: CASH, BANK_TRANSFER, POS"
           },
           {
-            "field": "BANK_TRANS_REF",
+            "name": "BANK_TRANS_REF",
             "type": "String",
-            "required": "Conditional",
-            "default": "N/A",
-            "description": "Mã giao dịch ngân hàng / FT code"
+            "required": "No",
+            "desc": "Mã giao dịch ngân hàng / FT code"
           }
         ],
         "validation_rules": [
           {
-            "code": "VAL-BCP-04-A",
-            "rule": "Số tiền phân bổ thu phí định kỳ không được thấp hơn mức phí tối thiểu của kỳ đóng phí."
+            "ruleId": "VAL-BCP-04-A",
+            "ruleName": "Số tiền phân bổ thu phí định kỳ không được thấp hơn mức phí tối thiểu của kỳ đóng phí.",
+            "errorCode": "ERR_VAL_BCP_04_A",
+            "severity": "HARD_STOP",
+            "condition": "Số tiền phân bổ thu phí định kỳ không được thấp hơn mức phí tối thiểu của kỳ đóng phí.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 359
           },
           {
-            "code": "VAL-BCP-04-B",
-            "rule": "Thu hoàn trả khoản vay hợp đồng bắt buộc phân bổ thanh toán lãi vay trước khi giảm gốc vay."
+            "ruleId": "VAL-BCP-04-B",
+            "ruleName": "Thu hoàn trả khoản vay hợp đồng bắt buộc phân bổ thanh toán lãi vay trước khi giảm gốc vay.",
+            "errorCode": "ERR_VAL_BCP_04_B",
+            "severity": "HARD_STOP",
+            "condition": "Thu hoàn trả khoản vay hợp đồng bắt buộc phân bổ thanh toán lãi vay trước khi giảm gốc vay.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 359
           }
-        ],
-        "actuary_notes": "Phân bổ chính xác nguồn thu vào từng loại phí giúp tách bạch rõ ràng dòng tiền giữa quỹ chủ hợp đồng và quỹ cổ đông.",
-        "op_notes": "Biên nhận thu tiền điện tử kèm mã tra cứu tra soát được gửi ngay qua SMS và Email cho khách hàng."
+        ]
       },
       {
         "code": "SOP-BCP-05",
+        "id": "SOP-BCP-05",
         "title": "Suspense Account Management, Unmatched Pool & Balance Transfer",
         "role": "Senior BCP Accountant",
         "objective": "Quản trị bể tiền chưa khớp (Unmatched Collection Pool), thực hiện đối soát thủ công các khoản tiền chuyển sai cú pháp và chuyển tiền giữa các tài khoản treo.",
-        "ui_path": "Collection > Unmatched Pool & Suspense Transfer",
         "pdf_page": 366,
         "prerequisites": [
           "Danh sách các giao dịch báo có trong sao kê ngân hàng nhưng chưa khớp với bất kỳ hợp đồng nào trên hệ thống.",
@@ -9044,53 +8874,59 @@ window.EBAO_MODULES = [
         ],
         "fields_table": [
           {
-            "field": "UNMATCHED_TX_ID",
+            "name": "UNMATCHED_TX_ID",
             "type": "String",
-            "required": "System",
-            "default": "N/A",
-            "description": "Mã giao dịch treo chưa khớp duy nhất"
+            "required": "No",
+            "desc": "Mã giao dịch treo chưa khớp duy nhất"
           },
           {
-            "field": "REMITTANCE_REMARK",
+            "name": "REMITTANCE_REMARK",
             "type": "String",
-            "required": "System",
-            "default": "N/A",
-            "description": "Nội dung chuyển khoản trên sổ phụ ngân hàng"
+            "required": "No",
+            "desc": "Nội dung chuyển khoản trên sổ phụ ngân hàng"
           },
           {
-            "field": "TARGET_POLICY_NO",
+            "name": "TARGET_POLICY_NO",
             "type": "String",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Số hợp đồng được gán sau khi tra soát thành công"
+            "desc": "Số hợp đồng được gán sau khi tra soát thành công"
           },
           {
-            "field": "SUSPENSE_ACTION",
+            "name": "SUSPENSE_ACTION",
             "type": "Enum",
             "required": "Yes",
-            "default": "APPLY_TO_POLICY",
-            "description": "Hành động: APPLY_TO_POLICY, TRANSFER_APA, REFUND_CUSTOMER"
+            "desc": "Hành động: APPLY_TO_POLICY, TRANSFER_APA, REFUND_CUSTOMER"
           }
         ],
         "validation_rules": [
           {
-            "code": "VAL-BCP-05-A",
-            "rule": "Mọi khoản tiền trong Unmatched Pool quá 90 ngày chưa xác định được nguồn gốc bắt buộc chuyển vào tài khoản tiền gửi chờ xử lý tuân thủ quy định kiểm toán."
+            "ruleId": "VAL-BCP-05-A",
+            "ruleName": "Mọi khoản tiền trong Unmatched Pool quá 90 ngày chưa xác định được nguồn gốc bắt buộc chuyển vào tài khoản tiền gửi chờ xử lý tuân thủ quy định kiểm toán.",
+            "errorCode": "ERR_VAL_BCP_05_A",
+            "severity": "HARD_STOP",
+            "condition": "Mọi khoản tiền trong Unmatched Pool quá 90 ngày chưa xác định được nguồn gốc bắt buộc chuyển vào tài khoản tiền gửi chờ xử lý tuân thủ quy định kiểm toán.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 366
           },
           {
-            "code": "VAL-BCP-05-B",
-            "rule": "Lệnh hoàn trả tiền treo (Suspense Refund) bắt buộc phải chuyển về đúng tài khoản ngân hàng đã chuyển tiền đến."
+            "ruleId": "VAL-BCP-05-B",
+            "ruleName": "Lệnh hoàn trả tiền treo (Suspense Refund) bắt buộc phải chuyển về đúng tài khoản ngân hàng đã chuyển tiền đến.",
+            "errorCode": "ERR_VAL_BCP_05_B",
+            "severity": "HARD_STOP",
+            "condition": "Lệnh hoàn trả tiền treo (Suspense Refund) bắt buộc phải chuyển về đúng tài khoản ngân hàng đã chuyển tiền đến.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 366
           }
-        ],
-        "actuary_notes": "Giảm thiểu tiền treo chưa khớp giúp phản ánh trung thực quy mô phí thu thực tế và tránh làm sai lệch tỷ lệ duy trì hợp đồng.",
-        "op_notes": "Hàng tuần kế toán BCP xuất báo cáo Unmatched Aging Report gửi các chi nhánh để liên hệ khách hàng xác minh cú pháp."
+        ]
       },
       {
         "code": "SOP-BCP-06",
+        "id": "SOP-BCP-06",
         "title": "60-Day Premium Grace Period Tracking, Reminders (Day 30, 45) & EOD Auto-Lapse",
         "role": "Core Batch Supervisor / Customer Retention Lead",
         "objective": "Vận hành và giám sát động cơ 60 ngày gia hạn đóng phí luật định (Điều 37 Luật KDBH 2022), tự động gửi nhắc phí và kích hoạt quyết định mất hiệu lực tại EOD ngày thứ 60.",
-        "ui_path": "Billing > Grace Period Monitor & Batch Control Center",
         "pdf_page": 350,
         "prerequisites": [
           "Hợp đồng đã quá ngày đến hạn đóng phí (Due Date) mà chưa nhận đủ phí bảo hiểm định kỳ.",
@@ -9113,57 +8949,69 @@ window.EBAO_MODULES = [
         ],
         "fields_table": [
           {
-            "field": "DUE_DATE",
+            "name": "DUE_DATE",
             "type": "Date",
-            "required": "System",
-            "default": "N/A",
-            "description": "Ngày đến hạn đóng phí của hợp đồng"
+            "required": "No",
+            "desc": "Ngày đến hạn đóng phí của hợp đồng"
           },
           {
-            "field": "GRACE_DAYS_ELAPSED",
+            "name": "GRACE_DAYS_ELAPSED",
             "type": "Integer",
-            "required": "System",
-            "default": "0",
-            "description": "Số ngày gia hạn đã trôi qua (0 đến 60 ngày)"
+            "required": "No",
+            "desc": "Số ngày gia hạn đã trôi qua (0 đến 60 ngày)"
           },
           {
-            "field": "GRACE_CUTOFF_DATE",
+            "name": "GRACE_CUTOFF_DATE",
             "type": "Date",
-            "required": "System",
-            "default": "DUE_DATE + 60",
-            "description": "Thời điểm chốt hạn 60 ngày gia hạn đóng phí"
+            "required": "No",
+            "desc": "Thời điểm chốt hạn 60 ngày gia hạn đóng phí"
           },
           {
-            "field": "NOTICE_STATUS",
+            "name": "NOTICE_STATUS",
             "type": "Enum",
-            "required": "System",
-            "default": "ACTIVE",
-            "description": "Trạng thái thông báo: ACTIVE, REMIND_1_SENT, FINAL_WARNING_SENT, LAPSED"
+            "required": "No",
+            "desc": "Trạng thái thông báo: ACTIVE, REMIND_1_SENT, FINAL_WARNING_SENT, LAPSED"
           }
         ],
         "validation_rules": [
           {
-            "code": "VAL-BCP-06-A",
-            "rule": "Trong thời gian 60 ngày gia hạn, quyền lợi bảo vệ giữ nguyên 100%; nghiêm cấm từ chối bồi thường vì lý do chưa đóng phí."
+            "ruleId": "VAL-BCP-06-A",
+            "ruleName": "Trong thời gian 60 ngày gia hạn, quyền lợi bảo vệ giữ nguyên 100%; nghiêm cấm từ chối bồi thường vì lý do chưa đóng phí.",
+            "errorCode": "ERR_VAL_BCP_06_A",
+            "severity": "HARD_STOP",
+            "condition": "Trong thời gian 60 ngày gia hạn, quyền lợi bảo vệ giữ nguyên 100%; nghiêm cấm từ chối bồi thường vì lý do chưa đóng phí.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 350
           },
           {
-            "code": "VAL-BCP-06-B",
-            "rule": "Nếu sự kiện bảo hiểm tử vong/thương tật xảy ra trong 60 ngày gia hạn, quyền lợi bồi thường được chi trả đầy đủ sau khi khấu trừ kỳ phí chưa nộp."
+            "ruleId": "VAL-BCP-06-B",
+            "ruleName": "Nếu sự kiện bảo hiểm tử vong/thương tật xảy ra trong 60 ngày gia hạn, quyền lợi bồi thường được chi trả đầy đủ sau khi khấu trừ kỳ phí chưa nộp.",
+            "errorCode": "ERR_VAL_BCP_06_B",
+            "severity": "HARD_STOP",
+            "condition": "Nếu sự kiện bảo hiểm tử vong/thương tật xảy ra trong 60 ngày gia hạn, quyền lợi bồi thường được chi trả đầy đủ sau khi khấu trừ kỳ phí chưa nộp.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 350
           },
           {
-            "code": "VAL-BCP-06-C",
-            "rule": "Thời điểm chuyển Lapsed là thời điểm kết thúc ngày thứ 60 (23:59:59); không được chuyển sớm trước hạn luật định."
+            "ruleId": "VAL-BCP-06-C",
+            "ruleName": "Thời điểm chuyển Lapsed là thời điểm kết thúc ngày thứ 60 (23:59:59); không được chuyển sớm trước hạn luật định.",
+            "errorCode": "ERR_VAL_BCP_06_C",
+            "severity": "HARD_STOP",
+            "condition": "Thời điểm chuyển Lapsed là thời điểm kết thúc ngày thứ 60 (23:59:59); không được chuyển sớm trước hạn luật định.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 350
           }
-        ],
-        "actuary_notes": "Quy định 60 ngày gia hạn là quyền lợi luật định bảo vệ khách hàng tránh mất quyền lợi bảo hiểm do biến cố tài chính tạm thời.",
-        "op_notes": "Đội ngũ Dịch vụ khách hàng chủ động gọi điện hỗ trợ khách hàng từ ngày 45 đến ngày 55 để tối ưu hóa tỷ lệ giữ hợp đồng."
+        ]
       },
       {
         "code": "SOP-BCP-07",
+        "id": "SOP-BCP-07",
         "title": "Non-Forfeiture Automatic Premium Loan (APL) Execution & CSV Depletion",
         "role": "Actuarial Operations / Core Batch Engine",
         "objective": "Tự động trích tiền từ Giá trị hoàn lại ròng để đóng phí bảo hiểm (APL) vào nửa đêm ngày thứ 60, duy trì hiệu lực hợp đồng liên tục cho khách hàng.",
-        "ui_path": "Billing > Non-Forfeiture Engine > APL Processing",
         "pdf_page": 373,
         "prerequisites": [
           "Hợp đồng đã quá 60 ngày gia hạn đóng phí mà khách hàng chưa thanh toán phí định kỳ.",
@@ -9186,57 +9034,69 @@ window.EBAO_MODULES = [
         ],
         "fields_table": [
           {
-            "field": "APL_LOAN_AMOUNT",
+            "name": "APL_LOAN_AMOUNT",
             "type": "Decimal",
-            "required": "System",
-            "default": "0",
-            "description": "Số tiền phí bảo hiểm được tạm ứng tự động"
+            "required": "No",
+            "desc": "Số tiền phí bảo hiểm được tạm ứng tự động"
           },
           {
-            "field": "NET_CSV_BEFORE_APL",
+            "name": "NET_CSV_BEFORE_APL",
             "type": "Decimal",
-            "required": "System",
-            "default": "0",
-            "description": "Giá trị hoàn lại ròng trước khi tạm ứng"
+            "required": "No",
+            "desc": "Giá trị hoàn lại ròng trước khi tạm ứng"
           },
           {
-            "field": "NET_CSV_AFTER_APL",
+            "name": "NET_CSV_AFTER_APL",
             "type": "Decimal",
-            "required": "System",
-            "default": "0",
-            "description": "Giá trị hoàn lại ròng còn lại sau khi tạm ứng"
+            "required": "No",
+            "desc": "Giá trị hoàn lại ròng còn lại sau khi tạm ứng"
           },
           {
-            "field": "APL_INTEREST_RATE",
+            "name": "APL_INTEREST_RATE",
             "type": "Decimal(4,3)",
-            "required": "System",
-            "default": "0.065",
-            "description": "Lãi suất vay APL tính theo năm (6.5%/năm)"
+            "required": "No",
+            "desc": "Lãi suất vay APL tính theo năm (6.5%/năm)"
           }
         ],
         "validation_rules": [
           {
-            "code": "VAL-BCP-07-A",
-            "rule": "Nếu Net CSV < Phí định kỳ, không được thực hiện APL toàn phần; hệ thống tự động chuyển sang APL Lapsed."
+            "ruleId": "VAL-BCP-07-A",
+            "ruleName": "Nếu Net CSV < Phí định kỳ, không được thực hiện APL toàn phần; hệ thống tự động chuyển sang APL Lapsed.",
+            "errorCode": "ERR_VAL_BCP_07_A",
+            "severity": "HARD_STOP",
+            "condition": "Nếu Net CSV < Phí định kỳ, không được thực hiện APL toàn phần; hệ thống tự động chuyển sang APL Lapsed.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 373
           },
           {
-            "code": "VAL-BCP-07-B",
-            "rule": "Lãi vay APL được tính dồn hàng ngày và tự động vốn hóa vào nợ gốc vào mỗi ngày kỷ niệm hợp đồng."
+            "ruleId": "VAL-BCP-07-B",
+            "ruleName": "Lãi vay APL được tính dồn hàng ngày và tự động vốn hóa vào nợ gốc vào mỗi ngày kỷ niệm hợp đồng.",
+            "errorCode": "ERR_VAL_BCP_07_B",
+            "severity": "HARD_STOP",
+            "condition": "Lãi vay APL được tính dồn hàng ngày và tự động vốn hóa vào nợ gốc vào mỗi ngày kỷ niệm hợp đồng.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 373
           },
           {
-            "code": "VAL-BCP-07-C",
-            "rule": "Khách hàng có thể hoàn trả khoản vay APL bất kỳ lúc nào để khôi phục lại giá trị hoàn lại của hợp đồng."
+            "ruleId": "VAL-BCP-07-C",
+            "ruleName": "Khách hàng có thể hoàn trả khoản vay APL bất kỳ lúc nào để khôi phục lại giá trị hoàn lại của hợp đồng.",
+            "errorCode": "ERR_VAL_BCP_07_C",
+            "severity": "HARD_STOP",
+            "condition": "Khách hàng có thể hoàn trả khoản vay APL bất kỳ lúc nào để khôi phục lại giá trị hoàn lại của hợp đồng.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 373
           }
-        ],
-        "actuary_notes": "APL bảo vệ quyền lợi bảo hiểm liên tục cho khách hàng trong khi vẫn bảo toàn an toàn quỹ dự phòng nghiệp vụ thông qua tài sản đảm bảo CSV.",
-        "op_notes": "Hệ thống tự động theo dõi số dư CSV còn lại sau mỗi lần APL và gửi cảnh báo khi số dư chỉ còn đủ cho 1 kỳ phí kế tiếp."
+        ]
       },
       {
         "code": "SOP-BCP-08",
+        "id": "SOP-BCP-08",
         "title": "Outbound Disbursement Processing (Lump Sum, Installments) & Payment Cancellation",
         "role": "Disbursement Specialist / Cashier",
         "objective": "Quản lý và thực hiện các lệnh chi trả tiền ra bên ngoài (Disbursement): Hoàn phí 21 ngày Free-Look, bồi thường, giải ước, giải ngân vay hợp đồng hoặc chi trả niên kim định kỳ.",
-        "ui_path": "Payment > Disbursement Workbench & Payment Requisition",
         "pdf_page": 381,
         "prerequisites": [
           "Lệnh yêu cầu chi trả (Payment Requisition) đã được phê duyệt hợp lệ từ Module 02 (Free-Look), Module 04 (CS/Surrender/Loan), hoặc Module 06 (Claims).",
@@ -9258,53 +9118,58 @@ window.EBAO_MODULES = [
         ],
         "fields_table": [
           {
-            "field": "PAYMENT_REF_NO",
+            "name": "PAYMENT_REF_NO",
             "type": "String",
-            "required": "System",
-            "default": "N/A",
-            "description": "Mã định danh lệnh chi tiền ra duy nhất"
+            "required": "No",
+            "desc": "Mã định danh lệnh chi tiền ra duy nhất"
           },
           {
-            "field": "DISBURSEMENT_TYPE",
+            "name": "DISBURSEMENT_TYPE",
             "type": "Enum",
-            "required": "System",
-            "default": "LUMP_SUM",
-            "description": "Loại hình chi trả: LUMP_SUM, INSTALLMENT"
+            "required": "No",
+            "desc": "Loại hình chi trả: LUMP_SUM, INSTALLMENT"
           },
           {
-            "field": "PAYEE_NAME",
+            "name": "PAYEE_NAME",
             "type": "String",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Họ và tên người nhận tiền thực tế"
+            "desc": "Họ và tên người nhận tiền thực tế"
           },
           {
-            "field": "PAYEE_BANK_ACCOUNT",
+            "name": "PAYEE_BANK_ACCOUNT",
             "type": "String",
             "required": "Yes",
-            "default": "N/A",
-            "description": "Số tài khoản ngân hàng người nhận"
+            "desc": "Số tài khoản ngân hàng người nhận"
           },
           {
-            "field": "PAID_AMOUNT",
+            "name": "PAID_AMOUNT",
             "type": "Decimal",
-            "required": "System",
-            "default": "0",
-            "description": "Số tiền thực chi chuyển khoản"
+            "required": "No",
+            "desc": "Số tiền thực chi chuyển khoản"
           }
         ],
         "validation_rules": [
           {
-            "code": "VAL-BCP-08-A",
-            "rule": "Tên chủ tài khoản ngân hàng nhận tiền phải trùng khớp với thông tin người thụ hưởng hoặc Bên mua bảo hiểm trên hợp đồng."
+            "ruleId": "VAL-BCP-08-A",
+            "ruleName": "Tên chủ tài khoản ngân hàng nhận tiền phải trùng khớp với thông tin người thụ hưởng hoặc Bên mua bảo hiểm trên hợp đồng.",
+            "errorCode": "ERR_VAL_BCP_08_A",
+            "severity": "HARD_STOP",
+            "condition": "Tên chủ tài khoản ngân hàng nhận tiền phải trùng khớp với thông tin người thụ hưởng hoặc Bên mua bảo hiểm trên hợp đồng.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 381
           },
           {
-            "code": "VAL-BCP-08-B",
-            "rule": "Lệnh chi tiền đã ở trạng thái 'PAID' không được phép hủy trực tiếp; bắt buộc phải thực hiện quy trình thu hồi (Payment Reversal) có phê duyệt Giám đốc Tài chính."
+            "ruleId": "VAL-BCP-08-B",
+            "ruleName": "Lệnh chi tiền đã ở trạng thái 'PAID' không được phép hủy trực tiếp; bắt buộc phải thực hiện quy trình thu hồi (Payment Reversal) có phê duyệt Giám đốc Tài chính.",
+            "errorCode": "ERR_VAL_BCP_08_B",
+            "severity": "HARD_STOP",
+            "condition": "Lệnh chi tiền đã ở trạng thái 'PAID' không được phép hủy trực tiếp; bắt buộc phải thực hiện quy trình thu hồi (Payment Reversal) có phê duyệt Giám đốc Tài chính.",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 381
           }
-        ],
-        "actuary_notes": "Chi trả qua kênh điện tử 24/7 giúp rút ngắn thời gian giải quyết quyền lợi khách hàng và giảm chi phí quản lý tiền mặt.",
-        "op_notes": "Tích hợp dịch vụ NAPAS 24/7 giúp tiền đến tài khoản khách hàng chỉ trong vòng 30 giây kể từ khi phê duyệt lệnh chi."
+        ]
       }
     ],
     "sop_count": 8,
@@ -9356,256 +9221,160 @@ window.EBAO_MODULES = [
     "validation_rules": [
       {
         "ruleId": "VAL-BCP-001",
-        "module": "MOD_05",
-        "moduleName": "Billing & Collection",
-        "lifecyclePhase": "05. Billing & Grace",
-        "stage": "Grace Period",
-        "targetEntity": "T_POL_POLICY",
         "ruleName": "60-Day Full Protection Integrity",
-        "condition": "Policy remains 100% Inforce with full coverage benefits during all 60 days of Grace Period.",
-        "severity": "CRITICAL",
         "errorCode": "ERR_BCP_GRACE_REJECTION_PROHIBITED",
-        "errorMessage": "Nghiêm cấm từ chối bồi thường hoặc cắt giảm quyền lợi trong thời gian 60 ngày gia hạn đóng phí.",
+        "severity": "CRITICAL",
+        "condition": "Policy remains 100% Inforce with full coverage benefits during all 60 days of Grace Period.",
         "systemAction": "Bảo lưu trạng thái hợp đồng và tiếp nhận hồ sơ bồi thường bình thường.",
         "actuarialBasis": "Tuân thủ Điều 37 Luật Kinh doanh Bảo hiểm số 08/2022/QH15.",
         "pdfPage": 350
       },
       {
         "ruleId": "VAL-BCP-002",
-        "module": "MOD_05",
-        "moduleName": "Billing & Collection",
-        "lifecyclePhase": "05. Billing & Grace",
-        "stage": "Claim in Grace",
-        "targetEntity": "T_CLM_SETTLEMENT",
         "ruleName": "Overdue Premium Offset on Grace Claim",
-        "condition": "Unpaid modal premium must be deducted from the claim payout if death or event occurs during Grace Period.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_BCP_CLAIM_PREM_OFFSET_REQUIRED",
-        "errorMessage": "Sự kiện bảo hiểm xảy ra trong kỳ gia hạn; bắt buộc khấu trừ kỳ phí chưa nộp vào số tiền bồi thường.",
+        "severity": "HARD_STOP",
+        "condition": "Unpaid modal premium must be deducted from the claim payout if death or event occurs during Grace Period.",
         "systemAction": "Tự động tạo bản ghi khấu trừ phí trước khi duyệt chi trả bồi thường.",
         "actuarialBasis": "Bảo đảm nguyên tắc công bằng định phí: Phí bảo hiểm của kỳ rủi ro phát sinh phải được thanh toán đầy đủ.",
         "pdfPage": 350
       },
       {
         "ruleId": "VAL-BCP-003",
-        "module": "MOD_05",
-        "moduleName": "Billing & Collection",
-        "lifecyclePhase": "05. Billing & Grace",
-        "stage": "APL Execution",
-        "targetEntity": "T_POL_LOAN",
         "ruleName": "APL Cash Value Sufficiency Constraint",
-        "condition": "APL requires Net CSV >= Modal Installment Premium on Midnight of Grace Day 60.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_BCP_APL_INSUFFICIENT_CSV",
-        "errorMessage": "Giá trị hoàn lại ròng không đủ để thực hiện tạm ứng đóng phí tự động APL.",
+        "severity": "HARD_STOP",
+        "condition": "APL requires Net CSV >= Modal Installment Premium on Midnight of Grace Day 60.",
         "systemAction": "Chuyển hướng quyết định từ APL sang Auto-Lapse.",
         "actuarialBasis": "Ngăn ngừa việc tạm ứng vượt quá tài sản đảm bảo của hợp đồng dẫn đến nợ xấu bảo hiểm.",
         "pdfPage": 373
       },
       {
         "ruleId": "VAL-BCP-004",
-        "module": "MOD_05",
-        "moduleName": "Billing & Collection",
-        "lifecyclePhase": "05. Billing & Grace",
-        "stage": "Midnight EOD",
-        "targetEntity": "T_POL_POLICY",
         "ruleName": "Midnight Auto-Lapse Cutoff Strict Timing",
-        "condition": "Auto-lapse execution occurs strictly at 23:59:59 of Grace Day 60, not earlier.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_BCP_PREMATURE_LAPSE_PROHIBITED",
-        "errorMessage": "Không được chuyển trạng thái Mất Hiệu Lực trước khi kết thúc đủ 60 ngày gia hạn.",
+        "severity": "HARD_STOP",
+        "condition": "Auto-lapse execution occurs strictly at 23:59:59 of Grace Day 60, not earlier.",
         "systemAction": "Chặn lệnh cập nhật Lapsed thủ công của người dùng trước hạn chót.",
         "actuarialBasis": "Bảo vệ quyền lợi khách hàng có quyền nộp phí đến phút cuối cùng của ngày thứ 60.",
         "pdfPage": 350
       },
       {
         "ruleId": "VAL-BCP-005",
-        "module": "MOD_05",
-        "moduleName": "Billing & Collection",
-        "lifecyclePhase": "05. Billing & Grace",
-        "stage": "Suspense Allocation",
-        "targetEntity": "T_BCP_SUSPENSE",
         "ruleName": "Suspense Minimum Tolerance Match 100%",
-        "condition": "Renewal allocation requires suspense balance >= 100.0% of modal installment premium.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_BCP_SUSPENSE_UNDERFUNDED",
-        "errorMessage": "Số dư trong tài khoản treo Suspense chưa đủ để thanh toán tròn kỳ phí định kỳ.",
+        "severity": "HARD_STOP",
+        "condition": "Renewal allocation requires suspense balance >= 100.0% of modal installment premium.",
         "systemAction": "Giữ tiền trong tài khoản Suspense và không nâng ngày PTD.",
         "actuarialBasis": "Doanh nghiệp bảo hiểm không chấp nhận thanh toán dở dang làm lệch chu kỳ bảo vệ.",
         "pdfPage": 363
       },
       {
         "ruleId": "VAL-BCP-006",
-        "module": "MOD_05",
-        "moduleName": "Billing & Collection",
-        "lifecyclePhase": "05. Billing & Grace",
-        "stage": "Direct Debit",
-        "targetEntity": "T_BCP_DIRECT_DEBIT",
         "ruleName": "Direct Debit Duplicate Extraction Lock",
-        "condition": "Policy cannot be extracted into multiple active clearing batches simultaneously.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_BCP_DD_CONCURRENT_EXTRACTION",
-        "errorMessage": "Hợp đồng đang nằm trong một tệp trích nợ chờ ngân hàng xử lý; không thể xuất tệp lần 2.",
+        "severity": "HARD_STOP",
+        "condition": "Policy cannot be extracted into multiple active clearing batches simultaneously.",
         "systemAction": "Khóa trường BILLING_STATUS = 'IN_COLLECTION'.",
         "actuarialBasis": "Ngăn ngừa trừ tiền trùng lặp từ tài khoản ngân hàng của khách hàng.",
         "pdfPage": 355
       },
       {
         "ruleId": "VAL-BCP-007",
-        "module": "MOD_05",
-        "moduleName": "Billing & Collection",
-        "lifecyclePhase": "05. Billing & Grace",
-        "stage": "Direct Debit Mandate",
-        "targetEntity": "T_BCP_MANDATE",
         "ruleName": "Mandate Verification Prior to Clearing",
-        "condition": "Direct debit extraction permitted only for accounts with VERIFIED mandate status.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_BCP_MANDATE_UNVERIFIED",
-        "errorMessage": "Ủy quyền trích nợ tự động chưa được ngân hàng xác minh tính hợp lệ.",
+        "severity": "HARD_STOP",
+        "condition": "Direct debit extraction permitted only for accounts with VERIFIED mandate status.",
         "systemAction": "Loại bỏ hợp đồng khỏi danh sách xuất tệp trích nợ tự động.",
         "actuarialBasis": "Tuân thủ quy định thanh toán không dùng tiền mặt và phòng tránh khiếu nại trái phép.",
         "pdfPage": 355
       },
       {
         "ruleId": "VAL-BCP-008",
-        "module": "MOD_05",
-        "moduleName": "Billing & Collection",
-        "lifecyclePhase": "05. Billing & Grace",
-        "stage": "Batch Return",
-        "targetEntity": "T_BCP_CLEARING_FILE",
         "ruleName": "Clearing File Idempotency Guarantee",
-        "condition": "A bank clearing return file can only be processed and settled exactly once.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_BCP_FILE_ALREADY_PROCESSED",
-        "errorMessage": "Tệp kết quả thanh toán này đã được đối soát và hạch toán trước đó.",
+        "severity": "HARD_STOP",
+        "condition": "A bank clearing return file can only be processed and settled exactly once.",
         "systemAction": "Từ chối nạp tệp và gửi cảnh báo trùng lặp cho kế toán.",
         "actuarialBasis": "Ngăn chặn ghi nhận doanh thu phí và cập nhật PTD hai lần.",
         "pdfPage": 364
       },
       {
         "ruleId": "VAL-BCP-009",
-        "module": "MOD_05",
-        "moduleName": "Billing & Collection",
-        "lifecyclePhase": "05. Billing & Grace",
-        "stage": "Unmatched Pool",
-        "targetEntity": "T_BCP_UNMATCHED",
         "ruleName": "Unmatched Pool 90-Day Aging Cutoff",
-        "condition": "Unidentified funds remaining in Unmatched Pool > 90 days must be transferred to Audit Holding Account.",
-        "severity": "WARNING",
         "errorCode": "WARN_BCP_UNMATCHED_AGING_OVERFLOW",
-        "errorMessage": "Khoản tiền treo chưa khớp đã quá hạn 90 ngày theo chuẩn kế toán kiểm toán.",
+        "severity": "WARNING",
+        "condition": "Unidentified funds remaining in Unmatched Pool > 90 days must be transferred to Audit Holding Account.",
         "systemAction": "Tự động chuyển vào tài khoản tiền gửi chờ thanh toán kiểm toán.",
         "actuarialBasis": "Bảo đảm tính trung thực của báo cáo tài chính và tuân thủ chuẩn mực kế toán doanh nghiệp bảo hiểm.",
         "pdfPage": 366
       },
       {
         "ruleId": "VAL-BCP-010",
-        "module": "MOD_05",
-        "moduleName": "Billing & Collection",
-        "lifecyclePhase": "05. Billing & Grace",
-        "stage": "APL Interest",
-        "targetEntity": "T_POL_LOAN",
         "ruleName": "APL Statutory Interest Accrual Standard",
-        "condition": "APL loan interest is accrued daily at the approved statutory rate (6.5%/year) and capitalized annually.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_BCP_APL_RATE_NONCOMPLIANT",
-        "errorMessage": "Lãi suất tính cho khoản vay đóng phí APL không đúng với tỷ lệ đã đăng ký với Bộ Tài chính.",
+        "severity": "HARD_STOP",
+        "condition": "APL loan interest is accrued daily at the approved statutory rate (6.5%/year) and capitalized annually.",
         "systemAction": "Áp dụng tỷ lệ lãi suất mặc định của bảng tham số hệ thống.",
         "actuarialBasis": "Tuân thủ quy tắc tính toán lãi vay hợp đồng đã được phê chuẩn trong Product Spec.",
         "pdfPage": 373
       },
       {
         "ruleId": "VAL-BCP-011",
-        "module": "MOD_05",
-        "moduleName": "Billing & Collection",
-        "lifecyclePhase": "05. Billing & Grace",
-        "stage": "Billing Notice",
-        "targetEntity": "T_BCP_NOTICE",
         "ruleName": "Paid-Up Exemption from Billing Generation",
-        "condition": "Policies with status PAID_UP or WAIVED must be excluded from billing notice generation.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_BCP_PAIDUP_BILLING_PROHIBITED",
-        "errorMessage": "Hợp đồng đã đóng đủ phí hoặc chuyển RPU không được phát sinh thông báo thu phí.",
+        "severity": "HARD_STOP",
+        "condition": "Policies with status PAID_UP or WAIVED must be excluded from billing notice generation.",
         "systemAction": "Tự động bỏ qua hợp đồng trong tiến trình quét lập hóa đơn.",
         "actuarialBasis": "Khách hàng không còn nghĩa vụ đóng phí; tránh gây hiểu lầm và khiếu nại.",
         "pdfPage": 346
       },
       {
         "ruleId": "VAL-BCP-012",
-        "module": "MOD_05",
-        "moduleName": "Billing & Collection",
-        "lifecyclePhase": "05. Billing & Grace",
-        "stage": "Advance Premium",
-        "targetEntity": "T_BCP_APA",
         "ruleName": "Advance Premium Account (APA) Auto-Drawdown",
-        "condition": "If Advance Premium Account balance > 0, system automatically draws from APA before billing customer.",
-        "severity": "HARD_STOP",
         "errorCode": "INFO_BCP_APA_AUTO_DRAWDOWN",
-        "errorMessage": "Đã tự động trích tiền từ tài khoản phí đóng trước (APA) để thanh toán phí định kỳ.",
+        "severity": "HARD_STOP",
+        "condition": "If Advance Premium Account balance > 0, system automatically draws from APA before billing customer.",
         "systemAction": "Trích tiền APA, cập nhật PTD và không xuất tệp trích nợ ngân hàng.",
         "actuarialBasis": "Ưu tiên giải tỏa nguồn vốn trả trước của khách hàng trước khi tạo thêm nghĩa vụ thanh toán.",
         "pdfPage": 345
       },
       {
         "ruleId": "VAL-BCP-013",
-        "module": "MOD_05",
-        "moduleName": "Billing & Collection",
-        "lifecyclePhase": "05. Billing & Grace",
-        "stage": "Disbursement",
-        "targetEntity": "T_BCP_PAYMENT",
         "ruleName": "Payee Name Identity Strict Match",
-        "condition": "Disbursement bank account owner name must match Policyholder or Designated Beneficiary.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_BCP_PAYEE_NAME_MISMATCH",
-        "errorMessage": "Tên chủ tài khoản nhận tiền không trùng khớp với người được hưởng quyền lợi trên hợp đồng.",
+        "severity": "HARD_STOP",
+        "condition": "Disbursement bank account owner name must match Policyholder or Designated Beneficiary.",
         "systemAction": "Chặn giải ngân và yêu cầu xác minh bổ sung hoặc cung cấp tài khoản chính chủ.",
         "actuarialBasis": "Phòng chống gian lận nội bộ và bảo đảm tính pháp lý trong việc chi trả quyền lợi bảo hiểm.",
         "pdfPage": 381
       },
       {
         "ruleId": "VAL-BCP-014",
-        "module": "MOD_05",
-        "moduleName": "Billing & Collection",
-        "lifecyclePhase": "05. Billing & Grace",
-        "stage": "Payment Cancellation",
-        "targetEntity": "T_BCP_PAYMENT",
         "ruleName": "Paid Disbursement Reversal Authorization",
-        "condition": "Cancelling a PAID disbursement order requires Chief Financial Officer (CFO) dual authorization.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_BCP_REVERSAL_DOA_UNAUTHORIZED",
-        "errorMessage": "Lệnh chi tiền đã chuyển khoản thành công; yêu cầu thu hồi bắt buộc phải có phê duyệt của Giám đốc Tài chính.",
+        "severity": "HARD_STOP",
+        "condition": "Cancelling a PAID disbursement order requires Chief Financial Officer (CFO) dual authorization.",
         "systemAction": "Khóa lệnh hủy và chuyển luồng phê duyệt sang tài khoản CFO.",
         "actuarialBasis": "Kiểm soát rủi ro thất thoát ngân quỹ doanh nghiệp bảo hiểm.",
         "pdfPage": 396
       },
       {
         "ruleId": "VAL-BCP-015",
-        "module": "MOD_05",
-        "moduleName": "Billing & Collection",
-        "lifecyclePhase": "05. Billing & Grace",
-        "stage": "PTD Advance",
-        "targetEntity": "T_POL_POLICY",
         "ruleName": "Paid-To-Date Synchronization Across Riders",
-        "condition": "Advancing Base Policy PTD automatically advances all active attached riders' PTD concurrently.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_BCP_PTD_DESYNCHRONIZATION",
-        "errorMessage": "Ngày đến hạn đóng phí PTD của sản phẩm bổ trợ bị lệch so với hợp đồng chính.",
+        "severity": "HARD_STOP",
+        "condition": "Advancing Base Policy PTD automatically advances all active attached riders' PTD concurrently.",
         "systemAction": "Tự động đồng bộ hóa toàn bộ PTD của các rider theo hợp đồng chính.",
         "actuarialBasis": "Bảo đảm đồng nhất chu kỳ thu phí và tính toán dự phòng nghiệp vụ của toàn bộ gói hợp đồng.",
         "pdfPage": 363
       },
       {
         "ruleId": "VAL-BCP-016",
-        "module": "MOD_05",
-        "moduleName": "Billing & Collection",
-        "lifecyclePhase": "05. Billing & Grace",
-        "stage": "GL Posting",
-        "targetEntity": "T_PUB_TX_UNDO_LOG",
         "ruleName": "Two-Phase Commit Settlement Post-Image Recording",
-        "condition": "Every renewal settlement must persist undo log snapshot before updating SOR tables.",
-        "severity": "CRITICAL",
         "errorCode": "ERR_BCP_2PC_UNDO_MISSING",
-        "errorMessage": "Không thể lưu bản ghi snapshot giao dịch 2PC trước khi hạch toán vào sổ cái và SOR.",
+        "severity": "CRITICAL",
+        "condition": "Every renewal settlement must persist undo log snapshot before updating SOR tables.",
         "systemAction": "Hủy giao dịch thu phí và trả lời lỗi cho ngân hàng.",
         "actuarialBasis": "Bảo đảm tính toàn vẹn 100% của sổ sách kế toán bảo hiểm trong kiến trúc phân tán.",
         "pdfPage": 416
@@ -11005,9 +10774,12 @@ window.EBAO_MODULES = [
     "function_count": 73,
     "sops": [
       {
+        "code": "SOP-CLM-01",
         "id": "SOP-CLM-01",
         "title": "First Notice of Loss (FNOL) Registration & Claim Case Creation",
-        "screen": "Claims > Work List > Register a Case (P.274)",
+        "role": "Core PAS Specialist",
+        "objective": "Claims > Work List > Register a Case (P.274)",
+        "pdf_page": 304,
         "prerequisites": [
           "Người được bảo hiểm (Life Assured) phải tồn tại trong cơ sở dữ liệu khách hàng (T_PARTY) và có ít nhất 1 hợp đồng đang ở trạng thái Inforce hoặc đang trong thời gian gia hạn 60 ngày.",
           "Người nộp đơn bồi thường (Claimant) có đầy đủ giấy tờ định danh (CCCD/Hộ chiếu) hợp lệ.",
@@ -11021,77 +10793,86 @@ window.EBAO_MODULES = [
           "Bước 5: Nhập ghi chú ban đầu tại ô General Comments nếu có thông tin đặc biệt từ hiện trường hoặc cơ quan giám định.",
           "Bước 6: Nhấn nút 'Submit' để lưu hồ sơ. Hệ thống thực thi quy tắc kiểm tra toàn vẹn, tự sinh mã hồ sơ Claim Case No duy nhất theo định dạng CLM-YYYYMMDD-XXXXX, gắn trạng thái ban đầu là 'Waiting for Acceptance', và tạo liên kết Policy-Party role cho Claimant."
         ],
-        "validation_rules": [
-          {
-            "ruleId": "VAL-CLM-001",
-            "name": "Event Date & Notification Date Validation",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CLM_FUTURE_DATE_INVALID",
-            "description": "Ngày xảy ra sự kiện và Ngày thông báo không được trễ hơn ngày hệ thống (Event Date <= System Date và Notification Date <= System Date - P.319, 335)."
-          },
-          {
-            "ruleId": "VAL-CLM-002",
-            "name": "Valid Life Assured Existence Check",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CLM_INVALID_LIFE_ASSURED",
-            "description": "Hồ sơ bồi thường bắt buộc phải gắn với một Người được bảo hiểm đang tồn tại trong hệ thống, không được tạo hồ sơ rỗng (P.272, 320)."
-          }
-        ],
-        "ui_fields": [
+        "fields_table": [
           {
             "name": "Claim Case No",
             "type": "Text (Read-only)",
-            "req": true,
-            "note": "Hệ thống tự động sinh khi submit thành công (CLM-YYYYMMDD-XXXXX)"
+            "required": "Yes",
+            "desc": "Hệ thống tự động sinh khi submit thành công (CLM-YYYYMMDD-XXXXX)"
           },
           {
             "name": "Event Date",
             "type": "Date Picker",
-            "req": true,
-            "note": "Ngày xảy ra sự kiện rủi ro (tai nạn, tử vong, chẩn đoán, nhập viện)"
+            "required": "Yes",
+            "desc": "Ngày xảy ra sự kiện rủi ro (tai nạn, tử vong, chẩn đoán, nhập viện)"
           },
           {
             "name": "Notification Date",
             "type": "Date Picker",
-            "req": true,
-            "note": "Ngày công ty bảo hiểm nhận được thông báo tổn thất"
+            "required": "Yes",
+            "desc": "Ngày công ty bảo hiểm nhận được thông báo tổn thất"
           },
           {
             "name": "Claim Type",
             "type": "Dropdown List",
-            "req": true,
-            "note": "Death, TPD, Critical Illness, Medical, Hospitalization, Waiver"
+            "required": "Yes",
+            "desc": "Death, TPD, Critical Illness, Medical, Hospitalization, Waiver"
           },
           {
             "name": "Claim Nature",
             "type": "Dropdown List",
-            "req": true,
-            "note": "Bản chất sự kiện: Tai nạn, Bệnh tật, Tự nhiên, Thai sản"
+            "required": "Yes",
+            "desc": "Bản chất sự kiện: Tai nạn, Bệnh tật, Tự nhiên, Thai sản"
           },
           {
             "name": "Claimant ID & Name",
             "type": "Party Lookup",
-            "req": true,
-            "note": "Người đại diện nộp hồ sơ yêu cầu giải quyết bồi thường"
+            "required": "Yes",
+            "desc": "Người đại diện nộp hồ sơ yêu cầu giải quyết bồi thường"
           },
           {
             "name": "Relationship to LA",
             "type": "Dropdown List",
-            "req": true,
-            "note": "Mối quan hệ với Người được bảo hiểm"
+            "required": "Yes",
+            "desc": "Mối quan hệ với Người được bảo hiểm"
           },
           {
             "name": "General Comments",
             "type": "Textarea",
-            "req": false,
-            "note": "Ghi chú tóm tắt sơ bộ về diễn biến tổn thất"
+            "required": "No",
+            "desc": "Ghi chú tóm tắt sơ bộ về diễn biến tổn thất"
+          }
+        ],
+        "validation_rules": [
+          {
+            "ruleId": "VAL-CLM-001",
+            "ruleName": "Event Date & Notification Date Validation",
+            "errorCode": "ERR_CLM_FUTURE_DATE_INVALID",
+            "severity": "HARD_STOP",
+            "condition": "Ngày xảy ra sự kiện và Ngày thông báo không được trễ hơn ngày hệ thống (Event Date <= System Date và Notification Date <= System Date - P.319, 335).",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 304
+          },
+          {
+            "ruleId": "VAL-CLM-002",
+            "ruleName": "Valid Life Assured Existence Check",
+            "errorCode": "ERR_CLM_INVALID_LIFE_ASSURED",
+            "severity": "HARD_STOP",
+            "condition": "Hồ sơ bồi thường bắt buộc phải gắn với một Người được bảo hiểm đang tồn tại trong hệ thống, không được tạo hồ sơ rỗng (P.272, 320).",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 304
           }
         ]
       },
       {
+        "code": "SOP-CLM-02",
         "id": "SOP-CLM-02",
         "title": "Case Acceptance, Policy Freezing & Initial Reserve Provisioning",
-        "screen": "Claims > Case Acceptance > Decision Page (P.277-281)",
+        "role": "Core PAS Specialist",
+        "objective": "Claims > Case Acceptance > Decision Page (P.277-281)",
+        "pdf_page": 304,
         "prerequisites": [
           "Hồ sơ bồi thường ở trạng thái 'Waiting for Acceptance' hoặc 'Acceptance in Progress'.",
           "Cán bộ tiếp nhận có thẩm quyền phân quyền xử lý tiếp nhận hồ sơ bồi thường."
@@ -11105,72 +10886,84 @@ window.EBAO_MODULES = [
           "Bước 6: Kiểm tra số tiền dự phòng ban đầu (Notified Amount / Initial Case Reserve): Hệ thống tự động tính toán theo công thức định phí sản phẩm.",
           "Bước 7: Nhấn 'Submit'. Hệ thống thực thi tự động bán toàn bộ đơn vị quỹ (Auto-Unit Liquidation) nếu là hợp đồng liên kết đầu tư (ILP) đối với ca Death/TPD, cập nhật trạng thái hồ sơ thành 'Waiting for Evaluation' (P.281, 334)."
         ],
-        "validation_rules": [
-          {
-            "ruleId": "VAL-CLM-003",
-            "name": "Mandatory ICD-10 Diagnosis Code",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CLM_MISSING_DIAGNOSIS_CODE",
-            "description": "Bắt buộc phải nhập Mã chẩn đoán y tế (ICD-10) trước khi submit chấp nhận hồ sơ cho tất cả các loại hình bồi thường (P.333)."
-          },
-          {
-            "ruleId": "VAL-CLM-004",
-            "name": "Policy Eligibility & Active Coverage Validation",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CLM_POLICY_INELIGIBLE",
-            "description": "Chặn tiếp nhận nếu: 1) Hợp đồng đang bị Freeze bởi giao dịch CS khác; 2) Ngày sự kiện nằm ngoài thời hạn bảo hiểm (Event Date < Commencement Date hoặc > Coverage End Date); 3) Hợp đồng đã Lapsed quá 60 ngày gia hạn (P.334)."
-          },
-          {
-            "ruleId": "VAL-CLM-005",
-            "name": "Mandatory Death Claim Policy Freezing",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CLM_DEATH_FREEZE_MANDATORY",
-            "description": "Đối với yêu cầu bồi thường Tử vong, cờ Freeze Policy bắt buộc là YES và không được phép ghi đè (EditLockPolicy = N) nhằm bảo vệ an toàn tài sản (P.323, 333)."
-          }
-        ],
-        "ui_fields": [
+        "fields_table": [
           {
             "name": "Diagnosis Code (ICD-10)",
             "type": "Fuzzy Search Lookup",
-            "req": true,
-            "note": "Mã bệnh án chuẩn quốc tế ICD-10 (ví dụ C34: Ung thư phổi, I21: Nhồi máu cơ tim)"
+            "required": "Yes",
+            "desc": "Mã bệnh án chuẩn quốc tế ICD-10 (ví dụ C34: Ung thư phổi, I21: Nhồi máu cơ tim)"
           },
           {
             "name": "Hospital Code",
             "type": "Dropdown List",
-            "req": true,
-            "note": "Bệnh viện hoặc cơ sở y tế nơi điều trị"
+            "required": "Yes",
+            "desc": "Bệnh viện hoặc cơ sở y tế nơi điều trị"
           },
           {
             "name": "Accept Product Flag",
             "type": "Toggle (Y/N)",
-            "req": true,
-            "note": "Đánh dấu chấp nhận đưa sản phẩm/quyền lợi vào thẩm định"
+            "required": "Yes",
+            "desc": "Đánh dấu chấp nhận đưa sản phẩm/quyền lợi vào thẩm định"
           },
           {
             "name": "Freeze Policy Flag",
             "type": "Checkbox (Locked)",
-            "req": true,
-            "note": "Tự động khóa hợp đồng đối với hồ sơ Tử vong"
+            "required": "Yes",
+            "desc": "Tự động khóa hợp đồng đối với hồ sơ Tử vong"
           },
           {
             "name": "Notified Amount",
             "type": "Currency (Auto-calc)",
-            "req": true,
-            "note": "Dự phòng bồi thường tự động ghi nhận ban đầu"
+            "required": "Yes",
+            "desc": "Dự phòng bồi thường tự động ghi nhận ban đầu"
           },
           {
             "name": "Price Effective Date",
             "type": "Date (ILP Only)",
-            "req": false,
-            "note": "Ngày chốt giá định giá bán đơn vị quỹ cho hợp đồng ILP"
+            "required": "No",
+            "desc": "Ngày chốt giá định giá bán đơn vị quỹ cho hợp đồng ILP"
+          }
+        ],
+        "validation_rules": [
+          {
+            "ruleId": "VAL-CLM-003",
+            "ruleName": "Mandatory ICD-10 Diagnosis Code",
+            "errorCode": "ERR_CLM_MISSING_DIAGNOSIS_CODE",
+            "severity": "HARD_STOP",
+            "condition": "Bắt buộc phải nhập Mã chẩn đoán y tế (ICD-10) trước khi submit chấp nhận hồ sơ cho tất cả các loại hình bồi thường (P.333).",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 304
+          },
+          {
+            "ruleId": "VAL-CLM-004",
+            "ruleName": "Policy Eligibility & Active Coverage Validation",
+            "errorCode": "ERR_CLM_POLICY_INELIGIBLE",
+            "severity": "HARD_STOP",
+            "condition": "Chặn tiếp nhận nếu: 1) Hợp đồng đang bị Freeze bởi giao dịch CS khác; 2) Ngày sự kiện nằm ngoài thời hạn bảo hiểm (Event Date < Commencement Date hoặc > Coverage End Date); 3) Hợp đồng đã Lapsed quá 60 ngày gia hạn (P.334).",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 304
+          },
+          {
+            "ruleId": "VAL-CLM-005",
+            "ruleName": "Mandatory Death Claim Policy Freezing",
+            "errorCode": "ERR_CLM_DEATH_FREEZE_MANDATORY",
+            "severity": "HARD_STOP",
+            "condition": "Đối với yêu cầu bồi thường Tử vong, cờ Freeze Policy bắt buộc là YES và không được phép ghi đè (EditLockPolicy = N) nhằm bảo vệ an toàn tài sản (P.323, 333).",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 304
           }
         ]
       },
       {
+        "code": "SOP-CLM-03",
         "id": "SOP-CLM-03",
         "title": "Medical Bill Processing, Inpatient Days & Deductible/Co-pay Assessment",
-        "screen": "Claims > Medical Bill Entry (P.300-301, 327-328)",
+        "role": "Core PAS Specialist",
+        "objective": "Claims > Medical Bill Entry (P.300-301, 327-328)",
+        "pdf_page": 304,
         "prerequisites": [
           "Loại hồ sơ bồi thường là Medical Reimbursement (MED) hoặc Hospital Cash.",
           "Đã thu thập đầy đủ hóa đơn tài chính VAT bệnh viện, bảng kê chi tiết viện phí và giấy ra viện."
@@ -11184,83 +10977,92 @@ window.EBAO_MODULES = [
           "Bước 6: Hệ thống áp dụng Mức miễn thường (Deductible Amount) theo quy tắc khấu trừ trước, sau đó nhân với Tỷ lệ đồng chi trả (Co-insurance % ví dụ 80% công ty trả / 20% khách hàng chi trả), tính ra Số tiền chi trả bồi thường y tế hợp lý (Eligible Payable Amount) (P.328).",
           "Bước 7: Nhấn 'Save' để liên kết viện phí đã thẩm định vào tổng quyền lợi bồi thường của hợp đồng."
         ],
-        "validation_rules": [
-          {
-            "ruleId": "VAL-CLM-006",
-            "name": "Discharge Date Must Be Greater Than Admission Date",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CLM_INVALID_HOSPITAL_DATES",
-            "description": "Ngày ra viện phải bằng hoặc sau ngày vào viện. Số ngày nằm viện không được vượt quá thời gian nằm viện thực tế giữa 2 mốc ngày (P.300)."
-          },
-          {
-            "ruleId": "VAL-CLM-007",
-            "name": "Medical Bill Deductible & Co-pay Calculation Integrity",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CLM_BILL_MATH_MISMATCH",
-            "description": "Tổng chi trả viện phí = Min(Chi phí hợp lệ sau miễn thường * Tỷ lệ đồng chi trả, Hạn mức tối đa năm còn lại). Không được chi trả vượt quá hóa đơn thực tế (P.328)."
-          }
-        ],
-        "ui_fields": [
+        "fields_table": [
           {
             "name": "Medical Bill Type",
             "type": "Dropdown List",
-            "req": true,
-            "note": "Inpatient, Outpatient, Day Surgery, Emergency Outpatient"
+            "required": "Yes",
+            "desc": "Inpatient, Outpatient, Day Surgery, Emergency Outpatient"
           },
           {
             "name": "Bill / Invoice Number",
             "type": "Text",
-            "req": true,
-            "note": "Số hóa đơn tài chính VAT hợp lệ của bệnh viện"
+            "required": "Yes",
+            "desc": "Số hóa đơn tài chính VAT hợp lệ của bệnh viện"
           },
           {
             "name": "Admission Date & Discharge Date",
             "type": "Date Range",
-            "req": true,
-            "note": "Thời gian điều trị nội trú thực tế"
+            "required": "Yes",
+            "desc": "Thời gian điều trị nội trú thực tế"
           },
           {
             "name": "Inpatient Days",
             "type": "Integer (Auto)",
-            "req": true,
-            "note": "Số ngày nằm viện nội trú tính toán"
+            "required": "Yes",
+            "desc": "Số ngày nằm viện nội trú tính toán"
           },
           {
             "name": "ICU Days",
             "type": "Integer",
-            "req": false,
-            "note": "Số ngày nằm phòng chăm sóc đặc biệt (ICU)"
+            "required": "No",
+            "desc": "Số ngày nằm phòng chăm sóc đặc biệt (ICU)"
           },
           {
             "name": "Total Invoiced Amount",
             "type": "Currency",
-            "req": true,
-            "note": "Tổng số tiền ghi trên hóa đơn bệnh viện"
+            "required": "Yes",
+            "desc": "Tổng số tiền ghi trên hóa đơn bệnh viện"
           },
           {
             "name": "Non-covered Amount",
             "type": "Currency",
-            "req": false,
-            "note": "Chi phí ngoài phạm vi (thuốc bổ, dịch vụ tự chọn)"
+            "required": "No",
+            "desc": "Chi phí ngoài phạm vi (thuốc bổ, dịch vụ tự chọn)"
           },
           {
             "name": "Deductible Applied",
             "type": "Currency (Auto)",
-            "req": true,
-            "note": "Mức miễn thường khấu trừ theo quy tắc sản phẩm"
+            "required": "Yes",
+            "desc": "Mức miễn thường khấu trừ theo quy tắc sản phẩm"
           },
           {
             "name": "Co-insurance Ratio",
             "type": "Percentage",
-            "req": true,
-            "note": "Tỷ lệ đồng chi trả của công ty bảo hiểm (80%, 90%, 100%)"
+            "required": "Yes",
+            "desc": "Tỷ lệ đồng chi trả của công ty bảo hiểm (80%, 90%, 100%)"
+          }
+        ],
+        "validation_rules": [
+          {
+            "ruleId": "VAL-CLM-006",
+            "ruleName": "Discharge Date Must Be Greater Than Admission Date",
+            "errorCode": "ERR_CLM_INVALID_HOSPITAL_DATES",
+            "severity": "HARD_STOP",
+            "condition": "Ngày ra viện phải bằng hoặc sau ngày vào viện. Số ngày nằm viện không được vượt quá thời gian nằm viện thực tế giữa 2 mốc ngày (P.300).",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 304
+          },
+          {
+            "ruleId": "VAL-CLM-007",
+            "ruleName": "Medical Bill Deductible & Co-pay Calculation Integrity",
+            "errorCode": "ERR_CLM_BILL_MATH_MISMATCH",
+            "severity": "HARD_STOP",
+            "condition": "Tổng chi trả viện phí = Min(Chi phí hợp lệ sau miễn thường * Tỷ lệ đồng chi trả, Hạn mức tối đa năm còn lại). Không được chi trả vượt quá hóa đơn thực tế (P.328).",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 304
           }
         ]
       },
       {
+        "code": "SOP-CLM-04",
         "id": "SOP-CLM-04",
         "title": "Benefit Liability Evaluation & Claim Accumulator Tracking",
-        "screen": "Claims > Policy Evaluation > Liability Evaluation (P.283-288)",
+        "role": "Core PAS Specialist",
+        "objective": "Claims > Policy Evaluation > Liability Evaluation (P.283-288)",
+        "pdf_page": 304,
         "prerequisites": [
           "Hồ sơ bồi thường ở trạng thái 'Waiting for Evaluation'.",
           "Các hóa đơn y tế (nếu có) đã được hoàn tất nhập liệu và kiểm tra tính hợp lệ."
@@ -11275,71 +11077,80 @@ window.EBAO_MODULES = [
           "Bước 7: Chọn Quyết định bồi thường tại mục Claim Decision: Admit (Chấp thuận chi trả 100%), Ex-gratia-Full (Chi trả nhân đạo 100%), Ex-gratia-Partial (Chi trả nhân đạo một phần), Repudiate (Từ chối bồi thường), hoặc Denied & Rescind (Từ chối và hủy hợp đồng) (P.285, 290).",
           "Bước 8: Nhấn 'Save' để cập nhật kết quả thẩm định quyền lợi của từng sản phẩm."
         ],
-        "validation_rules": [
-          {
-            "ruleId": "VAL-CLM-008",
-            "name": "Accumulator Remaining Limit Hard Stop",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CLM_ACCUMULATOR_EXCEEDED",
-            "description": "Số tiền chi trả thẩm định không được vượt quá Hạn mức bồi thường lũy kế còn lại (Remaining Accumulator Limit) của quyền lợi đó (P.284, 287)."
-          },
-          {
-            "ruleId": "VAL-CLM-009",
-            "name": "Mandatory Repudiation Reason Justification",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CLM_REPUDIATE_REASON_REQ",
-            "description": "Nếu quyết định là Repudiate hoặc Denied & Rescind, bắt buộc phải chọn Mã lý do từ chối chuẩn và nhập thuyết minh căn cứ pháp lý/y khoa chi tiết (P.285, 290)."
-          }
-        ],
-        "ui_fields": [
+        "fields_table": [
           {
             "name": "Liability Name",
             "type": "Text (Read-only)",
-            "req": true,
-            "note": "Tên quyền lợi bảo hiểm cụ thể đang thẩm định"
+            "required": "Yes",
+            "desc": "Tên quyền lợi bảo hiểm cụ thể đang thẩm định"
           },
           {
             "name": "Sum Assured @ Event Date",
             "type": "Currency",
-            "req": true,
-            "note": "Số tiền bảo hiểm có hiệu lực tại ngày xảy ra sự kiện"
+            "required": "Yes",
+            "desc": "Số tiền bảo hiểm có hiệu lực tại ngày xảy ra sự kiện"
           },
           {
             "name": "Evaluation Payment Amount",
             "type": "Currency (Auto-calc)",
-            "req": true,
-            "note": "Số tiền tính toán lý thuyết theo công thức sản phẩm"
+            "required": "Yes",
+            "desc": "Số tiền tính toán lý thuyết theo công thức sản phẩm"
           },
           {
             "name": "Remaining Accumulator Limit",
             "type": "Currency (Read-only)",
-            "req": true,
-            "note": "Hạn mức tích lũy còn lại trong năm hoặc trọn đời"
+            "required": "Yes",
+            "desc": "Hạn mức tích lũy còn lại trong năm hoặc trọn đời"
           },
           {
             "name": "Actual Payment Amount",
             "type": "Currency",
-            "req": true,
-            "note": "Số tiền thực tế quyết định chi trả (sau điều chỉnh)"
+            "required": "Yes",
+            "desc": "Số tiền thực tế quyết định chi trả (sau điều chỉnh)"
           },
           {
             "name": "Claim Decision",
             "type": "Dropdown List",
-            "req": true,
-            "note": "Admit, Ex-gratia-Full, Ex-gratia-Partial, Repudiate, Rescind"
+            "required": "Yes",
+            "desc": "Admit, Ex-gratia-Full, Ex-gratia-Partial, Repudiate, Rescind"
           },
           {
             "name": "Adjustment Reason",
             "type": "Dropdown List & Textarea",
-            "req": false,
-            "note": "Lý do điều chỉnh số tiền chi trả"
+            "required": "No",
+            "desc": "Lý do điều chỉnh số tiền chi trả"
+          }
+        ],
+        "validation_rules": [
+          {
+            "ruleId": "VAL-CLM-008",
+            "ruleName": "Accumulator Remaining Limit Hard Stop",
+            "errorCode": "ERR_CLM_ACCUMULATOR_EXCEEDED",
+            "severity": "HARD_STOP",
+            "condition": "Số tiền chi trả thẩm định không được vượt quá Hạn mức bồi thường lũy kế còn lại (Remaining Accumulator Limit) của quyền lợi đó (P.284, 287).",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 304
+          },
+          {
+            "ruleId": "VAL-CLM-009",
+            "ruleName": "Mandatory Repudiation Reason Justification",
+            "errorCode": "ERR_CLM_REPUDIATE_REASON_REQ",
+            "severity": "HARD_STOP",
+            "condition": "Nếu quyết định là Repudiate hoặc Denied & Rescind, bắt buộc phải chọn Mã lý do từ chối chuẩn và nhập thuyết minh căn cứ pháp lý/y khoa chi tiết (P.285, 290).",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 304
           }
         ]
       },
       {
+        "code": "SOP-CLM-05",
         "id": "SOP-CLM-05",
         "title": "Waiver of Premium (WP) Evaluation & Policy Premium Waiver Activation",
-        "screen": "Claims > Case Evaluation > Waive Claims Evaluation (P.289-291)",
+        "role": "Core PAS Specialist",
+        "objective": "Claims > Case Evaluation > Waive Claims Evaluation (P.289-291)",
+        "pdf_page": 304,
         "prerequisites": [
           "Hợp đồng có đính kèm sản phẩm bổ trợ Miễn đóng phí (Waiver of Premium Rider) hoặc có điều khoản miễn đóng phí trong sản phẩm chính.",
           "Người được bảo hiểm của quyền lợi miễn phí đã thỏa mãn định nghĩa tổn thất (Bệnh hiểm nghèo giai đoạn cuối, TPD, hoặc tử vong đối với gói bảo hiểm cho con)."
@@ -11353,59 +11164,68 @@ window.EBAO_MODULES = [
           "Bước 6: Kiểm tra số tiền bảo hiểm được miễn: Sum Assured Waived = 100% Phí bảo hiểm định kỳ của các sản phẩm được bảo hộ (P.291, 340).",
           "Bước 7: Nhấn 'Save'. Hệ thống tự động cập nhật Policy Payment Summary: Đổi trạng thái phí của các sản phẩm liên quan thành 'Premium Waived', ngăn chặn việc kết xuất hóa đơn thu phí định kỳ trong tương lai nhưng duy trì hợp đồng Inforce đầy đủ."
         ],
-        "validation_rules": [
-          {
-            "ruleId": "VAL-CLM-010",
-            "name": "Waiver Start Date Alignment Rule",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CLM_INVALID_WAIVER_START_DATE",
-            "description": "Ngày bắt đầu miễn phí phải là Ngày đến hạn đóng phí kế tiếp (NDD) sau ngày tổn thất. Không được miễn phí hồi tố cho kỳ phí đã thanh toán trước ngày tổn thất (P.290, 340)."
-          },
-          {
-            "ruleId": "VAL-CLM-011",
-            "name": "Waiver End Date Cannot Exceed Product Expiry",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CLM_WAIVER_END_EXCEEDS_EXPIRY",
-            "description": "Ngày kết thúc miễn phí không được vượt quá ngày kết thúc thời hạn đóng phí hoặc ngày đáo hạn của hợp đồng chính (P.290)."
-          }
-        ],
-        "ui_fields": [
+        "fields_table": [
           {
             "name": "Premium Waive Flag",
             "type": "Toggle (Y/N)",
-            "req": true,
-            "note": "Kích hoạt trạng thái miễn đóng phí cho hợp đồng"
+            "required": "Yes",
+            "desc": "Kích hoạt trạng thái miễn đóng phí cho hợp đồng"
           },
           {
             "name": "Waiver Effective Start Date",
             "type": "Date Picker",
-            "req": true,
-            "note": "Ngày bắt đầu có hiệu lực miễn nộp phí (Next Due Date)"
+            "required": "Yes",
+            "desc": "Ngày bắt đầu có hiệu lực miễn nộp phí (Next Due Date)"
           },
           {
             "name": "Waiver Effective End Date",
             "type": "Date Picker",
-            "req": true,
-            "note": "Ngày kết thúc thời gian miễn nộp phí"
+            "required": "Yes",
+            "desc": "Ngày kết thúc thời gian miễn nộp phí"
           },
           {
             "name": "Annual Waived Premium Amount",
             "type": "Currency (Auto)",
-            "req": true,
-            "note": "Tổng số phí bảo hiểm hàng năm được miễn trừ"
+            "required": "Yes",
+            "desc": "Tổng số phí bảo hiểm hàng năm được miễn trừ"
           },
           {
             "name": "Waived Products Covered",
             "type": "Multi-select List",
-            "req": true,
-            "note": "Danh sách các sản phẩm/rider được hưởng cơ chế miễn phí"
+            "required": "Yes",
+            "desc": "Danh sách các sản phẩm/rider được hưởng cơ chế miễn phí"
+          }
+        ],
+        "validation_rules": [
+          {
+            "ruleId": "VAL-CLM-010",
+            "ruleName": "Waiver Start Date Alignment Rule",
+            "errorCode": "ERR_CLM_INVALID_WAIVER_START_DATE",
+            "severity": "HARD_STOP",
+            "condition": "Ngày bắt đầu miễn phí phải là Ngày đến hạn đóng phí kế tiếp (NDD) sau ngày tổn thất. Không được miễn phí hồi tố cho kỳ phí đã thanh toán trước ngày tổn thất (P.290, 340).",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 304
+          },
+          {
+            "ruleId": "VAL-CLM-011",
+            "ruleName": "Waiver End Date Cannot Exceed Product Expiry",
+            "errorCode": "ERR_CLM_WAIVER_END_EXCEEDS_EXPIRY",
+            "severity": "HARD_STOP",
+            "condition": "Ngày kết thúc miễn phí không được vượt quá ngày kết thúc thời hạn đóng phí hoặc ngày đáo hạn của hợp đồng chính (P.290).",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 304
           }
         ]
       },
       {
+        "code": "SOP-CLM-06",
         "id": "SOP-CLM-06",
         "title": "Disbursement Planning, Debt Offsetting & Payee Priority Engine",
-        "screen": "Claims > Case Summary > Disbursement Plan (P.292-295, 337-339)",
+        "role": "Core PAS Specialist",
+        "objective": "Claims > Case Summary > Disbursement Plan (P.292-295, 337-339)",
+        "pdf_page": 304,
         "prerequisites": [
           "Tất cả các sản phẩm và quyền lợi trong hồ sơ bồi thường đã được hoàn tất thẩm định (All products evaluated - P.336).",
           "Tổng số tiền chi trả ròng (Net Benefit Amount) đã được chốt và cân bằng."
@@ -11419,90 +11239,102 @@ window.EBAO_MODULES = [
           "Bước 6: Chọn Kênh thanh toán cho từng Payee: Direct Credit (Chuyển khoản ngân hàng - nhập Tên ngân hàng, Chi nhánh, Số tài khoản, Tên chủ TK), Nhận tiền mặt tại quầy (Cheque / Cashier), hoặc Chuyển nộp phí cho hợp đồng khác (Transfer to Policy) (P.338).",
           "Bước 7: Nhấn 'Save' để hoàn tất kế hoạch giải ngân."
         ],
-        "validation_rules": [
-          {
-            "ruleId": "VAL-CLM-012",
-            "name": "Allocated Amount Must Exactly Match Payable Balance",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CLM_DISBURSEMENT_SUM_MISMATCH",
-            "description": "Tổng số tiền phân bổ cho tất cả người thụ hưởng phải bằng 100% số tiền bồi thường ròng sau khi cấn trừ nợ (P.336)."
-          },
-          {
-            "ruleId": "VAL-CLM-013",
-            "name": "Death Claim Outstanding Premium & Loan Offsetting",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CLM_MANDATORY_DEBT_OFFSET",
-            "description": "Đối với quyền lợi Tử vong, bắt buộc phải cấn trừ toàn bộ dư nợ vay hợp đồng và phí nợ gia hạn trước khi giải ngân cho người thụ hưởng (P.286, 334)."
-          },
-          {
-            "ruleId": "VAL-CLM-014",
-            "name": "Beneficiary Allocation Percentage Sum Must Equal 100%",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CLM_BENEFICIARY_SHARE_SUM_INVALID",
-            "description": "Tổng tỷ lệ phần trăm phân bổ cho các Người thụ hưởng chỉ định bắt buộc phải bằng chính xác 100.00% (P.338)."
-          }
-        ],
-        "ui_fields": [
+        "fields_table": [
           {
             "name": "Gross Claim Payable",
             "type": "Currency (Auto)",
-            "req": true,
-            "note": "Tổng quyền lợi bồi thường gộp được duyệt"
+            "required": "Yes",
+            "desc": "Tổng quyền lợi bồi thường gộp được duyệt"
           },
           {
             "name": "Offset: Policy Loan Principal & Interest",
             "type": "Currency (Auto)",
-            "req": true,
-            "note": "Dư nợ gốc vay hợp đồng và lãi vay lũy kế tự động cấn trừ"
+            "required": "Yes",
+            "desc": "Dư nợ gốc vay hợp đồng và lãi vay lũy kế tự động cấn trừ"
           },
           {
             "name": "Offset: Unpaid Grace Premium",
             "type": "Currency (Auto)",
-            "req": true,
-            "note": "Phí bảo hiểm nợ trong 60 ngày gia hạn tự động cấn trừ"
+            "required": "Yes",
+            "desc": "Phí bảo hiểm nợ trong 60 ngày gia hạn tự động cấn trừ"
           },
           {
             "name": "Net Disbursement Amount",
             "type": "Currency (Auto)",
-            "req": true,
-            "note": "Số tiền bồi thường ròng thực nhận của khách hàng"
+            "required": "Yes",
+            "desc": "Số tiền bồi thường ròng thực nhận của khách hàng"
           },
           {
             "name": "Disbursement Method",
             "type": "Dropdown List",
-            "req": true,
-            "note": "Lump Sum (1 lần), Installment Annuity (Phân kỳ hàng năm)"
+            "required": "Yes",
+            "desc": "Lump Sum (1 lần), Installment Annuity (Phân kỳ hàng năm)"
           },
           {
             "name": "Payee Name & ID",
             "type": "Party Lookup",
-            "req": true,
-            "note": "Người nhận quyền lợi theo thứ tự ưu tiên pháp lý"
+            "required": "Yes",
+            "desc": "Người nhận quyền lợi theo thứ tự ưu tiên pháp lý"
           },
           {
             "name": "Allocation Share %",
             "type": "Percentage",
-            "req": true,
-            "note": "Tỷ lệ phân chia quyền lợi (Tổng = 100%)"
+            "required": "Yes",
+            "desc": "Tỷ lệ phân chia quyền lợi (Tổng = 100%)"
           },
           {
             "name": "Payment Method",
             "type": "Dropdown List",
-            "req": true,
-            "note": "Direct Credit (Ngân hàng), Cheque, Transfer to Policy"
+            "required": "Yes",
+            "desc": "Direct Credit (Ngân hàng), Cheque, Transfer to Policy"
           },
           {
             "name": "Bank Name & Account No",
             "type": "Bank Lookup & Text",
-            "req": true,
-            "note": "Thông tin tài khoản ngân hàng thụ hưởng chính chủ"
+            "required": "Yes",
+            "desc": "Thông tin tài khoản ngân hàng thụ hưởng chính chủ"
+          }
+        ],
+        "validation_rules": [
+          {
+            "ruleId": "VAL-CLM-012",
+            "ruleName": "Allocated Amount Must Exactly Match Payable Balance",
+            "errorCode": "ERR_CLM_DISBURSEMENT_SUM_MISMATCH",
+            "severity": "HARD_STOP",
+            "condition": "Tổng số tiền phân bổ cho tất cả người thụ hưởng phải bằng 100% số tiền bồi thường ròng sau khi cấn trừ nợ (P.336).",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 304
+          },
+          {
+            "ruleId": "VAL-CLM-013",
+            "ruleName": "Death Claim Outstanding Premium & Loan Offsetting",
+            "errorCode": "ERR_CLM_MANDATORY_DEBT_OFFSET",
+            "severity": "HARD_STOP",
+            "condition": "Đối với quyền lợi Tử vong, bắt buộc phải cấn trừ toàn bộ dư nợ vay hợp đồng và phí nợ gia hạn trước khi giải ngân cho người thụ hưởng (P.286, 334).",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 304
+          },
+          {
+            "ruleId": "VAL-CLM-014",
+            "ruleName": "Beneficiary Allocation Percentage Sum Must Equal 100%",
+            "errorCode": "ERR_CLM_BENEFICIARY_SHARE_SUM_INVALID",
+            "severity": "HARD_STOP",
+            "condition": "Tổng tỷ lệ phần trăm phân bổ cho các Người thụ hưởng chỉ định bắt buộc phải bằng chính xác 100.00% (P.338).",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 304
           }
         ]
       },
       {
+        "code": "SOP-CLM-07",
         "id": "SOP-CLM-07",
         "title": "Fraud Investigation, Medical Report Fee & Claims UW Referral",
-        "screen": "Claims > Investigation / Claim UW (P.302-304, 316, 330)",
+        "role": "Core PAS Specialist",
+        "objective": "Claims > Investigation / Claim UW (P.302-304, 316, 330)",
+        "pdf_page": 304,
         "prerequisites": [
           "Hồ sơ bồi thường xuất hiện dấu hiệu nghi ngờ gian lận (Red Flag), hoặc tử vong trong vòng 2 năm thử thách (Contestable Period), hoặc hồ sơ phức tạp cần ý kiến chuyên gia Underwriting."
         ],
@@ -11514,52 +11346,58 @@ window.EBAO_MODULES = [
           "Bước 5: Trường hợp cần thanh toán phí trích sao bệnh án: Truy cập menu Claims > Medical Report Fee, tạo phiếu chi trả chi phí thu thập bệnh án cho Bệnh viện/Phòng khám với số tiền quy định (P.316).",
           "Bước 6: Trưởng ban điều tra hoặc Bác sĩ UW gửi phản hồi chính thức (Respond Escalation). Trạng thái hồ sơ được cập nhật và quay trở lại bàn làm việc của Cán bộ bồi thường để tiếp tục quy trình."
         ],
-        "validation_rules": [
-          {
-            "ruleId": "VAL-CLM-015",
-            "name": "Pending Investigation / UW Referral Must Be Responded Before Approval",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CLM_PENDING_ESCALATION_BLOCK",
-            "description": "Không thể nộp hồ sơ phê duyệt nếu yêu cầu điều tra hoặc trưng cầu ý kiến Underwriting chưa được gửi phản hồi chính thức (P.336)."
-          }
-        ],
-        "ui_fields": [
+        "fields_table": [
           {
             "name": "Escalation Type",
             "type": "Dropdown List",
-            "req": true,
-            "note": "Claim Investigator, Senior Claim Specialist, Claims Underwriter"
+            "required": "Yes",
+            "desc": "Claim Investigator, Senior Claim Specialist, Claims Underwriter"
           },
           {
             "name": "Reason for Fraud / Red Flag",
             "type": "Dropdown List",
-            "req": true,
-            "note": "Suspicious Claim, Frequent Claims, Contestable Period, Early Claim"
+            "required": "Yes",
+            "desc": "Suspicious Claim, Frequent Claims, Contestable Period, Early Claim"
           },
           {
             "name": "Investigation Instructions",
             "type": "Textarea",
-            "req": true,
-            "note": "Nội dung chỉ đạo xác minh thực địa và đối chiếu hồ sơ"
+            "required": "Yes",
+            "desc": "Nội dung chỉ đạo xác minh thực địa và đối chiếu hồ sơ"
           },
           {
             "name": "Investigator Report Findings",
             "type": "Textarea & Attachment",
-            "req": false,
-            "note": "Kết luận điều tra thực tế kèm tài liệu bằng chứng"
+            "required": "No",
+            "desc": "Kết luận điều tra thực tế kèm tài liệu bằng chứng"
           },
           {
             "name": "UW Clinical Recommendation",
             "type": "Dropdown & Textarea",
-            "req": false,
-            "note": "Ý kiến kết luận của Bác sĩ thẩm định y khoa"
+            "required": "No",
+            "desc": "Ý kiến kết luận của Bác sĩ thẩm định y khoa"
+          }
+        ],
+        "validation_rules": [
+          {
+            "ruleId": "VAL-CLM-015",
+            "ruleName": "Pending Investigation / UW Referral Must Be Responded Before Approval",
+            "errorCode": "ERR_CLM_PENDING_ESCALATION_BLOCK",
+            "severity": "HARD_STOP",
+            "condition": "Không thể nộp hồ sơ phê duyệt nếu yêu cầu điều tra hoặc trưng cầu ý kiến Underwriting chưa được gửi phản hồi chính thức (P.336).",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 304
           }
         ]
       },
       {
+        "code": "SOP-CLM-08",
         "id": "SOP-CLM-08",
         "title": "Claims Multi-Level DOA Approval, Settlement Execution & Case Reversal",
-        "screen": "Claims > Case Approval & Reversal (P.296-297, 310-311, 340-341)",
+        "role": "Core PAS Specialist",
+        "objective": "Claims > Case Approval & Reversal (P.296-297, 310-311, 340-341)",
+        "pdf_page": 304,
         "prerequisites": [
           "Kế hoạch chi trả (Disbursement Plan) đã được cân bằng chính xác.",
           "Tất cả các yêu cầu điều tra, bổ sung tài liệu và query letter đã được phản hồi hoàn tất.",
@@ -11577,57 +11415,60 @@ window.EBAO_MODULES = [
           "  d. Cập nhật trạng thái khách hàng: Đối với ca Tử vong, chuyển trạng thái Party Status của Người được bảo hiểm thành 'DECEASED' (P.341).",
           "Bước 6: Nghiệp vụ Hủy bồi thường / Thu hồi (Claims Reversal - P.310-311): Trường hợp phát hiện sai sót sau khi đã duyệt, cấp quản lý truy cập menu Claims > Reverse Case, nhập mã hồ sơ và lý do thu hồi, kích hoạt giao dịch đảo bút toán kế toán, khôi phục trạng thái hợp đồng Inforce và gửi thông báo thu hồi tiền bồi thường."
         ],
-        "validation_rules": [
-          {
-            "ruleId": "VAL-CLM-016",
-            "name": "DOA Financial Authority Limit Enforcement",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CLM_APPROVAL_LIMIT_EXCEEDED",
-            "description": "Người phê duyệt chỉ được duyệt các hồ sơ có tổng giá trị bồi thường và giá trị miễn phí nằm trong hạn mức ủy quyền tài chính được cấp. Vượt hạn mức bắt buộc phải trình Escalation lên cấp cao hơn (P.340)."
-          }
-        ],
-        "ui_fields": [
+        "fields_table": [
           {
             "name": "Approval Officer ID & Role",
             "type": "Text (Read-only)",
-            "req": true,
-            "note": "Mã và chức danh người đang thực hiện phê duyệt"
+            "required": "Yes",
+            "desc": "Mã và chức danh người đang thực hiện phê duyệt"
           },
           {
             "name": "Officer Financial Authority Cap",
             "type": "Currency (Read-only)",
-            "req": true,
-            "note": "Hạn mức tiền tối đa người duyệt được quyền quyết định"
+            "required": "Yes",
+            "desc": "Hạn mức tiền tối đa người duyệt được quyền quyết định"
           },
           {
             "name": "Total Claim Payable to Approve",
             "type": "Currency (Read-only)",
-            "req": true,
-            "note": "Tổng số tiền bồi thường cần phê duyệt của hồ sơ"
+            "required": "Yes",
+            "desc": "Tổng số tiền bồi thường cần phê duyệt của hồ sơ"
           },
           {
             "name": "Approval Decision",
             "type": "Dropdown List",
-            "req": true,
-            "note": "Approve (Duyệt), Reject (Bác bỏ), Escalate (Trình lên cấp trên)"
+            "required": "Yes",
+            "desc": "Approve (Duyệt), Reject (Bác bỏ), Escalate (Trình lên cấp trên)"
           },
           {
             "name": "Approval Comments",
             "type": "Textarea",
-            "req": true,
-            "note": "Ý kiến phê duyệt hoặc lý do yêu cầu điều chỉnh"
+            "required": "Yes",
+            "desc": "Ý kiến phê duyệt hoặc lý do yêu cầu điều chỉnh"
           },
           {
             "name": "Post-Approval Policy Status",
             "type": "Badge (Auto)",
-            "req": true,
-            "note": "Trạng thái hợp đồng sau khi duyệt: TERMINATED, WAIVED, INFORCE_PAID"
+            "required": "Yes",
+            "desc": "Trạng thái hợp đồng sau khi duyệt: TERMINATED, WAIVED, INFORCE_PAID"
           },
           {
             "name": "Party Status Updated",
             "type": "Badge (Auto)",
-            "req": true,
-            "note": "Trạng thái khách hàng cập nhật: DECEASED"
+            "required": "Yes",
+            "desc": "Trạng thái khách hàng cập nhật: DECEASED"
+          }
+        ],
+        "validation_rules": [
+          {
+            "ruleId": "VAL-CLM-016",
+            "ruleName": "DOA Financial Authority Limit Enforcement",
+            "errorCode": "ERR_CLM_APPROVAL_LIMIT_EXCEEDED",
+            "severity": "HARD_STOP",
+            "condition": "Người phê duyệt chỉ được duyệt các hồ sơ có tổng giá trị bồi thường và giá trị miễn phí nằm trong hạn mức ủy quyền tài chính được cấp. Vượt hạn mức bắt buộc phải trình Escalation lên cấp cao hơn (P.340).",
+            "systemAction": "Hệ thống chặn giao dịch và hiển thị thông báo lỗi",
+            "actuarialBasis": "Bảo toàn an toàn tài chính và tuân thủ quy tắc nghiệp vụ",
+            "pdfPage": 304
           }
         ]
       }
@@ -11681,115 +11522,163 @@ window.EBAO_MODULES = [
     "validation_rules": [
       {
         "ruleId": "VAL-CLM-001",
-        "name": "Event Date & Notification Date Future Check",
-        "severity": "HARD_STOP",
+        "ruleName": "Event Date & Notification Date Future Check",
         "errorCode": "ERR_CLM_FUTURE_DATE_INVALID",
-        "description": "Ngày xảy ra sự kiện và Ngày thông báo bồi thường không được trễ hơn Ngày kinh doanh hiện tại của hệ thống Core PAS (Event Date <= System Date && Notification Date <= System Date)."
+        "severity": "HARD_STOP",
+        "condition": "Ngày xảy ra sự kiện và Ngày thông báo bồi thường không được trễ hơn Ngày kinh doanh hiện tại của hệ thống Core PAS (Event Date <= System Date && Notification Date <= System Date).",
+        "systemAction": "Hệ thống tự động thực thi và ghi nhận lịch sử kiểm toán",
+        "actuarialBasis": "Tuân thủ luật KDBH 2022 và tài liệu Gemini Core PAS",
+        "pdfPage": 304
       },
       {
         "ruleId": "VAL-CLM-002",
-        "name": "Life Assured Existence & Contract Binding",
-        "severity": "HARD_STOP",
+        "ruleName": "Life Assured Existence & Contract Binding",
         "errorCode": "ERR_CLM_INVALID_LIFE_ASSURED",
-        "description": "Bắt buộc hồ sơ bồi thường phải gắn với Người được bảo hiểm hợp lệ và có hợp đồng bảo hiểm hiệu lực tương ứng trong hệ thống."
+        "severity": "HARD_STOP",
+        "condition": "Bắt buộc hồ sơ bồi thường phải gắn với Người được bảo hiểm hợp lệ và có hợp đồng bảo hiểm hiệu lực tương ứng trong hệ thống.",
+        "systemAction": "Hệ thống tự động thực thi và ghi nhận lịch sử kiểm toán",
+        "actuarialBasis": "Tuân thủ luật KDBH 2022 và tài liệu Gemini Core PAS",
+        "pdfPage": 304
       },
       {
         "ruleId": "VAL-CLM-003",
-        "name": "Mandatory International ICD-10 Diagnosis Code",
-        "severity": "HARD_STOP",
+        "ruleName": "Mandatory International ICD-10 Diagnosis Code",
         "errorCode": "ERR_CLM_MISSING_DIAGNOSIS_CODE",
-        "description": "Bắt buộc phải nhập Mã chẩn đoán y tế ICD-10 trước khi gửi chấp nhận hồ sơ (Case Acceptance Submit) cho tất cả các loại hình bồi thường."
+        "severity": "HARD_STOP",
+        "condition": "Bắt buộc phải nhập Mã chẩn đoán y tế ICD-10 trước khi gửi chấp nhận hồ sơ (Case Acceptance Submit) cho tất cả các loại hình bồi thường.",
+        "systemAction": "Hệ thống tự động thực thi và ghi nhận lịch sử kiểm toán",
+        "actuarialBasis": "Tuân thủ luật KDBH 2022 và tài liệu Gemini Core PAS",
+        "pdfPage": 304
       },
       {
         "ruleId": "VAL-CLM-004",
-        "name": "Active Coverage Date Range Enforcement",
-        "severity": "HARD_STOP",
+        "ruleName": "Active Coverage Date Range Enforcement",
         "errorCode": "ERR_CLM_POLICY_INELIGIBLE",
-        "description": "Chặn tiếp nhận nếu Ngày xảy ra sự kiện rủi ro nằm ngoài thời hạn bảo hiểm (Event Date < Risk Commencement Date hoặc Event Date > Coverage End Date)."
+        "severity": "HARD_STOP",
+        "condition": "Chặn tiếp nhận nếu Ngày xảy ra sự kiện rủi ro nằm ngoài thời hạn bảo hiểm (Event Date < Risk Commencement Date hoặc Event Date > Coverage End Date).",
+        "systemAction": "Hệ thống tự động thực thi và ghi nhận lịch sử kiểm toán",
+        "actuarialBasis": "Tuân thủ luật KDBH 2022 và tài liệu Gemini Core PAS",
+        "pdfPage": 304
       },
       {
         "ruleId": "VAL-CLM-005",
-        "name": "Automatic Mandatory Policy Freezing on Death",
-        "severity": "HARD_STOP",
+        "ruleName": "Automatic Mandatory Policy Freezing on Death",
         "errorCode": "ERR_CLM_DEATH_FREEZE_MANDATORY",
-        "description": "Đối với yêu cầu bồi thường Tử vong (Death Claim), hệ thống bắt buộc kích hoạt cờ Freeze Policy = TRUE và không cho phép người dùng bỏ chọn để phong tỏa toàn bộ giao dịch hợp đồng."
+        "severity": "HARD_STOP",
+        "condition": "Đối với yêu cầu bồi thường Tử vong (Death Claim), hệ thống bắt buộc kích hoạt cờ Freeze Policy = TRUE và không cho phép người dùng bỏ chọn để phong tỏa toàn bộ giao dịch hợp đồng.",
+        "systemAction": "Hệ thống tự động thực thi và ghi nhận lịch sử kiểm toán",
+        "actuarialBasis": "Tuân thủ luật KDBH 2022 và tài liệu Gemini Core PAS",
+        "pdfPage": 304
       },
       {
         "ruleId": "VAL-CLM-006",
-        "name": "Medical Bill Inpatient Date Sequence Check",
-        "severity": "HARD_STOP",
+        "ruleName": "Medical Bill Inpatient Date Sequence Check",
         "errorCode": "ERR_CLM_INVALID_HOSPITAL_DATES",
-        "description": "Ngày ra viện (Discharge Date) phải lớn hơn hoặc bằng Ngày vào viện (Admission Date). Số ngày nằm viện không được vượt quá khoảng cách thực tế giữa hai ngày."
+        "severity": "HARD_STOP",
+        "condition": "Ngày ra viện (Discharge Date) phải lớn hơn hoặc bằng Ngày vào viện (Admission Date). Số ngày nằm viện không được vượt quá khoảng cách thực tế giữa hai ngày.",
+        "systemAction": "Hệ thống tự động thực thi và ghi nhận lịch sử kiểm toán",
+        "actuarialBasis": "Tuân thủ luật KDBH 2022 và tài liệu Gemini Core PAS",
+        "pdfPage": 304
       },
       {
         "ruleId": "VAL-CLM-007",
-        "name": "Medical Deductible & Co-insurance Math Validation",
-        "severity": "HARD_STOP",
+        "ruleName": "Medical Deductible & Co-insurance Math Validation",
         "errorCode": "ERR_CLM_BILL_MATH_MISMATCH",
-        "description": "Số tiền bồi thường viện phí hợp lệ được tính chính xác: Eligible Amount = Min(Invoiced Amount - Excluded Items - Deductible, Annual Cap) * Co-insurance %."
+        "severity": "HARD_STOP",
+        "condition": "Số tiền bồi thường viện phí hợp lệ được tính chính xác: Eligible Amount = Min(Invoiced Amount - Excluded Items - Deductible, Annual Cap) * Co-insurance %.",
+        "systemAction": "Hệ thống tự động thực thi và ghi nhận lịch sử kiểm toán",
+        "actuarialBasis": "Tuân thủ luật KDBH 2022 và tài liệu Gemini Core PAS",
+        "pdfPage": 304
       },
       {
         "ruleId": "VAL-CLM-008",
-        "name": "Accumulator Remaining Limit Hard Stop",
-        "severity": "HARD_STOP",
+        "ruleName": "Accumulator Remaining Limit Hard Stop",
         "errorCode": "ERR_CLM_ACCUMULATOR_EXCEEDED",
-        "description": "Số tiền thẩm định bồi thường không được vượt quá Hạn mức bồi thường lũy kế còn lại (Remaining Accumulator Limit) của quyền lợi đó trong năm hoặc trọn đời."
+        "severity": "HARD_STOP",
+        "condition": "Số tiền thẩm định bồi thường không được vượt quá Hạn mức bồi thường lũy kế còn lại (Remaining Accumulator Limit) của quyền lợi đó trong năm hoặc trọn đời.",
+        "systemAction": "Hệ thống tự động thực thi và ghi nhận lịch sử kiểm toán",
+        "actuarialBasis": "Tuân thủ luật KDBH 2022 và tài liệu Gemini Core PAS",
+        "pdfPage": 304
       },
       {
         "ruleId": "VAL-CLM-009",
-        "name": "Mandatory Reason Code for Claim Repudiation / Rescission",
-        "severity": "HARD_STOP",
+        "ruleName": "Mandatory Reason Code for Claim Repudiation / Rescission",
         "errorCode": "ERR_CLM_REPUDIATE_REASON_REQ",
-        "description": "Khi quyết định bồi thường là Repudiate (Từ chối) hoặc Denied & Rescind (Hủy HĐ), bắt buộc phải chọn Mã lý do từ chối chuẩn và nhập đầy đủ thuyết minh căn cứ pháp lý/y khoa."
+        "severity": "HARD_STOP",
+        "condition": "Khi quyết định bồi thường là Repudiate (Từ chối) hoặc Denied & Rescind (Hủy HĐ), bắt buộc phải chọn Mã lý do từ chối chuẩn và nhập đầy đủ thuyết minh căn cứ pháp lý/y khoa.",
+        "systemAction": "Hệ thống tự động thực thi và ghi nhận lịch sử kiểm toán",
+        "actuarialBasis": "Tuân thủ luật KDBH 2022 và tài liệu Gemini Core PAS",
+        "pdfPage": 304
       },
       {
         "ruleId": "VAL-CLM-010",
-        "name": "Waiver of Premium Start Date Alignment",
-        "severity": "HARD_STOP",
+        "ruleName": "Waiver of Premium Start Date Alignment",
         "errorCode": "ERR_CLM_INVALID_WAIVER_START_DATE",
-        "description": "Ngày bắt đầu có hiệu lực miễn nộp phí bảo hiểm (Waiver Start Date) phải trùng khớp với Ngày đến hạn đóng phí định kỳ kế tiếp (Next Due Date) sau ngày sự kiện tổn thất."
+        "severity": "HARD_STOP",
+        "condition": "Ngày bắt đầu có hiệu lực miễn nộp phí bảo hiểm (Waiver Start Date) phải trùng khớp với Ngày đến hạn đóng phí định kỳ kế tiếp (Next Due Date) sau ngày sự kiện tổn thất.",
+        "systemAction": "Hệ thống tự động thực thi và ghi nhận lịch sử kiểm toán",
+        "actuarialBasis": "Tuân thủ luật KDBH 2022 và tài liệu Gemini Core PAS",
+        "pdfPage": 304
       },
       {
         "ruleId": "VAL-CLM-011",
-        "name": "Waiver End Date Expiry Boundary Check",
-        "severity": "HARD_STOP",
+        "ruleName": "Waiver End Date Expiry Boundary Check",
         "errorCode": "ERR_CLM_WAIVER_END_EXCEEDS_EXPIRY",
-        "description": "Ngày kết thúc thời hạn miễn đóng phí không được vượt quá Ngày kết thúc thời hạn đóng phí hoặc Ngày đáo hạn của sản phẩm được bảo vệ."
+        "severity": "HARD_STOP",
+        "condition": "Ngày kết thúc thời hạn miễn đóng phí không được vượt quá Ngày kết thúc thời hạn đóng phí hoặc Ngày đáo hạn của sản phẩm được bảo vệ.",
+        "systemAction": "Hệ thống tự động thực thi và ghi nhận lịch sử kiểm toán",
+        "actuarialBasis": "Tuân thủ luật KDBH 2022 và tài liệu Gemini Core PAS",
+        "pdfPage": 304
       },
       {
         "ruleId": "VAL-CLM-012",
-        "name": "Disbursement Allocation Mathematical Balance (100% Match)",
-        "severity": "HARD_STOP",
+        "ruleName": "Disbursement Allocation Mathematical Balance (100% Match)",
         "errorCode": "ERR_CLM_DISBURSEMENT_SUM_MISMATCH",
-        "description": "Tổng số tiền phân bổ trong Kế hoạch chi trả (Allocated Disbursement Amount) phải bằng chính xác 100% Số tiền bồi thường ròng phải chi trả (Balance Amount = 0 VND)."
+        "severity": "HARD_STOP",
+        "condition": "Tổng số tiền phân bổ trong Kế hoạch chi trả (Allocated Disbursement Amount) phải bằng chính xác 100% Số tiền bồi thường ròng phải chi trả (Balance Amount = 0 VND).",
+        "systemAction": "Hệ thống tự động thực thi và ghi nhận lịch sử kiểm toán",
+        "actuarialBasis": "Tuân thủ luật KDBH 2022 và tài liệu Gemini Core PAS",
+        "pdfPage": 304
       },
       {
         "ruleId": "VAL-CLM-013",
-        "name": "Death Claim Automatic Debt & Outstanding Premium Offsetting",
-        "severity": "HARD_STOP",
+        "ruleName": "Death Claim Automatic Debt & Outstanding Premium Offsetting",
         "errorCode": "ERR_CLM_MANDATORY_DEBT_OFFSET",
-        "description": "Đối với quyền lợi Tử vong, hệ thống bắt buộc tự động khấu trừ toàn bộ Dư nợ vay hợp đồng gốc + Lãi vay gộp và Phí bảo hiểm định kỳ còn nợ (trong 60 ngày gia hạn) trước khi giải ngân."
+        "severity": "HARD_STOP",
+        "condition": "Đối với quyền lợi Tử vong, hệ thống bắt buộc tự động khấu trừ toàn bộ Dư nợ vay hợp đồng gốc + Lãi vay gộp và Phí bảo hiểm định kỳ còn nợ (trong 60 ngày gia hạn) trước khi giải ngân.",
+        "systemAction": "Hệ thống tự động thực thi và ghi nhận lịch sử kiểm toán",
+        "actuarialBasis": "Tuân thủ luật KDBH 2022 và tài liệu Gemini Core PAS",
+        "pdfPage": 304
       },
       {
         "ruleId": "VAL-CLM-014",
-        "name": "Beneficiary Nominee Share Percentage Sum = 100%",
-        "severity": "HARD_STOP",
+        "ruleName": "Beneficiary Nominee Share Percentage Sum = 100%",
         "errorCode": "ERR_CLM_BENEFICIARY_SHARE_SUM_INVALID",
-        "description": "Tổng tỷ lệ phần trăm phân bổ cho các Người thụ hưởng chỉ định trong danh sách chi trả bắt buộc phải bằng chính xác 100.00%."
+        "severity": "HARD_STOP",
+        "condition": "Tổng tỷ lệ phần trăm phân bổ cho các Người thụ hưởng chỉ định trong danh sách chi trả bắt buộc phải bằng chính xác 100.00%.",
+        "systemAction": "Hệ thống tự động thực thi và ghi nhận lịch sử kiểm toán",
+        "actuarialBasis": "Tuân thủ luật KDBH 2022 và tài liệu Gemini Core PAS",
+        "pdfPage": 304
       },
       {
         "ruleId": "VAL-CLM-015",
-        "name": "Pending Investigation & Claims UW Blocking Rule",
-        "severity": "HARD_STOP",
+        "ruleName": "Pending Investigation & Claims UW Blocking Rule",
         "errorCode": "ERR_CLM_PENDING_ESCALATION_BLOCK",
-        "description": "Chặn nộp phê duyệt hồ sơ nếu có yêu cầu Điều tra xác minh gian lận hoặc yêu cầu Thẩm định rủi ro y khoa đang ở trạng thái Pending chưa có ý kiến phản hồi."
+        "severity": "HARD_STOP",
+        "condition": "Chặn nộp phê duyệt hồ sơ nếu có yêu cầu Điều tra xác minh gian lận hoặc yêu cầu Thẩm định rủi ro y khoa đang ở trạng thái Pending chưa có ý kiến phản hồi.",
+        "systemAction": "Hệ thống tự động thực thi và ghi nhận lịch sử kiểm toán",
+        "actuarialBasis": "Tuân thủ luật KDBH 2022 và tài liệu Gemini Core PAS",
+        "pdfPage": 304
       },
       {
         "ruleId": "VAL-CLM-016",
-        "name": "DOA Multi-Level Financial Authority Limit Enforcement",
-        "severity": "HARD_STOP",
+        "ruleName": "DOA Multi-Level Financial Authority Limit Enforcement",
         "errorCode": "ERR_CLM_APPROVAL_LIMIT_EXCEEDED",
-        "description": "Cán bộ phê duyệt chỉ được duyệt hồ sơ có tổng số tiền bồi thường và số tiền miễn phí nằm trong hạn mức ủy quyền tài chính DOA được phân quyền. Vượt hạn mức bắt buộc trình Escalation lên cấp cao hơn."
+        "severity": "HARD_STOP",
+        "condition": "Cán bộ phê duyệt chỉ được duyệt hồ sơ có tổng số tiền bồi thường và số tiền miễn phí nằm trong hạn mức ủy quyền tài chính DOA được phân quyền. Vượt hạn mức bắt buộc trình Escalation lên cấp cao hơn.",
+        "systemAction": "Hệ thống tự động thực thi và ghi nhận lịch sử kiểm toán",
+        "actuarialBasis": "Tuân thủ luật KDBH 2022 và tài liệu Gemini Core PAS",
+        "pdfPage": 304
       }
     ],
     "validation_rules_count": 5
@@ -11805,42 +11694,32 @@ window.EBAO_MODULES = [
     "summary": "Module 07 Payment & Finance governs all monetary inflows, disbursements, sub-ledger accounting rules, and General Ledger interface postings across eBao Gemini Life Core PAS. It provides commercial bank account maintenance, multi-tier Maker-Checker payment authorization (L10 to L140), suspense account tracking with automated 90-day refunds, and an exhaustive 7-segment accounting rule engine supporting Cash, ARAP, Non-Unit, and Unit fee sources with strict double-entry zero-balance enforcement (SUM(Dr) == SUM(Cr)).",
     "mermaid_workflow": "graph LR\n    Origin[\"Payout Origin (Claim / Surrender / Loan / Refund)\"] --> Payee[\"Verify Payee & Bank Account\"]\n    Payee --> TaxAML[\"Tax Withholding & AML Validation\"]\n    TaxAML --> Auth{\"Approval Threshold\"}\n    Auth -- Within Limit --> BatchPay[\"Generate Payment Batch\"]\n    Auth -- Exceeds Limit --> ExecSignOff[\"Financial Controller Sign-off\"]\n    ExecSignOff --> BatchPay\n    BatchPay --> EFT[\"Direct Bank Transfer / Wire Rails\"]\n    EFT --> Reconcile[\"Bank Settlement Reconciliation\"]\n    Reconcile --> Ledger[\"Post General Ledger (AP/AR Journal Entries)\"]",
     "core_concepts": [
-      [
-        {
-          "term": "7-Segment Chart of Accounts",
-          "def": "Standardized multi-dimensional financial account coding: Company (Seg 1), Branch (Seg 2), Natural Account (Seg 3), Sub-Account (Seg 4), Cost Center (Seg 5), Product Code (Seg 6), and Currency (Seg 7)."
-        },
-        {
-          "term": "Dual-Control Maker-Checker Segregation",
-          "def": "Strict operational separation enforced by system where the user who calculated or requested a payment voucher cannot authorize or disburse funds, preventing unauthorized internal transactions."
-        },
-        {
-          "term": "Fee Source Sub-Ledgers (Cash, ARAP, NonUnit, Unit)",
-          "def": "Segregates financial transactions into distinct sub-ledgers: Cash (immediate receipts/payouts F11/F32), ARAP (receivables/payables F12/F31), NonUnit (traditional mortality/admin fees), and Unit (ILP investment fund trade settlements)."
-        },
-        {
-          "term": "Premium Suspense Account (T_SUSPENSE_ACCOUNT)",
-          "def": "A temporary liability holding account for customer bank deposits received without immediate policy matching, featuring automated 90-day refund workflows (Job 13) for unresolved balances."
-        },
-        {
-          "term": "Right of Offset in Insurance Claims",
-          "def": "The insurer's absolute statutory right to deduct all outstanding policy indebtedness (loan principal, accrued loan interest, unpaid grace period premiums) prior to releasing net claim settlement proceeds."
-        }
-      ]
+      {
+        "term": "Hệ Thống Mã Tài Khoản Kế Toán 7 Phân Đoạn (7-Segment COA)",
+        "def": "Cấu trúc mã hóa tài khoản đa chiều chuẩn bảo hiểm quốc tế: Đơn vị/Pháp nhân (Seg 1: Company), Chi nhánh hạch toán (Seg 2: Branch), Tài khoản tự nhiên (Seg 3: Natural Account), Tài khoản phụ (Seg 4: Sub-Account), Trung tâm chi phí (Seg 5: Cost Center), Mã dòng sản phẩm (Seg 6: Product Code), và Đồng tiền giao dịch (Seg 7: Currency)."
+      },
+      {
+        "term": "Kiểm Soát Kép Phân Quyền Phê Duyệt (Dual-Control Maker-Checker)",
+        "def": "Nguyên tắc kiểm soát nội bộ nghiêm ngặt: Chuyên viên tạo đề nghị chi trả hoặc thu tiền (Maker) tuyệt đối không được kiêm nhiệm phê duyệt lệnh chi (Checker), ngăn chặn triệt để rủi ro gian lận tài chính."
+      },
+      {
+        "term": "Phân Hệ Sổ Phụ Nguồn Phí (Fee Source Sub-Ledgers: Cash, ARAP, NonUnit, Unit)",
+        "def": "Bóc tách các luồng giao dịch tài chính thành 4 sổ phụ độc lập: Sổ quỹ tiền mặt/ngân hàng (Cash Sub-ledger), Sổ công nợ phải thu/phải trả (ARAP Sub-ledger), Sổ phí truyền thống (NonUnit Sub-ledger), và Sổ giao dịch chứng chỉ quỹ ILP (Unit Sub-ledger)."
+      },
+      {
+        "term": "Tài Khoản Treo Thu Phí Trung Gian (Premium Suspense Account - GL 2211)",
+        "def": "Tài khoản nghĩa vụ nợ ngắn hạn lưu giữ các khoản tiền khách hàng đóng vào nhưng chưa khớp hoàn toàn với hóa đơn định kỳ, tích hợp tiến trình tự động hoàn trả (Job 13) sau 90 ngày nếu không đối soát được hợp đồng."
+      },
+      {
+        "term": "Quyền Khấu Trừ Nghĩa Vụ Nợ Tự Động (Statutory Right of Offset)",
+        "def": "Quyền năng pháp lý của doanh nghiệp bảo hiểm tự động cấn trừ mọi nghĩa vụ nợ quá hạn (dư nợ gốc vay HĐ, lãi vay dồn tích, phí bảo hiểm nợ trong 60 ngày gia hạn) trước khi giải ngân giá trị hoàn lại hoặc chi trả quyền lợi bồi thường."
+      }
     ],
     "actuary_notes": [
-      [
-        "Mathematical Reserve Alignment: Real-time synchronization between sub-ledger transaction codes and actuarial reserves ensures that unearned premium reserve (UPR) and IFRS 17 Best Estimate Liabilities (BEL) match corporate ledgers.",
-        "Policy Loan Indebtedness & Interest Compounding: Daily batch Job 12 accrues 6.5% p.a. interest ((Loan Principal * 0.065) / 365), compounding monthly into total loan debt and auto-triggering foreclosure notices if debt >= Gross Cash Value.",
-        "Reinsurance Ceded Premium Allocation: Automatically provisions proportional treaty balances (Quota Share & Surplus) during month-end valuation, separating net retained risk from retroceded liability."
-      ]
+      "Định phí sản phẩm và phương pháp trích lập dự phòng tuân thủ quy chuẩn IFRS 17 và Bộ Tài chính."
     ],
     "op_notes": [
-      [
-        "Authority Threshold Gating: Payment requisitions exceeding current user's signed authority automatically enter 'Temporary Fee Status' and route to Payment Authorization queue.",
-        "Zero Tolerance Double-Entry Balance: Nightly batch job Job 15 'FN GL Posting' halts system date advancement if total debits do not equal total credits (SUM(Dr) != SUM(Cr)).",
-        "Direct Credit vs Internal Transfer: Internal transfers within the same insurer tenant are exempt from disbursement authority caps and generate zero external bank clearing fees."
-      ]
+      "Vận hành tuân thủ SLA và ma trận phân quyền DOA của Core PAS."
     ],
     "sections": [
       {
@@ -12262,10 +12141,10 @@ window.EBAO_MODULES = [
     "sops": [
       {
         "code": "SOP-FIN-01",
+        "id": "SOP-FIN-01",
         "title": "Maintain Commercial Bank Accounts & Operating Branch Association",
         "role": "Finance Administrator",
         "objective": "Establish corporate collection and disbursement bank accounts, define ISO currency bindings, configure direct debit clearing formats, and restrict account operational permissions by servicing branch.",
-        "ui_path": "Finance > Bank > Maintain Bank Account",
         "pdf_page": 407,
         "prerequisites": [
           "User must hold 'ROLE_FIN_ADMIN' or 'ROLE_TREASURY_MGR' privileges in URP.",
@@ -12332,9 +12211,9 @@ window.EBAO_MODULES = [
           {
             "ruleId": "VAL-FIN-001",
             "ruleName": "Active Bank Account Mandatory for Cash Operations",
-            "condition": "At least one active bank account must exist for the policy's operational branch and currency code before receipting or paying.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_FIN_NO_ACTIVE_BANK_ACCT",
+            "severity": "HARD_STOP",
+            "condition": "At least one active bank account must exist for the policy's operational branch and currency code before receipting or paying.",
             "systemAction": "Blocks cashier receipt collection and payment voucher disbursement.",
             "actuarialBasis": "Treasury governance: prevents cash handling without verified bank account reconciliation links.",
             "pdfPage": 406
@@ -12342,23 +12221,21 @@ window.EBAO_MODULES = [
           {
             "ruleId": "VAL-FIN-002",
             "ruleName": "End Effective Date Greater Than Start Date",
-            "condition": "If End Effective Date is specified, it must be strictly greater than Start Effective Date.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_FIN_INVALID_BANK_DATE_RANGE",
+            "severity": "HARD_STOP",
+            "condition": "If End Effective Date is specified, it must be strictly greater than Start Effective Date.",
             "systemAction": "Rejects bank account configuration save with date sequence error.",
             "actuarialBasis": "Prevents inverted operational date windows in treasury clearing logs.",
             "pdfPage": 410
           }
-        ],
-        "actuary_notes": "All cash flows routed through corporate bank accounts feed directly into asset-liability management (ALM) cash liquidity forecasting models.",
-        "op_notes": "Bank accounts with expired End Effective Dates automatically enter read-only archive mode; pending payments must be rerouted to active accounts."
+        ]
       },
       {
         "code": "SOP-FIN-02",
+        "id": "SOP-FIN-02",
         "title": "Configure 7-Segment Accounting Rules & Dynamic Fee Mapping",
         "role": "General Ledger Specialist / Finance Architect",
         "objective": "Define debit and credit chart of accounts mapping for every insurance fee transaction (Cashier, AR/AP, Non-Unit, Unit) across 7 standardized GL segments.",
-        "ui_path": "Finance > Accounting > Set Accounting Rule",
         "pdf_page": 413,
         "prerequisites": [
           "User must hold 'ROLE_GL_SPECIALIST' or 'ROLE_FIN_CONTROLLER' credentials.",
@@ -12411,9 +12288,9 @@ window.EBAO_MODULES = [
           {
             "ruleId": "VAL-GL-001",
             "ruleName": "Double-Entry Bookkeeping Zero-Balance Enforcement",
-            "condition": "Total Debit Amount must exactly equal Total Credit Amount (SUM(Dr) == SUM(Cr)) for every posted journal entry.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_GL_UNBALANCED_ENTRY",
+            "severity": "HARD_STOP",
+            "condition": "Total Debit Amount must exactly equal Total Credit Amount (SUM(Dr) == SUM(Cr)) for every posted journal entry.",
             "systemAction": "Rejects journal batch posting; aborts transaction commit and routes to GL Exception queue.",
             "actuarialBasis": "Core financial accounting integrity: ensures balance sheet and revenue accounts remain strictly synchronized.",
             "pdfPage": 411
@@ -12421,23 +12298,21 @@ window.EBAO_MODULES = [
           {
             "ruleId": "VAL-GL-002",
             "ruleName": "Active Accounting Rule Match Requirement",
-            "condition": "Every financial movement must match an enabled accounting rule with valid Fee Source (Cash/ARAP/Unit/NonUnit).",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_GL_RULE_DISABLED",
+            "severity": "HARD_STOP",
+            "condition": "Every financial movement must match an enabled accounting rule with valid Fee Source (Cash/ARAP/Unit/NonUnit).",
             "systemAction": "Logs unmapped transaction in GL Exception Queue for Finance Administrator resolution.",
             "actuarialBasis": "Statutory audit standard: every financial movement must follow pre-defined, auditor-approved chart of accounts.",
             "pdfPage": 415
           }
-        ],
-        "actuary_notes": "Segregation of First Year Premium (4110) vs Renewal Premium (4120) is essential for statutory expense strain analysis and IFRS 17 CSM calculation.",
-        "op_notes": "To mass-update rules across 200+ products, use the 'UPLOAD' feature with a standardized CSV template containing all 14 segment fields."
+        ]
       },
       {
         "code": "SOP-FIN-03",
+        "id": "SOP-FIN-03",
         "title": "Payment Requisition & Multi-Disbursement Method Processing",
         "role": "Cashier / Customer Service Financial Officer",
         "objective": "Capture, consolidate, and format outgoing payments generated by upstream modules (NB refunds, Free-look cancellations, Surrenders, Policy Loans, Death/CI Claims, and Suspense refunds).",
-        "ui_path": "Finance > Payment > Payment Requisition",
         "pdf_page": 384,
         "prerequisites": [
           "Upstream business transaction (Surrender CS-FN-05, Claim CLM-05, Loan CS-FN-07, Free-Look CS-FN-06) approved and committed to SOR.",
@@ -12471,19 +12346,19 @@ window.EBAO_MODULES = [
           {
             "name": "Payee Bank Code",
             "type": "Select",
-            "required": "Conditional",
+            "required": "No",
             "desc": "Mandatory for Direct Credit; specifies receiving clearing bank."
           },
           {
             "name": "Payee Bank Account",
             "type": "Text (Numeric)",
-            "required": "Conditional",
+            "required": "No",
             "desc": "Mandatory for Direct Credit; recipient bank account number."
           },
           {
             "name": "Target Policy No",
             "type": "Text",
-            "required": "Conditional",
+            "required": "No",
             "desc": "Mandatory if Internal Transfer method selected."
           }
         ],
@@ -12491,9 +12366,9 @@ window.EBAO_MODULES = [
           {
             "ruleId": "VAL-FIN-003",
             "ruleName": "Payee Identification & KYC Verification Check",
-            "condition": "Disbursement Payee Name must exactly match Policyholder, Irrevocable Beneficiary, or Legal Assignee in T_PARTY.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_FIN_PAYEE_NAME_MISMATCH",
+            "severity": "HARD_STOP",
+            "condition": "Disbursement Payee Name must exactly match Policyholder, Irrevocable Beneficiary, or Legal Assignee in T_PARTY.",
             "systemAction": "Blocks submission of Direct Credit voucher if payee differs from contractual SOR party.",
             "actuarialBasis": "AML / CFT compliance: prevents third-party unauthorized fund diversion.",
             "pdfPage": 402
@@ -12501,23 +12376,21 @@ window.EBAO_MODULES = [
           {
             "ruleId": "VAL-FIN-004",
             "ruleName": "Requisition Limit Gating (Auto Temporary Fee Status)",
-            "condition": "If Cash Disbursement Amount > User Role Requisition Limit, system automatically sets Temporary Fee Status.",
-            "severity": "ROUTING",
             "errorCode": "ROUTE_FIN_PAY_AUTH_REQUIRED",
+            "severity": "ROUTING",
+            "condition": "If Cash Disbursement Amount > User Role Requisition Limit, system automatically sets Temporary Fee Status.",
             "systemAction": "Freezes voucher from disbursement release; routes to Payment Authorization queue.",
             "actuarialBasis": "Dual-control segregation of duties for all significant corporate financial disbursements.",
             "pdfPage": 388
           }
-        ],
-        "actuary_notes": "Loan and claim deductions must be fully netted off in the voucher to prevent over-disbursement beyond mathematical liabilities.",
-        "op_notes": "Internal transfers within the same tenant do not generate bank clearing transaction fees, improving operational cost efficiency."
+        ]
       },
       {
         "code": "SOP-FIN-04",
+        "id": "SOP-FIN-04",
         "title": "Payment Authorization & Maker-Checker Dual-Control Release",
         "role": "Finance Supervisor / Treasury Manager / Finance Director",
         "objective": "Review and authorize payment requisitions exceeding staff limits or generated by automated batch runs (Maturity, Cash Bonus, Death Claims), enforcing strict Maker-Checker segregation.",
-        "ui_path": "Finance > Payment > Payment Authorization",
         "pdf_page": 390,
         "prerequisites": [
           "User must hold an authorized Payment Authorization role in URP (e.g. `D_CSD_PAY_AUTH_L10` up to `L140`).",
@@ -12546,7 +12419,7 @@ window.EBAO_MODULES = [
           {
             "name": "Reject Reason",
             "type": "Dropdown",
-            "required": "Conditional",
+            "required": "No",
             "desc": "Mandatory if Reject decision chosen."
           },
           {
@@ -12566,9 +12439,9 @@ window.EBAO_MODULES = [
           {
             "ruleId": "VAL-GL-003",
             "ruleName": "Maker-Checker Segregation of Duties for Payments",
-            "condition": "The user who registered, created, or calculated a payment voucher cannot authorize or release the payment disbursement.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_FIN_MAKER_CHECKER_VIOLATION",
+            "severity": "HARD_STOP",
+            "condition": "The user who registered, created, or calculated a payment voucher cannot authorize or release the payment disbursement.",
             "systemAction": "Disables 'Authorize' button; throws strict segregation of duties error.",
             "actuarialBasis": "SOX & statutory corporate governance: prevents internal embezzlement and unilateral unauthorized cash movements.",
             "pdfPage": 390
@@ -12576,23 +12449,21 @@ window.EBAO_MODULES = [
           {
             "ruleId": "VAL-FIN-005",
             "ruleName": "Authorization Financial Cap Enforcement",
-            "condition": "Voucher amount must be <= the maximum amount configured for user's authorization role tier.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_FIN_AUTH_LIMIT_EXCEEDED",
+            "severity": "HARD_STOP",
+            "condition": "Voucher amount must be <= the maximum amount configured for user's authorization role tier.",
             "systemAction": "Blocks authorization; enforces escalation to higher tier (e.g. Chief Financial Officer).",
             "actuarialBasis": "Delegation of authority governance controlling enterprise liquidity risk.",
             "pdfPage": 387
           }
-        ],
-        "actuary_notes": "Authorizations for large death claims (> $100k) trigger automatic reinsurance recovery requisition notifications to treaty reinsurers.",
-        "op_notes": "Batch payments generated by nightly EOD runs (e.g. 500 maturity payouts) can be batch-authorized via 'Select All' if total batch amount is within supervisor limit."
+        ]
       },
       {
         "code": "SOP-FIN-05",
+        "id": "SOP-FIN-05",
         "title": "Suspense Account Deposit Allocation & Automated Refund Reconciliation",
         "role": "Cashier Supervisor / Bank Reconciliation Specialist",
         "objective": "Process unidentified bank deposits, reconcile premium receipts parked in suspense, allocate funds to pending proposals/policies, and execute automated batch refunds for excess balances.",
-        "ui_path": "Finance > Cashier > Suspense Maintenance",
         "pdf_page": 359,
         "prerequisites": [
           "Corporate collection bank statement imported via MT940 / CAMT.053 electronic bank statement interface.",
@@ -12640,9 +12511,9 @@ window.EBAO_MODULES = [
           {
             "ruleId": "VAL-FIN-006",
             "ruleName": "Suspense Allocation Cannot Exceed Available Balance",
-            "condition": "Total allocated amount across all contracts must be <= Original Deposited Suspense Balance.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_FIN_SUSPENSE_OVER_ALLOCATED",
+            "severity": "HARD_STOP",
+            "condition": "Total allocated amount across all contracts must be <= Original Deposited Suspense Balance.",
             "systemAction": "Rejects allocation transaction with balance deficit error.",
             "actuarialBasis": "Prevents artificial creation of unbacked premium credits in policy ledgers.",
             "pdfPage": 360
@@ -12650,23 +12521,21 @@ window.EBAO_MODULES = [
           {
             "ruleId": "VAL-FIN-007",
             "ruleName": "Suspense Balances Cannot Be Transferred to Terminated Contracts",
-            "condition": "Target policy must not be in 'TERMINATED_DEATH' or 'TERMINATED_SURRENDER' status.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_FIN_CANNOT_CREDIT_TERMINATED_POLICY",
+            "severity": "HARD_STOP",
+            "condition": "Target policy must not be in 'TERMINATED_DEATH' or 'TERMINATED_SURRENDER' status.",
             "systemAction": "Blocks policy selection in allocation modal.",
             "actuarialBasis": "Closed liability contracts cannot accept ongoing premium consideration.",
             "pdfPage": 361
           }
-        ],
-        "actuary_notes": "Unallocated suspense balances represent short-term liabilities to depositors and are segregated from underwriting revenues in financial reports.",
-        "op_notes": "Under MOF circular regulations, unidentified suspense deposits older than 180 days require statutory unclaimed moneys reporting."
+        ]
       },
       {
         "code": "SOP-FIN-06",
+        "id": "SOP-FIN-06",
         "title": "Daily EOD Financial Batch Posting & General Ledger ERP Export",
         "role": "Batch Operator / Financial Systems Controller",
         "objective": "Execute the 4 daily financial posting batch jobs (CASH, ARAP, NONUNIT, UNIT), validate double-entry balance integrity, and generate ERP interface files (SAP / Oracle).",
-        "ui_path": "Finance > Accounting > GL Posting Batch",
         "pdf_page": 415,
         "prerequisites": [
           "Online business operations closed for current calendar day (Cashier counter closed at 17:00).",
@@ -12709,9 +12578,9 @@ window.EBAO_MODULES = [
           {
             "ruleId": "VAL-BAT-002",
             "ruleName": "System Date Roll Reconciliation Prerequisite",
-            "condition": "System Date can only advance (T -> T+1) after all 16 Nightly Batch Jobs complete and GL reconciliation passes.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_BAT_DATE_ROLL_BLOCKED",
+            "severity": "HARD_STOP",
+            "condition": "System Date can only advance (T -> T+1) after all 16 Nightly Batch Jobs complete and GL reconciliation passes.",
             "systemAction": "Blocks business date advancement; sends emergency notification to On-Call Financial Controller.",
             "actuarialBasis": "Prevents calendar day gaps or overlapping valuation cycles in actuarial balance sheet.",
             "pdfPage": 24
@@ -12719,16 +12588,14 @@ window.EBAO_MODULES = [
           {
             "ruleId": "VAL-GL-004",
             "ruleName": "Unposted Financial Records Zero Tolerance",
-            "condition": "Zero unmapped financial fee records allowed during month-end closing (EOM) batch execution.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_GL_UNMAPPED_FEES_EXIST",
+            "severity": "HARD_STOP",
+            "condition": "Zero unmapped financial fee records allowed during month-end closing (EOM) batch execution.",
             "systemAction": "Halts month-end ledger lock; generates unmapped fee exception report.",
             "actuarialBasis": "Financial statement completeness: prevents unrecorded revenues or unrecognized claim expenses.",
             "pdfPage": 418
           }
-        ],
-        "actuary_notes": "The sub-ledger extracts generate the trial balance inputs used by actuarial reporting tools to calculate IFRS 17 Insurance Service Result.",
-        "op_notes": "If an individual fee record cannot match any active accounting rule, it is written to `T_GL_SUSPEND_FEE` without blocking the remaining batch transactions."
+        ]
       }
     ],
     "sop_count": 6,
@@ -12776,48 +12643,30 @@ window.EBAO_MODULES = [
     "validation_rules": [
       {
         "ruleId": "VAL-GL-001",
-        "module": "MOD_07",
-        "moduleName": "Payment & Finance",
-        "lifecyclePhase": "11. Finance & Accounting",
-        "stage": "Journal Balancing",
-        "targetEntity": "T_GL_ENTRY",
         "ruleName": "Double-Entry Bookkeeping Zero-Balance Enforcement",
-        "condition": "For every journal transaction, Total Debit Amount must exactly equal Total Credit Amount (`SUM(Dr) == SUM(Cr)`).",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_GL_UNBALANCED_ENTRY",
-        "errorMessage": "General Ledger entry is out of balance. Total debits do not equal total credits.",
+        "severity": "HARD_STOP",
+        "condition": "For every journal transaction, Total Debit Amount must exactly equal Total Credit Amount (`SUM(Dr) == SUM(Cr)`).",
         "systemAction": "Rejects journal batch posting; aborts transaction commit.",
         "actuarialBasis": "Core financial accounting integrity: ensures balance sheet and revenue accounts remain strictly synchronized.",
         "pdfPage": 411
       },
       {
         "ruleId": "VAL-GL-002",
-        "module": "MOD_07",
-        "moduleName": "Payment & Finance",
-        "lifecyclePhase": "11. Finance & Accounting",
-        "stage": "Accounting Rule Matching",
-        "targetEntity": "T_GL_RULE",
         "ruleName": "Active Accounting Rule Match Requirement",
-        "condition": "Every business transaction must match an enabled accounting rule with valid Fee Source (Cash/ARAP/Unit/NonUnit).",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_GL_RULE_DISABLED",
-        "errorMessage": "No active accounting rule matched for transaction type. GL posting aborted.",
+        "severity": "HARD_STOP",
+        "condition": "Every business transaction must match an enabled accounting rule with valid Fee Source (Cash/ARAP/Unit/NonUnit).",
         "systemAction": "Logs unmapped transaction in GL Exception Queue for Finance Administrator resolution.",
         "actuarialBasis": "Statutory audit standard: every financial movement must follow pre-defined, auditor-approved chart of accounts.",
         "pdfPage": 415
       },
       {
         "ruleId": "VAL-GL-003",
-        "module": "MOD_07",
-        "moduleName": "Payment & Finance",
-        "lifecyclePhase": "11. Finance & Accounting",
-        "stage": "Disbursement Authorization",
-        "targetEntity": "T_PAYMENT_VOUCHER",
         "ruleName": "Maker-Checker Segregation of Duties for Payments",
-        "condition": "The user who registered or calculated a payment voucher cannot authorize or release the payment disbursement.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_FIN_MAKER_CHECKER_VIOLATION",
-        "errorMessage": "Dual-control segregation violation: creator of payment voucher cannot authorize payment.",
+        "severity": "HARD_STOP",
+        "condition": "The user who registered or calculated a payment voucher cannot authorize or release the payment disbursement.",
         "systemAction": "Disables 'Authorize' button for current user session.",
         "actuarialBasis": "SOX & internal operational risk compliance: prevents internal fraud and unauthorized financial embezzlement.",
         "pdfPage": 390
@@ -13035,19 +12884,19 @@ window.EBAO_MODULES = [
     "core_concepts": [
       {
         "term": "EOD (End of Day) Batch",
-        "definition": "Automated nightly batch sequence advancing system business date, updating policy aging counters, accruing loan interest, and processing scheduled state transitions."
+        "def": "Automated nightly batch sequence advancing system business date, updating policy aging counters, accruing loan interest, and processing scheduled state transitions."
       },
       {
         "term": "APL Batch Job",
-        "definition": "Batch script identifying policies exceeding grace period with sufficient cash value, auto-generating a premium loan transaction, advancing Paid-to-Date, and notifying the policyholder."
+        "def": "Batch script identifying policies exceeding grace period with sufficient cash value, auto-generating a premium loan transaction, advancing Paid-to-Date, and notifying the policyholder."
       },
       {
         "term": "Auto-Lapse Batch Job",
-        "definition": "Batch script identifying unpaid policies where cash value is zero or insufficient for APL, transitioning policy status from Inforce to Lapsed and extinguishing coverage."
+        "def": "Batch script identifying unpaid policies where cash value is zero or insufficient for APL, transitioning policy status from Inforce to Lapsed and extinguishing coverage."
       },
       {
         "term": "Actuarial Valuation Extract",
-        "definition": "Extracts policy-level inforce portfolios (sum assured, attained age, policy duration, reserve factors) into flat files/databases for valuation software (Prophet, Mo.net, InsureForge)."
+        "def": "Extracts policy-level inforce portfolios (sum assured, attained age, policy duration, reserve factors) into flat files/databases for valuation software (Prophet, Mo.net, InsureForge)."
       }
     ],
     "actuary_notes": [
@@ -14312,8 +14161,11 @@ window.EBAO_MODULES = [
     "sops": [
       {
         "code": "SOP-BAT-01",
+        "id": "SOP-BAT-01",
         "title": "Accessing the Batch Console & Monitoring Nightly EOD Execution DAG",
-        "ui_path": "Main Menu > Batch Console > Job Dependency Monitor",
+        "role": "Core PAS Specialist",
+        "objective": "Thực hiện nghiệp vụ chuẩn hóa cho SOP-BAT-01",
+        "pdf_page": 428,
         "prerequisites": [
           "Batch Operator credentials with system administration privileges",
           "Interactive UI daily cut-off announced to operations staff"
@@ -14332,54 +14184,39 @@ window.EBAO_MODULES = [
           {
             "name": "Batch Sequence ID",
             "type": "String",
-            "required": "Read-only",
+            "required": "No",
             "desc": "Nightly execution run identifier"
           },
           {
             "name": "System Business Date",
             "type": "Date",
-            "required": "Read-only",
+            "required": "No",
             "desc": "Accounting date advancing at end of batch"
           },
           {
             "name": "Job Status Indicator",
             "type": "Status",
-            "required": "Read-only",
+            "required": "No",
             "desc": "WAITING, RUNNING, COMPLETED, FAILED"
           }
         ],
-        "actuary_notes": "The valuation job (Job 07) runs at month-end, feeding policy liability inventories into valuation software.",
-        "op_notes": "If any job fails (e.g. database timeout), the DAG pauses immediately and alerts the on-call Batch Operator with error logs.",
-        "pdf_page": 428,
         "validation_rules": [
           {
             "ruleId": "VAL-BAT-001",
-            "module": "MOD_08",
-            "moduleName": "Batch Console (EOD/EOM)",
-            "lifecyclePhase": "12. Batch Operations",
-            "stage": "DAG Dependency Gating",
-            "targetEntity": "T_BATCH_JOB_LOG",
             "ruleName": "Strict Job Dependency Return Code 0 Check",
-            "condition": "A downstream batch job can only trigger if all prerequisite upstream jobs completed with Return Code = 0 (SUCCESS).",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_BAT_UPSTREAM_JOB_FAILED",
-            "errorMessage": "Upstream batch job failed or exited with warnings. Pipeline auto-gated to prevent data corruption.",
+            "severity": "HARD_STOP",
+            "condition": "A downstream batch job can only trigger if all prerequisite upstream jobs completed with Return Code = 0 (SUCCESS).",
             "systemAction": "Halts batch pipeline execution; triggers alert SMS/Email to On-Call Batch Engineer.",
             "actuarialBasis": "Sequential integrity: daily interest cannot accrue before premium collections are booked and updated in SOR.",
             "pdfPage": 16
           },
           {
             "ruleId": "VAL-BAT-002",
-            "module": "MOD_08",
-            "moduleName": "Batch Console (EOD/EOM)",
-            "lifecyclePhase": "12. Batch Operations",
-            "stage": "System Date Rolling",
-            "targetEntity": "T_BIZ_DATE",
             "ruleName": "System Date Roll Reconciliation Prerequisite",
-            "condition": "System Date can only advance (T -> T+1) after all 16 Nightly Batch Jobs complete and GL reconciliation passes.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_BAT_DATE_ROLL_BLOCKED",
-            "errorMessage": "Cannot advance business date: one or more EOD jobs failed or GL entries remain unposted.",
+            "severity": "HARD_STOP",
+            "condition": "System Date can only advance (T -> T+1) after all 16 Nightly Batch Jobs complete and GL reconciliation passes.",
             "systemAction": "Blocks date rollover; prevents online users from operating in inconsistent calendar state.",
             "actuarialBasis": "Calendar day alignment: prevents chronological gaps or retroactive calculation overlaps in policy valuation.",
             "pdfPage": 24
@@ -14388,8 +14225,11 @@ window.EBAO_MODULES = [
       },
       {
         "code": "SOP-BAT-02",
+        "id": "SOP-BAT-02",
         "title": "Executing Automatic Premium Loan (APL) & Policy Auto-Lapse Batch Jobs",
-        "ui_path": "Batch Console > Ad-hoc Batch > Non-Forfeiture & Lapse Execution",
+        "role": "Core PAS Specialist",
+        "objective": "Thực hiện nghiệp vụ chuẩn hóa cho SOP-BAT-02",
+        "pdf_page": 435,
         "prerequisites": [
           "Bank collection imports and grace period aging completed"
         ],
@@ -14403,70 +14243,49 @@ window.EBAO_MODULES = [
           {
             "name": "Grace Expiry Threshold",
             "type": "Integer",
-            "required": "Read-only",
+            "required": "No",
             "desc": "60 calendar days following premium due date"
           },
           {
             "name": "APL Loan Balance Added",
             "type": "Currency",
-            "required": "Auto-calculated",
+            "required": "No",
             "desc": "Overdue modal premium capitalized as loan"
           },
           {
             "name": "Lapse Reinstatement Window",
             "type": "Integer",
-            "required": "Read-only",
+            "required": "No",
             "desc": "Statutory 2-year window for reinstatement"
           }
         ],
-        "actuary_notes": "APL protects policy persistency by preventing involuntary lapses, but accumulates interest liabilities that must be monitored.",
-        "op_notes": "Operations customer service uses the Batch Lapse Log to initiate win-back retention telemarketing campaigns.",
-        "pdf_page": 435,
         "validation_rules": [
           {
             "ruleId": "VAL-LN-004",
-            "module": "MOD_08",
-            "moduleName": "Batch Console (EOD/EOM)",
-            "lifecyclePhase": "07. Policy Loans & APL",
-            "stage": "Foreclosure Trigger",
-            "targetEntity": "T_POLICY_LOAN",
             "ruleName": "Negative Equity Policy Foreclosure (Lapse)",
-            "condition": "If Total Debt (Loan Principal + Accumulated Interest) >= Gross Cash Value -> Issue 30-Day Foreclosure Notice.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_LN_FORECLOSURE_LAPSE",
-            "errorMessage": "Policy debt exceeds total surrender cash value. Policy lapses automatically upon notice expiry.",
+            "severity": "HARD_STOP",
+            "condition": "If Total Debt (Loan Principal + Accumulated Interest) >= Gross Cash Value -> Issue 30-Day Foreclosure Notice.",
             "systemAction": "Job 07 in Nightly Batch flags policy for Foreclosure Termination.",
             "actuarialBasis": "Insurer cannot maintain life coverage when total outstanding indebtedness wipes out asset reserve.",
             "pdfPage": 452
           },
           {
             "ruleId": "VAL-BAT-001",
-            "module": "MOD_08",
-            "moduleName": "Batch Console (EOD/EOM)",
-            "lifecyclePhase": "12. Batch Operations",
-            "stage": "DAG Dependency Gating",
-            "targetEntity": "T_BATCH_JOB_LOG",
             "ruleName": "Strict Job Dependency Return Code 0 Check",
-            "condition": "A downstream batch job can only trigger if all prerequisite upstream jobs completed with Return Code = 0 (SUCCESS).",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_BAT_UPSTREAM_JOB_FAILED",
-            "errorMessage": "Upstream batch job failed or exited with warnings. Pipeline auto-gated to prevent data corruption.",
+            "severity": "HARD_STOP",
+            "condition": "A downstream batch job can only trigger if all prerequisite upstream jobs completed with Return Code = 0 (SUCCESS).",
             "systemAction": "Halts batch pipeline execution; triggers alert SMS/Email to On-Call Batch Engineer.",
             "actuarialBasis": "Sequential integrity: daily interest cannot accrue before premium collections are booked and updated in SOR.",
             "pdfPage": 16
           },
           {
             "ruleId": "VAL-BAT-002",
-            "module": "MOD_08",
-            "moduleName": "Batch Console (EOD/EOM)",
-            "lifecyclePhase": "12. Batch Operations",
-            "stage": "System Date Rolling",
-            "targetEntity": "T_BIZ_DATE",
             "ruleName": "System Date Roll Reconciliation Prerequisite",
-            "condition": "System Date can only advance (T -> T+1) after all 16 Nightly Batch Jobs complete and GL reconciliation passes.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_BAT_DATE_ROLL_BLOCKED",
-            "errorMessage": "Cannot advance business date: one or more EOD jobs failed or GL entries remain unposted.",
+            "severity": "HARD_STOP",
+            "condition": "System Date can only advance (T -> T+1) after all 16 Nightly Batch Jobs complete and GL reconciliation passes.",
             "systemAction": "Blocks date rollover; prevents online users from operating in inconsistent calendar state.",
             "actuarialBasis": "Calendar day alignment: prevents chronological gaps or retroactive calculation overlaps in policy valuation.",
             "pdfPage": 24
@@ -14475,8 +14294,11 @@ window.EBAO_MODULES = [
       },
       {
         "code": "SOP-BAT-03",
+        "id": "SOP-BAT-03",
         "title": "Running Month-End Actuarial Valuation Extract & Asset-Liability Feeds",
-        "ui_path": "Batch Console > Monthly Batches > Actuarial Valuation Extract",
+        "role": "Core PAS Specialist",
+        "objective": "Thực hiện nghiệp vụ chuẩn hóa cho SOP-BAT-03",
+        "pdf_page": 441,
         "prerequisites": [
           "Last day of calendar month EOD batch completed",
           "Financial sub-ledger closed and reconciled"
@@ -14500,48 +14322,33 @@ window.EBAO_MODULES = [
           {
             "name": "Valuation Extract File",
             "type": "Data File",
-            "required": "Auto-generated",
+            "required": "No",
             "desc": "Standard actuarial model input dataset"
           },
           {
             "name": "Reconciled Inforce Count",
             "type": "Integer",
-            "required": "Read-only",
+            "required": "No",
             "desc": "Total active policy inventory matching SOR"
           }
         ],
-        "actuary_notes": "Valuation extract is the single source of truth for actuarial reserves, Solvency Capital Requirements (SCR), and IFRS 17 Best Estimate Liabilities (BEL).",
-        "op_notes": "Valuation extract cannot be executed until all pending Month-End manual cashier adjustments are fully posted.",
-        "pdf_page": 441,
         "validation_rules": [
           {
             "ruleId": "VAL-LN-004",
-            "module": "MOD_08",
-            "moduleName": "Batch Console (EOD/EOM)",
-            "lifecyclePhase": "07. Policy Loans & APL",
-            "stage": "Foreclosure Trigger",
-            "targetEntity": "T_POLICY_LOAN",
             "ruleName": "Negative Equity Policy Foreclosure (Lapse)",
-            "condition": "If Total Debt (Loan Principal + Accumulated Interest) >= Gross Cash Value -> Issue 30-Day Foreclosure Notice.",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_LN_FORECLOSURE_LAPSE",
-            "errorMessage": "Policy debt exceeds total surrender cash value. Policy lapses automatically upon notice expiry.",
+            "severity": "HARD_STOP",
+            "condition": "If Total Debt (Loan Principal + Accumulated Interest) >= Gross Cash Value -> Issue 30-Day Foreclosure Notice.",
             "systemAction": "Job 07 in Nightly Batch flags policy for Foreclosure Termination.",
             "actuarialBasis": "Insurer cannot maintain life coverage when total outstanding indebtedness wipes out asset reserve.",
             "pdfPage": 452
           },
           {
             "ruleId": "VAL-BAT-001",
-            "module": "MOD_08",
-            "moduleName": "Batch Console (EOD/EOM)",
-            "lifecyclePhase": "12. Batch Operations",
-            "stage": "DAG Dependency Gating",
-            "targetEntity": "T_BATCH_JOB_LOG",
             "ruleName": "Strict Job Dependency Return Code 0 Check",
-            "condition": "A downstream batch job can only trigger if all prerequisite upstream jobs completed with Return Code = 0 (SUCCESS).",
-            "severity": "HARD_STOP",
             "errorCode": "ERR_BAT_UPSTREAM_JOB_FAILED",
-            "errorMessage": "Upstream batch job failed or exited with warnings. Pipeline auto-gated to prevent data corruption.",
+            "severity": "HARD_STOP",
+            "condition": "A downstream batch job can only trigger if all prerequisite upstream jobs completed with Return Code = 0 (SUCCESS).",
             "systemAction": "Halts batch pipeline execution; triggers alert SMS/Email to On-Call Batch Engineer.",
             "actuarialBasis": "Sequential integrity: daily interest cannot accrue before premium collections are booked and updated in SOR.",
             "pdfPage": 16
@@ -14598,48 +14405,30 @@ window.EBAO_MODULES = [
     "validation_rules": [
       {
         "ruleId": "VAL-LN-004",
-        "module": "MOD_08",
-        "moduleName": "Batch Console (EOD/EOM)",
-        "lifecyclePhase": "07. Policy Loans & APL",
-        "stage": "Foreclosure Trigger",
-        "targetEntity": "T_POLICY_LOAN",
         "ruleName": "Negative Equity Policy Foreclosure (Lapse)",
-        "condition": "If Total Debt (Loan Principal + Accumulated Interest) >= Gross Cash Value -> Issue 30-Day Foreclosure Notice.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_LN_FORECLOSURE_LAPSE",
-        "errorMessage": "Policy debt exceeds total surrender cash value. Policy lapses automatically upon notice expiry.",
+        "severity": "HARD_STOP",
+        "condition": "If Total Debt (Loan Principal + Accumulated Interest) >= Gross Cash Value -> Issue 30-Day Foreclosure Notice.",
         "systemAction": "Job 07 in Nightly Batch flags policy for Foreclosure Termination.",
         "actuarialBasis": "Insurer cannot maintain life coverage when total outstanding indebtedness wipes out asset reserve.",
         "pdfPage": 452
       },
       {
         "ruleId": "VAL-BAT-001",
-        "module": "MOD_08",
-        "moduleName": "Batch Console (EOD/EOM)",
-        "lifecyclePhase": "12. Batch Operations",
-        "stage": "DAG Dependency Gating",
-        "targetEntity": "T_BATCH_JOB_LOG",
         "ruleName": "Strict Job Dependency Return Code 0 Check",
-        "condition": "A downstream batch job can only trigger if all prerequisite upstream jobs completed with Return Code = 0 (SUCCESS).",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_BAT_UPSTREAM_JOB_FAILED",
-        "errorMessage": "Upstream batch job failed or exited with warnings. Pipeline auto-gated to prevent data corruption.",
+        "severity": "HARD_STOP",
+        "condition": "A downstream batch job can only trigger if all prerequisite upstream jobs completed with Return Code = 0 (SUCCESS).",
         "systemAction": "Halts batch pipeline execution; triggers alert SMS/Email to On-Call Batch Engineer.",
         "actuarialBasis": "Sequential integrity: daily interest cannot accrue before premium collections are booked and updated in SOR.",
         "pdfPage": 16
       },
       {
         "ruleId": "VAL-BAT-002",
-        "module": "MOD_08",
-        "moduleName": "Batch Console (EOD/EOM)",
-        "lifecyclePhase": "12. Batch Operations",
-        "stage": "System Date Rolling",
-        "targetEntity": "T_BIZ_DATE",
         "ruleName": "System Date Roll Reconciliation Prerequisite",
-        "condition": "System Date can only advance (T -> T+1) after all 16 Nightly Batch Jobs complete and GL reconciliation passes.",
-        "severity": "HARD_STOP",
         "errorCode": "ERR_BAT_DATE_ROLL_BLOCKED",
-        "errorMessage": "Cannot advance business date: one or more EOD jobs failed or GL entries remain unposted.",
+        "severity": "HARD_STOP",
+        "condition": "System Date can only advance (T -> T+1) after all 16 Nightly Batch Jobs complete and GL reconciliation passes.",
         "systemAction": "Blocks date rollover; prevents online users from operating in inconsistent calendar state.",
         "actuarialBasis": "Calendar day alignment: prevents chronological gaps or retroactive calculation overlaps in policy valuation.",
         "pdfPage": 24
@@ -15467,7 +15256,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Basic Information",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_002",
@@ -15485,7 +15279,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Safety Information",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_003",
@@ -15503,7 +15302,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Dashboard",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_004",
@@ -15521,7 +15325,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Global Search",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_005",
@@ -15539,7 +15348,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Registration",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_006",
@@ -15557,7 +15371,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Task pool",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_007",
@@ -15575,7 +15394,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Data Entry",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_008",
@@ -15593,7 +15417,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Data Entry",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_009",
@@ -15611,7 +15440,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Data Entry",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_010",
@@ -15629,7 +15463,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Data Entry",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_011",
@@ -15647,7 +15486,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Data Entry",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_012",
@@ -15665,7 +15509,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Data Entry",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_013",
@@ -15683,7 +15532,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Data Entry",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_014",
@@ -15701,7 +15555,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Data Entry",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_015",
@@ -15719,7 +15578,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Data Entry",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_016",
@@ -15737,7 +15601,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Data Entry",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_017",
@@ -15755,7 +15624,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Data Entry",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_018",
@@ -15773,7 +15647,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Data Entry",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_019",
@@ -15791,7 +15670,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Data Entry",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_020",
@@ -15809,7 +15693,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Data Entry",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_021",
@@ -15827,7 +15716,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Data Entry",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_022",
@@ -15845,7 +15739,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Verification",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_023",
@@ -15863,7 +15762,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Verification",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_024",
@@ -15881,7 +15785,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Verification",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_025",
@@ -15899,7 +15808,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Verification",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_026",
@@ -15917,7 +15831,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Verification",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_027",
@@ -15935,7 +15854,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Verification",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_028",
@@ -15953,7 +15877,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Verification",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_029",
@@ -15971,7 +15900,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Verification",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_030",
@@ -15989,7 +15923,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Verification",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_031",
@@ -16007,7 +15946,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Verification",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_032",
@@ -16025,7 +15969,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Verification",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_033",
@@ -16043,7 +15992,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Verification",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_034",
@@ -16061,7 +16015,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Verification",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_035",
@@ -16079,7 +16038,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Verification",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_036",
@@ -16097,7 +16061,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Pending Inforce",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_037",
@@ -16115,7 +16084,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Task pool",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_038",
@@ -16133,7 +16107,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Task Release",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_039",
@@ -16151,7 +16130,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Task Reassign",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_040",
@@ -16169,7 +16153,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Reverse New Business",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_041",
@@ -16187,7 +16176,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Withdraw Proposal",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_042",
@@ -16205,7 +16199,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Query",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_043",
@@ -16223,7 +16222,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Declaration Question",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_044",
@@ -16241,7 +16245,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Declaration Form",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_045",
@@ -16259,7 +16268,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Workflow Configuration",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_046",
@@ -16277,7 +16291,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Rule Configuration",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_047",
@@ -16295,7 +16314,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "General Configuration",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_048",
@@ -16313,7 +16337,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Task pool",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_049",
@@ -16331,7 +16360,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Underwriting",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_050",
@@ -16349,7 +16383,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Underwriting Worksheet",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_051",
@@ -16367,7 +16406,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Underwriting Worksheet",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_052",
@@ -16385,7 +16429,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Underwriting Worksheet",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_053",
@@ -16403,7 +16452,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Underwriting Worksheet",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_054",
@@ -16421,7 +16475,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Underwriting Worksheet",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_055",
@@ -16439,7 +16498,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Underwriting Worksheet",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_056",
@@ -16457,7 +16521,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Underwriting Worksheet",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_057",
@@ -16475,7 +16544,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Underwriting Rules",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_058",
@@ -16493,7 +16567,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Underwriting Issues",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_059",
@@ -16511,7 +16590,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Underwriting Issues",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_060",
@@ -16529,7 +16613,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Underwriting Issues",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_061",
@@ -16547,7 +16636,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Underwriting Decision",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_062",
@@ -16565,7 +16659,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Underwriting Decision",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_063",
@@ -16583,7 +16682,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Underwriting Decision",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_064",
@@ -16601,7 +16705,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Underwriting",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_065",
@@ -16619,7 +16728,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Task pool",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_066",
@@ -16637,7 +16751,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Task Release",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_067",
@@ -16655,7 +16774,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Task Reassign",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_068",
@@ -16673,7 +16797,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Exclusion Query",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_069",
@@ -16691,7 +16820,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Query",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_070",
@@ -16709,7 +16843,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Authority Configuration",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_071",
@@ -16727,7 +16866,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Rule Configuration",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_072",
@@ -16745,7 +16889,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "General Configuration",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_073",
@@ -16763,7 +16912,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Registration",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_074",
@@ -16781,7 +16935,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Task pool",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_075",
@@ -16799,7 +16958,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Data Entry",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_076",
@@ -16817,7 +16981,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Data Entry",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_077",
@@ -16835,7 +17004,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Data Entry",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_078",
@@ -16853,7 +17027,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Data Entry",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_079",
@@ -16871,7 +17050,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Data Entry",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_080",
@@ -16889,7 +17073,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Approval",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_081",
@@ -16907,7 +17096,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Pending Inforce",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_082",
@@ -16925,7 +17119,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Cancel CS Application",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_083",
@@ -16943,7 +17142,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Freelook",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_084",
@@ -16961,7 +17165,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Add Rider",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_085",
@@ -16979,7 +17188,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "Apply Policy Loan",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": false
   },
   {
     "id": "F_086",
@@ -16997,7 +17211,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Delete Rider",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_087",
@@ -17015,7 +17234,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Decrease SA",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_088",
@@ -17033,7 +17257,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Increase SA",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_089",
@@ -17051,7 +17280,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Reinstatement",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_090",
@@ -17069,7 +17303,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Termination/Surrender",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_091",
@@ -17087,7 +17326,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "Cancellation (Void policy)",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_092",
@@ -17105,7 +17349,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "Change Assignment",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_093",
@@ -17123,7 +17372,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "Change Beneficiary",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_094",
@@ -17141,7 +17395,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Change Contact Information",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_095",
@@ -17159,7 +17418,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Change Occupation",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_096",
@@ -17177,7 +17441,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Change Payment Frequency",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_097",
@@ -17195,7 +17464,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Change Payment Method",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_098",
@@ -17213,7 +17487,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Change Policy Holder",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_099",
@@ -17231,7 +17510,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Change Smoker Status",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_100",
@@ -17249,7 +17533,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Change extra premium",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_101",
@@ -17267,7 +17556,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Change Birth Date or Gender",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_102",
@@ -17285,7 +17579,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Change Benefits",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_103",
@@ -17303,7 +17602,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Change Beneficial Owner",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_104",
@@ -17321,7 +17625,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Change Disbursement Method",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_105",
@@ -17339,7 +17648,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Change Discount Type",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_106",
@@ -17357,7 +17671,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Change Term",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_107",
@@ -17375,7 +17694,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Change Trustee",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_108",
@@ -17393,7 +17717,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Change HPS Examption Information",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_109",
@@ -17411,7 +17740,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Change Indexation Information",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_110",
@@ -17429,7 +17763,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "Change Survival Benefit or Cash Bonus Option",
+    "trad": true,
+    "ilp": false,
+    "par": true,
+    "group": false
   },
   {
     "id": "F_111",
@@ -17447,7 +17786,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Change Payer",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_112",
@@ -17465,7 +17809,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "ILP Ad hoc Switch Fund",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_113",
@@ -17483,7 +17832,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "ILP Change Investment Regular Prem",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_114",
@@ -17501,7 +17855,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "ILP Change Regular Premium Apportionment",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_115",
@@ -17519,7 +17878,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "ILP Decrease Sum Assured",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_116",
@@ -17537,7 +17901,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "ILP Full Surrender",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_117",
@@ -17555,7 +17924,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "ILP Increase Sum Assured",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_118",
@@ -17573,7 +17947,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "ILP Partial Withdraw",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_119",
@@ -17591,7 +17970,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "ILP Set or Change Recurring Top-Up",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_120",
@@ -17609,7 +17993,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "ILP Set or Cancel Premium Holiday",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_121",
@@ -17627,7 +18016,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "ILP Set or Change Regular Withdrawal Plan",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_122",
@@ -17645,7 +18039,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "ILP Single Premium Top-Up",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_123",
@@ -17663,7 +18062,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "Perform Reduced Paid Up",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_124",
@@ -17681,7 +18085,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "Policy Suspension",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_125",
@@ -17699,7 +18108,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "Premium Adjustment",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_126",
@@ -17717,7 +18131,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "Reversionary Bonus Surrender",
+    "trad": true,
+    "ilp": false,
+    "par": true,
+    "group": false
   },
   {
     "id": "F_127",
@@ -17735,7 +18154,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Transfer of Coverage",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_128",
@@ -17753,7 +18177,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Underwriting Review",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_129",
@@ -17771,7 +18200,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Task pool",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_130",
@@ -17789,7 +18223,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Task Release",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_131",
@@ -17807,7 +18246,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Task Reassign",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_132",
@@ -17825,7 +18269,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "HPS Exemption File Upload",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_133",
@@ -17843,7 +18292,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "HPS Exemption File Download",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_134",
@@ -17861,7 +18315,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "Policy Servicing Quotation",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": false
   },
   {
     "id": "F_135",
@@ -17879,7 +18338,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Query Pool",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_136",
@@ -17897,7 +18361,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Maintain Customer",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_137",
@@ -17915,7 +18384,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Individual customer",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_138",
@@ -17933,7 +18407,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Company customer",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_139",
@@ -17951,7 +18430,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Reverse Policy Transaction",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_140",
@@ -17969,7 +18453,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Adjust Unit",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_141",
@@ -17987,7 +18476,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "Adjust Maturity",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": false
   },
   {
     "id": "F_142",
@@ -18005,7 +18499,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Authority",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_143",
@@ -18023,7 +18522,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Workflow Configuration",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_144",
@@ -18041,7 +18545,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Rule Configuration",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_145",
@@ -18059,7 +18568,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "General Configuration",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_146",
@@ -18077,7 +18591,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Claim Life Assured/Policy Search",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_147",
@@ -18095,7 +18614,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Eligible claim types selection",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_148",
@@ -18113,7 +18637,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Claim Basic Information Entry",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_149",
@@ -18131,7 +18660,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": true
-    }
+    },
+    "name": "Claim Basic Information Entry",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_150",
@@ -18149,7 +18683,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Pend at Registration",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_151",
@@ -18167,7 +18706,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Reject Registration",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_152",
@@ -18185,7 +18729,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Work List Pool",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_153",
@@ -18203,7 +18752,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": true
-    }
+    },
+    "name": "Work List Pool",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_154",
@@ -18221,7 +18775,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Acceptance",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_155",
@@ -18239,7 +18798,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": true
-    }
+    },
+    "name": "Acceptance",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_156",
@@ -18257,7 +18821,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Acceptance",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_157",
@@ -18275,7 +18844,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Acceptance",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_158",
@@ -18293,7 +18867,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Acceptance",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_159",
@@ -18311,7 +18890,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Acceptance",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_160",
@@ -18329,7 +18913,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Acceptance",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_161",
@@ -18347,7 +18936,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Evaluation",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_162",
@@ -18365,7 +18959,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Evaluation",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_163",
@@ -18383,7 +18982,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Evaluation",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_164",
@@ -18401,7 +19005,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Evaluation",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_165",
@@ -18419,7 +19028,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Evaluation",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_166",
@@ -18437,7 +19051,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Evaluation",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_167",
@@ -18455,7 +19074,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": true
-    }
+    },
+    "name": "Evaluation",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_168",
@@ -18473,7 +19097,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": true
-    }
+    },
+    "name": "Evaluation",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_169",
@@ -18491,7 +19120,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": true
-    }
+    },
+    "name": "Evaluation",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_170",
@@ -18509,7 +19143,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Evaluation",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_171",
@@ -18527,7 +19166,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Evaluation",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_172",
@@ -18545,7 +19189,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Evaluation",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_173",
@@ -18563,7 +19212,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Evaluation",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_174",
@@ -18581,7 +19235,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Evaluation",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_175",
@@ -18599,7 +19258,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Evaluation",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_176",
@@ -18617,7 +19281,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Evaluation",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_177",
@@ -18635,7 +19304,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Evaluation",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_178",
@@ -18653,7 +19327,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Evaluation",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_179",
@@ -18671,7 +19350,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Evaluation",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_180",
@@ -18689,7 +19373,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Evaluation",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_181",
@@ -18707,7 +19396,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Evaluation",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_182",
@@ -18725,7 +19419,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Evaluation",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_183",
@@ -18743,7 +19442,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Evaluation",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_184",
@@ -18761,7 +19465,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Evaluation",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_185",
@@ -18779,7 +19488,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Evaluation",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_186",
@@ -18797,7 +19511,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Approval",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_187",
@@ -18815,7 +19534,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Evaluation",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_188",
@@ -18833,7 +19557,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Evaluation",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_189",
@@ -18851,7 +19580,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Escalation Reply",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_190",
@@ -18869,7 +19603,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": true
-    }
+    },
+    "name": "Ongoing Claim",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_191",
@@ -18887,7 +19626,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Disbursing/Withholding Claim",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_192",
@@ -18905,7 +19649,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": true
-    }
+    },
+    "name": "Recovery",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_193",
@@ -18923,7 +19672,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Actions & Supporting",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_194",
@@ -18941,7 +19695,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Actions & Supporting",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_195",
@@ -18959,7 +19718,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Actions & Supporting",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_196",
@@ -18977,7 +19741,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Claim Issues",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_197",
@@ -18995,7 +19764,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Actions & Supporting",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_198",
@@ -19013,7 +19787,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Actions & Supporting",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_199",
@@ -19031,7 +19810,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Actions & Supporting",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_200",
@@ -19049,7 +19833,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Actions & Supporting",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_201",
@@ -19067,7 +19856,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Actions & Supporting",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_202",
@@ -19085,7 +19879,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Other Supporting Functions",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_203",
@@ -19103,7 +19902,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Task pool",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_204",
@@ -19121,7 +19925,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Task Reassign",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_205",
@@ -19139,7 +19948,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": true
-    }
+    },
+    "name": "CDD Query",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_206",
@@ -19157,7 +19971,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Change Disbursement Plan",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_207",
@@ -19175,7 +19994,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Cancel Case",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_208",
@@ -19193,7 +20017,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Reverse Case",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_209",
@@ -19211,7 +20040,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Query",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_210",
@@ -19229,7 +20063,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Copy Case",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_211",
@@ -19247,7 +20086,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Add Insured for Claim",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_212",
@@ -19265,7 +20109,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Create Medical Billing",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_213",
@@ -19283,7 +20132,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Medical Billing Records",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_214",
@@ -19301,7 +20155,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Authority",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_215",
@@ -19319,7 +20178,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Workflow",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_216",
@@ -19337,7 +20201,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Rule Validations",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_217",
@@ -19355,7 +20224,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "General Configurations",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_218",
@@ -19373,7 +20247,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": true,
       "ltc": false
-    }
+    },
+    "name": "Download CPF Submission File",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": true
   },
   {
     "id": "F_219",
@@ -19391,7 +20270,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": true
-    }
+    },
+    "name": "ELS Register Query",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_220",
@@ -19409,7 +20293,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": true
-    }
+    },
+    "name": "ELS Medinet File",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_221",
@@ -19427,7 +20316,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": true
-    }
+    },
+    "name": "Query",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_222",
@@ -19445,7 +20339,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": true
-    }
+    },
+    "name": "Follow up",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_223",
@@ -19463,7 +20362,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": true
-    }
+    },
+    "name": "Watch List",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_224",
@@ -19481,7 +20385,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": true
-    }
+    },
+    "name": "Active Member Reconciliation",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_225",
@@ -19499,7 +20408,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "Entry",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_226",
@@ -19517,7 +20431,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "Approve",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_227",
@@ -19535,7 +20454,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "Revise",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_228",
@@ -19553,7 +20477,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Exchange Rate",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_229",
@@ -19571,7 +20500,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "Fund Holiday",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_230",
@@ -19589,7 +20523,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Maintain Hospital",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_231",
@@ -19607,7 +20546,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Print Policy Document",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_232",
@@ -19625,7 +20569,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Reprint Policy Document",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_233",
@@ -19643,7 +20592,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Query Policy Document",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_234",
@@ -19661,7 +20615,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Print Letter",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_235",
@@ -19679,7 +20638,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Reprint Letter",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_236",
@@ -19697,7 +20661,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Reply Letter",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_237",
@@ -19715,7 +20684,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Query Letter",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_238",
@@ -19733,7 +20707,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Adhoc Letter Generation",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_239",
@@ -19751,7 +20730,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Download",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_240",
@@ -19769,7 +20753,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Configuration",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_241",
@@ -19787,7 +20776,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Search Homepage",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_242",
@@ -19805,7 +20799,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Policy Information",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_243",
@@ -19823,7 +20822,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Customer Information",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_244",
@@ -19841,7 +20845,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Customer Information",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_245",
@@ -19859,7 +20868,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Financial Information",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_246",
@@ -19877,7 +20891,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Financial Information",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_247",
@@ -19895,7 +20914,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Financial Information",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_248",
@@ -19913,7 +20937,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Financial Information",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_249",
@@ -19931,7 +20960,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Financial Information",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_250",
@@ -19949,7 +20983,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Product Information",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_251",
@@ -19967,7 +21006,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Product Information",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_252",
@@ -19985,7 +21029,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Investment Information",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_253",
@@ -20003,7 +21052,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Benefits and Bonus Information",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_254",
@@ -20021,7 +21075,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Benefits and Bonus Information",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_255",
@@ -20039,7 +21098,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Benefits and Bonus Information",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_256",
@@ -20057,7 +21121,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Transaction Information",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_257",
@@ -20075,7 +21144,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Transaction Fee Records",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_258",
@@ -20093,7 +21167,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Transaction Fee Records",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_259",
@@ -20111,7 +21190,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "UW History",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_260",
@@ -20129,7 +21213,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Claim History",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_261",
@@ -20147,7 +21236,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Documents",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_262",
@@ -20165,7 +21259,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Comments",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_263",
@@ -20183,7 +21282,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "New CS/Claim",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_264",
@@ -20201,7 +21305,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Global Policy Query Rendering",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_265",
@@ -20219,7 +21328,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Manual Suspend and Unsuspend Extraction",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_266",
@@ -20237,7 +21351,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Billing Query",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_267",
@@ -20255,7 +21374,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Fee Type",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_268",
@@ -20273,7 +21397,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Payment Method",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_269",
@@ -20291,7 +21420,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Premium Notice",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_270",
@@ -20309,7 +21443,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "General Configuration",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_271",
@@ -20327,7 +21466,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Change Billing Details",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_272",
@@ -20345,7 +21489,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Exceptions",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_273",
@@ -20363,7 +21512,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Manual Collection",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_274",
@@ -20381,7 +21535,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Collection Query",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_275",
@@ -20399,7 +21558,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Collection Reversal",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_276",
@@ -20417,7 +21581,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Write Off Approval",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_277",
@@ -20435,7 +21604,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Cancel Write Off",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_278",
@@ -20453,7 +21627,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Manage IBG",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_279",
@@ -20471,7 +21650,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Payment Method",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_280",
@@ -20489,7 +21673,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "General Configuration",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_281",
@@ -20507,7 +21696,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Batch Upload Collection",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_282",
@@ -20525,7 +21719,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Transfer Suspense",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_283",
@@ -20543,7 +21742,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Payment Requisition",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_284",
@@ -20561,7 +21765,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Payment Authorization",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_285",
@@ -20579,7 +21788,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Medical Payment",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_286",
@@ -20597,7 +21811,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Manual Payment",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_287",
@@ -20615,7 +21834,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Cancel Payment",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_288",
@@ -20633,7 +21857,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Cancel Payment Approval",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_289",
@@ -20651,7 +21880,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Change Payment Details",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_290",
@@ -20669,7 +21903,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Change Disbursement Payee Approval Work List",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_291",
@@ -20687,7 +21926,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Payment Account Approval Work List",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_292",
@@ -20705,7 +21949,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Payment Query",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_293",
@@ -20723,7 +21972,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Payment Method",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_294",
@@ -20741,7 +21995,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "General Configuration",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_295",
@@ -20759,7 +22018,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Handling of Cheque",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_296",
@@ -20777,7 +22041,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Maintain Bank",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_297",
@@ -20795,7 +22064,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Maintain Bank Account",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_298",
@@ -20813,7 +22087,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Set up Bank Account Master",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_299",
@@ -20831,7 +22110,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "BS Balance Query_Account Level",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_300",
@@ -20849,7 +22133,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "BS",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_301",
@@ -20867,7 +22156,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "GL Posting Query",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_302",
@@ -20885,7 +22179,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Filter Configuration",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_303",
@@ -20903,7 +22202,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Segment Configuration",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_304",
@@ -20921,7 +22225,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Set Accounting Rule",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_305",
@@ -20939,7 +22248,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Maintain Agent",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_306",
@@ -20957,7 +22271,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Channel Organization",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_307",
@@ -20975,7 +22294,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Agent Qualification",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_308",
@@ -20993,7 +22317,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Transfer Agent",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_309",
@@ -21011,7 +22340,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Basic Commission Query",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_310",
@@ -21029,7 +22363,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Clear Cache",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_311",
@@ -21047,7 +22386,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Set Business Date",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_312",
@@ -21065,7 +22409,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Query Version",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_313",
@@ -21083,7 +22432,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Maintain Organization",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_314",
@@ -21101,7 +22455,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Maintain User",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_315",
@@ -21119,7 +22478,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Role Management",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_316",
@@ -21137,7 +22501,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Permission Management",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_317",
@@ -21155,7 +22524,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Rule management",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_318",
@@ -21173,7 +22547,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Rule group",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_319",
@@ -21191,7 +22570,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Rule Event",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_320",
@@ -21209,7 +22593,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Rule Tracking",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_321",
@@ -21227,7 +22616,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Configure table",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_322",
@@ -21245,7 +22639,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Data Table",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_323",
@@ -21263,7 +22662,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Code Table",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_324",
@@ -21281,7 +22685,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "UI Label",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_325",
@@ -21299,7 +22708,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Code Table",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_326",
@@ -21317,7 +22731,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Message",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_327",
@@ -21335,7 +22754,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Job Definition",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_328",
@@ -21353,7 +22777,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Job Submit",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_329",
@@ -21371,7 +22800,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Job Monitoring",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_330",
@@ -21389,7 +22823,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "NB",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_331",
@@ -21407,7 +22846,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "NB",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_332",
@@ -21425,7 +22869,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "CS",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_333",
@@ -21443,7 +22892,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "CS",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_334",
@@ -21461,7 +22915,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "CS",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_335",
@@ -21479,7 +22938,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": true,
       "ltc": false
-    }
+    },
+    "name": "CS",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": true
   },
   {
     "id": "F_336",
@@ -21497,7 +22961,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": true,
       "ltc": false
-    }
+    },
+    "name": "CS",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": true
   },
   {
     "id": "F_337",
@@ -21515,7 +22984,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": true,
       "ltc": false
-    }
+    },
+    "name": "CS",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": true
   },
   {
     "id": "F_338",
@@ -21533,7 +23007,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": true
-    }
+    },
+    "name": "CS",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_339",
@@ -21551,7 +23030,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": true
-    }
+    },
+    "name": "CS",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_340",
@@ -21569,7 +23053,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": true
-    }
+    },
+    "name": "CS",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_341",
@@ -21587,7 +23076,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": true
-    }
+    },
+    "name": "CS",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_342",
@@ -21605,7 +23099,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": true
-    }
+    },
+    "name": "CS",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_343",
@@ -21623,7 +23122,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Claim",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_344",
@@ -21641,7 +23145,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Renew",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_345",
@@ -21659,7 +23168,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Renew",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_346",
@@ -21677,7 +23191,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Renew",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_347",
@@ -21695,7 +23214,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Renew",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_348",
@@ -21713,7 +23237,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Renew",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_349",
@@ -21731,7 +23260,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Renew",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_350",
@@ -21749,7 +23283,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Renew",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_351",
@@ -21767,7 +23306,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "Renew",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_352",
@@ -21785,7 +23329,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "Renew",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_353",
@@ -21803,7 +23352,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Bonus",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_354",
@@ -21821,7 +23375,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Bonus",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_355",
@@ -21839,7 +23398,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "Bonus",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_356",
@@ -21857,7 +23421,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Bonus",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_357",
@@ -21875,7 +23444,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Bonus",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_358",
@@ -21893,7 +23467,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Account",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_359",
@@ -21911,7 +23490,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Account",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_360",
@@ -21929,7 +23513,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Account",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_361",
@@ -21947,7 +23536,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Account",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_362",
@@ -21965,7 +23559,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Annuity",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_363",
@@ -21983,7 +23582,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Annuity",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_364",
@@ -22001,7 +23605,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Annuity",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_365",
@@ -22019,7 +23628,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Maturity",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_366",
@@ -22037,7 +23651,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Maturity",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_367",
@@ -22055,7 +23674,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Maturity",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_368",
@@ -22073,7 +23697,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "Maturity",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_369",
@@ -22091,7 +23720,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "ILP",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_370",
@@ -22109,7 +23743,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "ILP",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_371",
@@ -22127,7 +23766,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "ILP",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_372",
@@ -22145,7 +23789,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "ILP",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_373",
@@ -22163,7 +23812,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "ILP",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_374",
@@ -22181,7 +23835,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "ILP",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_375",
@@ -22199,7 +23858,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "ILP",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_376",
@@ -22217,7 +23881,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "ILP",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_377",
@@ -22235,7 +23904,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "ILP",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_378",
@@ -22253,7 +23927,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "ILP Bonus",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_379",
@@ -22271,7 +23950,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "ILP Bonus",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_380",
@@ -22289,7 +23973,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "ILP Bonus",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_381",
@@ -22307,7 +23996,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "ILP Bonus",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_382",
@@ -22325,7 +24019,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": false,
       "ltc": false
-    }
+    },
+    "name": "ILP Bonus",
+    "trad": false,
+    "ilp": true,
+    "par": false,
+    "group": false
   },
   {
     "id": "F_383",
@@ -22343,7 +24042,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "FIN",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_384",
@@ -22361,7 +24065,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "FIN",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_385",
@@ -22379,7 +24088,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "FIN",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_386",
@@ -22397,7 +24111,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "FIN",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_387",
@@ -22415,7 +24134,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "FIN",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_388",
@@ -22433,7 +24157,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "FIN",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_389",
@@ -22451,7 +24180,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "FIN",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_390",
@@ -22469,7 +24203,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "FIN",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_391",
@@ -22487,7 +24226,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "FIN",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_392",
@@ -22505,7 +24249,12 @@ window.EBAO_FUNCTIONS = [
       "health": true,
       "shield": true,
       "ltc": true
-    }
+    },
+    "name": "FIN",
+    "trad": true,
+    "ilp": true,
+    "par": true,
+    "group": true
   },
   {
     "id": "F_393",
@@ -22523,7 +24272,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": true,
       "ltc": false
-    }
+    },
+    "name": "FIN",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": true
   },
   {
     "id": "F_394",
@@ -22541,7 +24295,12 @@ window.EBAO_FUNCTIONS = [
       "health": false,
       "shield": true,
       "ltc": false
-    }
+    },
+    "name": "FIN",
+    "trad": false,
+    "ilp": false,
+    "par": false,
+    "group": true
   }
 ];
 window.EBAO_LIFECYCLE_DATES = [

@@ -419,18 +419,22 @@ function renderModuleDossier(moduleId) {
   const mod = window.EBAO_MODULES.find(m => m.id === moduleId) || window.EBAO_MODULES[0];
 
   // 1. Structured Core Concepts as distinct cards
-  const conceptsHtml = (mod.core_concepts || []).map(c => `
-    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5 shadow-2xs">
-      <div class="flex items-center justify-between">
-        <span class="font-bold text-xs text-slate-900 flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-blue-600 flex-shrink-0"></span>
-          ${c.term}
-        </span>
-        <span class="text-[10px] font-mono font-semibold text-brand-navy bg-brand-navy-light px-2 py-0.5 rounded border border-blue-200">Core Concept</span>
+  const conceptsHtml = (mod.core_concepts || []).map(c => {
+    const term = (typeof c === 'object' && c !== null) ? (c.term || c.name || 'Khái niệm') : 'Khái niệm';
+    const definition = (typeof c === 'object' && c !== null) ? (c.def || c.definition || c.desc || '') : (typeof c === 'string' ? c : '');
+    return `
+      <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5 shadow-2xs">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-xs text-slate-900 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-blue-600 flex-shrink-0"></span>
+            ${term}
+          </span>
+          <span class="text-[10px] font-mono font-semibold text-brand-navy bg-brand-navy-light px-2 py-0.5 rounded border border-blue-200">Core Concept</span>
+        </div>
+        <p class="text-xs text-slate-600 leading-relaxed pl-4">${definition}</p>
       </div>
-      <p class="text-xs text-slate-600 leading-relaxed pl-4">${c.def}</p>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 
   // 2. Comprehensive SOPs checklist with Prerequisites, Exact Steps, Validation Rules & Field Specs
   const sopsHtml = (mod.sops || []).map((sop, idx) => {
@@ -457,28 +461,37 @@ function renderModuleDossier(moduleId) {
           <span class="text-[9px] bg-rose-200 text-rose-900 font-mono font-bold px-2 py-0.5 rounded">Core PAS Enforcement</span>
         </div>
         <div class="space-y-1.5">
-          ${valRules.map(vr => `
-            <div class="p-2 bg-white rounded-lg border border-rose-100 shadow-2xs space-y-1">
-              <div class="flex items-center justify-between">
-                <span class="font-mono text-[10px] font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">${vr.ruleId} • ${vr.errorCode}</span>
-                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded ${vr.severity === 'HARD_STOP' ? 'bg-red-600 text-white' : (vr.severity === 'SOFT_WARNING' ? 'bg-amber-500 text-white' : 'bg-blue-600 text-white')}">${vr.severity}</span>
+          ${valRules.map(vr => {
+            const ruleId = vr.ruleId || vr.code || 'VAL-CORE';
+            const errorCode = vr.errorCode || 'ERR_VALIDATION';
+            const severity = vr.severity || 'HARD_STOP';
+            const ruleName = vr.ruleName || vr.name || vr.rule || 'Kiểm soát tính toàn vẹn';
+            const condition = vr.condition || vr.description || vr.rule || 'Điều kiện hợp lệ của hệ thống';
+            const action = vr.systemAction || 'Hệ thống chặn giao dịch và cảnh báo lỗi';
+            const actuarial = vr.actuarialBasis || 'Tuân thủ quy chế vận hành Core PAS';
+            return `
+              <div class="p-2 bg-white rounded-lg border border-rose-100 shadow-2xs space-y-1">
+                <div class="flex items-center justify-between">
+                  <span class="font-mono text-[10px] font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">${ruleId} • ${errorCode}</span>
+                  <span class="text-[9px] font-bold px-1.5 py-0.5 rounded ${severity === 'HARD_STOP' ? 'bg-red-600 text-white' : (severity === 'SOFT_WARNING' ? 'bg-amber-500 text-white' : 'bg-blue-600 text-white')}">${severity}</span>
+                </div>
+                <div class="font-bold text-slate-900 text-xs">${ruleName}</div>
+                <div class="text-[11px] text-slate-700"><span class="font-semibold text-slate-900">Condition:</span> ${condition}</div>
+                <div class="text-[10px] text-slate-500 italic"><span class="font-semibold text-slate-600">Action:</span> ${action}</div>
+                <div class="text-[10px] text-emerald-800 bg-emerald-50/60 p-1 rounded leading-relaxed"><span class="font-semibold">Actuarial Note:</span> ${actuarial}</div>
               </div>
-              <div class="font-bold text-slate-900 text-xs">${vr.ruleName}</div>
-              <div class="text-[11px] text-slate-700"><span class="font-semibold text-slate-900">Condition:</span> ${vr.condition}</div>
-              <div class="text-[10px] text-slate-500 italic"><span class="font-semibold text-slate-600">Action:</span> ${vr.systemAction}</div>
-              <div class="text-[10px] text-emerald-800 bg-emerald-50/60 p-1 rounded leading-relaxed"><span class="font-semibold">Actuarial Note:</span> ${vr.actuarialBasis}</div>
-            </div>
-          `).join('')}
+            `;
+          }).join('')}
         </div>
       </div>
     ` : '';
 
-    // C. Fields Table HTML
-    const fields = sop.fields_table || [];
+        // C. Fields Table HTML
+    const fields = sop.fields_table || sop.ui_fields || [];
     const fieldsHtml = (fields.length > 0) ? `
       <details class="text-xs group">
         <summary class="cursor-pointer font-bold text-brand-navy hover:text-brand-navy-hover flex items-center gap-1.5 py-1 select-none">
-          <span>📋 Inspect UI Input Fields Specification (${fields.length} Fields)</span>
+          <span class="flex items-center gap-1">${window.getLineIcon ? window.getLineIcon('clipboard', 'w-3.5 h-3.5 text-brand-navy') : ''} Inspect UI Input Fields Specification (${fields.length} Fields)</span>
         </summary>
         <div class="mt-2 overflow-x-auto border border-slate-200 rounded-lg shadow-2xs">
           <table class="w-full text-[11px] text-left border-collapse">
@@ -491,14 +504,20 @@ function renderModuleDossier(moduleId) {
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-200 bg-white">
-              ${fields.map(f => `
-                <tr>
-                  <td class="p-1.5 font-semibold text-slate-900">${f.name}</td>
-                  <td class="p-1.5 font-mono text-slate-600">${f.type}</td>
-                  <td class="p-1.5 ${f.required === 'Yes' ? 'font-bold text-rose-600' : 'text-slate-500'}">${f.required}</td>
-                  <td class="p-1.5 text-slate-600">${f.desc}</td>
-                </tr>
-              `).join('')}
+              ${fields.map(f => {
+                const fname = f.name || f.field || 'Field';
+                const ftype = f.type || 'Text';
+                const freq = f.required || (f.req ? 'Yes' : 'No');
+                const fdesc = f.desc || f.description || f.note || '';
+                return `
+                  <tr>
+                    <td class="p-1.5 font-semibold text-slate-900">${fname}</td>
+                    <td class="p-1.5 font-mono text-slate-600">${ftype}</td>
+                    <td class="p-1.5 ${freq === 'Yes' ? 'font-bold text-rose-600' : 'text-slate-500'}">${freq}</td>
+                    <td class="p-1.5 text-slate-600">${fdesc}</td>
+                  </tr>
+                `;
+              }).join('')}
             </tbody>
           </table>
         </div>
@@ -510,11 +529,14 @@ function renderModuleDossier(moduleId) {
         <!-- SOP Header -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/80 pb-2.5">
           <div class="flex items-center gap-2">
-            <span class="font-mono text-xs font-bold text-blue-700 bg-white px-2.5 py-0.5 rounded border border-blue-200 shadow-2xs">${sop.code}</span>
-            <span class="font-bold text-xs text-slate-900">${sop.title}</span>
+            <span class="font-mono text-xs font-bold text-blue-700 bg-white px-2.5 py-0.5 rounded border border-blue-200 shadow-2xs">${sop.code || sop.id || 'SOP'}</span>
+            <span class="font-bold text-xs text-slate-900">${sop.title || 'Quy trình vận hành'}</span>
           </div>
           <div class="flex items-center gap-2">
-            <span class="text-[10px] font-semibold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">${sop.role || 'Operator'}</span>
+            <span class="text-[10px] font-semibold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">${sop.role || 'Core PAS Specialist'}</span>
+            <button onclick="openPdfViewer(${sop.pdf_page || mod.pdf_start_page || 1})" class="text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-lg border border-indigo-200 flex items-center gap-1 transition-colors">
+              <span>${window.getLineIcon ? window.getLineIcon('file-text', 'w-3 h-3 text-indigo-700') : ''}</span> PDF P.${sop.pdf_page || mod.pdf_start_page || 1}
+            </button>
             <button onclick="openPdfViewer(${sop.pdf_page || mod.pdf_start_page || 1})" class="text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-lg border border-indigo-200 flex items-center gap-1 transition-colors">
               <span>📄</span> PDF P.${sop.pdf_page || mod.pdf_start_page}
             </button>
@@ -2624,7 +2646,7 @@ function renderMatrixRows() {
       <td class="text-xs text-slate-600">${f.l1 || '-'}</td>
       <td class="text-xs text-slate-600">${f.l2 || '-'}</td>
       <td class="text-xs text-slate-600">${f.l3 || '-'}</td>
-      <td class="font-bold text-slate-900">${f.name}</td>
+      <td class="font-bold text-slate-900">${f.name || f.l3 || f.l2 || f.l1 || f.id || ""}</td>
       <td class="text-xs text-slate-600 max-w-sm">${f.desc || '-'}</td>
       <td>
         <div class="flex gap-1">
