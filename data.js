@@ -5742,50 +5742,24 @@ window.EBAO_MODULES = [
   {
     "id": "MOD_04",
     "num": "04",
-    "title": "Mod 04: Customer Service (CS APP)",
-    "subtitle": "In-force Policy Alterations, Non-forfeiture (RPU, ETA, APL), Surrender & Policy Loans",
+    "title": "Mod 04: Customer Service & Policy Alterations",
+    "subtitle": "CS Workbench, 30 Policy Alteration Items, Mid-Term Rider Attachment, Policy Loans, RPU & Reinstatement",
     "icon": "refresh",
     "badge": "Policy Maintenance",
     "page_range": "Pages 196 - 303 & 445 - 517",
-    "summary": "Customer Service governs all post-issue policy lifecycle events. It encompasses non-financial maintenance (address, beneficiary, payee), financial alterations (Sum Assured adjustments, rider additions/deletions), non-forfeiture options (Reduced Paid-Up, Extended Term, APL), cash value surrender, policy loans with daily interest accrual, and reinstatement of lapsed policies.",
+    "summary": "Phân hệ Dịch vụ Khách hàng và Bảo trì Hợp đồng (Customer Service & Policy Alterations - CS APP). Quản lý toàn diện 30 nghiệp vụ thay đổi hợp đồng (Alteration Items) từ phi tài chính (đổi người thụ hưởng, chuyển quyền sở hữu, đổi địa chỉ) đến tài chính phức tạp (vay hợp đồng tối đa 80% CSV, hủy hợp đồng nhận giá trị giải ước, chuyển đổi bảo hiểm giảm RPU, khôi phục hiệu lực Reinstatement, và gắn thêm sản phẩm bổ trợ giữa kỳ Mid-Term Rider Attachment tính phí ngắn hạn Pro-Rata). Vận hành trên bàn làm việc CS Workbench theo chu trình 5 bước nghiêm ngặt: Đăng ký tiếp nhận (Registration) -> Nhập liệu (Application Entry) -> Thẩm định rủi ro tại cấp quyền lợi (Benefit-Level UW) -> Phê duyệt thẩm quyền (Approval) -> Thu/chi tài chính và Đồng bộ hiệu lực lên SOR (Inforce).",
     "mermaid_workflow": "graph TD\n    Inforce[\"In-force Policy Record\"] --> CSReg[\"Register CS Application\"]\n    CSReg --> CSType{\"Alteration Category\"}\n    CSType -- Non-Financial --> NonFin[\"Change Address / Beneficiary / Payee\"]\n    CSType -- Financial Alteration --> FinAlt[\"Change SA / Add Rider / Change Plan\"]\n    CSType -- Cash Extraction --> Cash[\"Full Surrender / Partial Withdrawal / Policy Loan\"]\n    CSType -- Non-Forfeiture --> NonForfeit[\"Convert to RPU / ETA / Trigger APL\"]\n    FinAlt --> CSUW{\"Risk Increase?\"}\n    CSUW -- Yes --> UWConfirm[\"Underwriting Approval (Module 03)\"]\n    CSUW -- No --> CSApprove[\"CS Validation & Quotation Engine\"]\n    UWConfirm --> CSApprove\n    NonFin --> CSApprove\n    Cash --> CSApprove\n    NonForfeit --> CSApprove\n    CSApprove --> CSExec[\"Apply Policy Endorsement & Update SOR\"]",
     "core_concepts": [
-      {
-        "term": "Guaranteed Surrender Value (GSV)",
-        "definition": "The contractual minimum cash value guaranteed by the policy formula (e.g. percentage of total premiums paid excluding riders, minus surrender charge) available after a qualifying tenure (typically 2-3 years)."
-      },
-      {
-        "term": "Reduced Paid-Up (RPU)",
-        "definition": "A non-forfeiture option where accumulated net surrender value is used as a single net premium to purchase a reduced Sum Assured of the same plan without requiring any further premium payments."
-      },
-      {
-        "term": "Extended Term Insurance (ETA)",
-        "definition": "A non-forfeiture option where accumulated cash value purchases term insurance for the full original Sum Assured for as long a duration (years and days) as the cash value allows."
-      },
-      {
-        "term": "Policy Loan & Interest Capitalization",
-        "definition": "A cash advance against policy surrender value (typically up to 80-85% of GSV) accumulating daily compound interest; unpaid interest is capitalized into principal at each policy anniversary."
-      },
-      {
-        "term": "Automatic Premium Loan (APL)",
-        "definition": "An automated non-forfeiture safety net where unpaid overdue premium is converted into a loan against cash value at the expiration of the 60-day grace period."
-      },
-      {
-        "term": "Supplementary Rider Mid-Term Inception & Pro-Rata Rules",
-        "definition": "When adding a rider to an inforce policy, eBao supports two effective dates: Next Modal Due Date (0 VND short-period fee) OR Immediate Mid-Term Inception (calculated via Pro-Rata Short Premium Formula). Synchronizes with Main PTD on the next billing date."
-      }
+      "Chu trình 5 Bước Thực thi Thay đổi Hợp đồng: Đăng ký tiếp nhận (Registration) -> Nhập liệu thay đổi (Entry) -> Thẩm định rủi ro (Auto/Manual UW) -> Phê duyệt thẩm quyền (CS Approval) -> Khớp thu/chi tài chính & Đồng bộ SOR (Inforce).",
+      "Danh mục Chuẩn 30 Nghiệp vụ Thay đổi (30 Alteration Items): Phân định rõ ràng giữa nhóm Tài chính (Financial Impact = Yes như Vay, Hủy, Giảm STBH, RPU, Gắn Rider) và nhóm Phi tài chính (Financial Impact = No như Đổi người thụ hưởng, Đổi thông tin liên lạc, Đổi hình thức nhận quyền lợi).",
+      "Thẩm định Rủi ro Độc lập Cấp Quyền lợi (Benefit-Level UW for CS): Các thay đổi làm tăng rủi ro (Tăng STBH, Gắn Rider, Đổi nghề nghiệp sang nhóm nguy hiểm, Đổi nhóm sức khỏe) bắt buộc kích hoạt phân luồng sang Underwriting Workbench để thẩm định riêng quyền lợi đó mà không ảnh hưởng HĐ chính.",
+      "Gắn Rider Giữa Kỳ & Phí Ngắn Hạn Pro-Rata: Cho phép chọn Hiệu lực ngay (tính phí ngắn hạn Pro-Rata Short Premium từ ngày hiệu lực đến ngày đến hạn đóng phí PTD tiếp theo) hoặc Hiệu lực vào Kỳ đóng phí kế tiếp (phí ngắn hạn = 0 VND).",
+      "Cơ chế Vay Hợp đồng & Cấn trừ Nợ (Policy Loan & Debt Offset): Hạn mức vay tối đa 80% Giá trị hoàn lại ròng (Net CSV = CSV + Bảo tức tích lũy - Nợ gốc và lãi vay hiện tại). Lãi suất vay 6.5%/năm tính gộp hàng ngày. Tự động cấn trừ toàn bộ nợ khi chi trả bồi thường hoặc hủy hợp đồng.",
+      "Quyền chọn Phi Hủy bỏ Hiệu lực - Bảo hiểm Giảm (Reduced Paid-Up - RPU): Sử dụng toàn bộ Giá trị hoàn lại ròng tại thời điểm yêu cầu làm phí đơn thuần (Single Net Premium) để mua một Hợp đồng cùng loại với Số tiền bảo hiểm giảm tương ứng; chấm dứt nghĩa vụ đóng phí tương lai.",
+      "Khôi phục Hiệu lực Hợp đồng trong 24 Tháng (Policy Reinstatement): Cho phép khôi phục hợp đồng mất hiệu lực (Lapsed) trong vòng 24 tháng; nộp Giấy bảo đảm sức khỏe (Health Warranty), đóng toàn bộ phí chậm nộp kèm lãi phạt, và tái kích hoạt điều khoản loại trừ tự tử 2 năm (Suicide Clause Reset)."
     ],
-    "actuary_notes": [
-      "RPU Calculation Mathematics:\n  Reduced SA = (Net Cash Value / Single Premium Rate at Attained Age for Same Term).\n  Riders are automatically terminated upon conversion to RPU unless explicitly non-forfeitable.",
-      "Surrender Value with Reversionary Bonus (RB):\n  Total Cash Value = Base GSV + (Vested Reversionary Bonus * RB Cash Value Factor at Attained Age) + Terminal Bonus.\n  Outstanding policy loans and accrued loan interest are deducted: Net Payout = Total Cash Value - Loan Principal - Accrued Interest.",
-      "Policy Loan Foreclosure Trigger: If total loan balance (Principal + Accumulated Interest) exceeds Gross Cash Surrender Value, policy foreclosure is triggered, and the policy lapses after formal 30-day notice.",
-      "Rider Pro-Rata Pricing Formula: Pro-Rata Premium = Annual Rider Premium * (Days Remaining to Next Due Date / 365). Underwriting clearance is mandatory."
-    ],
-    "op_notes": [
-      "Free-Look (Cooling-Off) Cancellation: Within 14-21 days of policy delivery, clients may cancel with 100% refund of premiums paid, less medical examination expenses incurred.",
-      "CS Quotation Engine: Always generate a binding CS Quotation for client sign-off before executing financial alterations (showing Before/After SA, Premium, Cash Values, and Net Cash Flow).",
-      "Rescind Policy CS: In exceptional operational errors, Gemini provides a 'Rescind CS' transaction that rolls back policy state to pre-alteration status, reversing ledger accounting entries."
-    ],
+    "actuary_notes": "Từ góc độ Định phí & Quản trị Quỹ dự phòng, các nghiệp vụ thay đổi hợp đồng có ảnh hưởng tài chính đòi hỏi hệ thống phải tính toán lại chính xác dự phòng toán học và dòng tiền tương lai. Khi thực hiện RPU, công thức quy đổi tuân thủ nguyên lý cân bằng actuarial: Net_CSV = Reduced_SA * A_{x+t:n-t|}, trong đó mọi sản phẩm bổ trợ gắn kèm đều bị chấm dứt hiệu lực vì RPU không hỗ trợ đóng phí rider. Đối với nghiệp vụ gắn Rider giữa kỳ, công thức phí ngắn hạn là: Short_Premium = Annual_Rider_Premium * (Remaining_Days / 365), đảm bảo không phát sinh rủi ro bảo hiểm không có phí bảo trợ.",
+    "op_notes": "Về mặt Vận hành Hệ thống, eBao Gemini quản lý trạng thái hợp đồng bằng cơ chế Khóa giao dịch (Policy Freezing Flag). Khi một hồ sơ CS hoặc Claim đang ở trạng thái Processing, toàn bộ hợp đồng sẽ bị khóa, ngăn chặn việc tạo thêm hồ sơ thay đổi trùng lặp. Mọi khoản chênh lệch phí phát sinh từ thay đổi hợp đồng đều sinh bản ghi thu/chi trong Collection/Refund Workbench và đồng bộ sang Module 07 GL Journal Entry trước khi chuyển trạng thái hợp đồng sang Inforce.",
     "sections": [
       {
         "heading": "1. CS Workbench Architecture & Registration",
@@ -7129,892 +7103,620 @@ window.EBAO_MODULES = [
       {
         "code": "SOP-CS-01",
         "title": "CS Worklist Search & Registering Inforce Policy Alterations",
-        "ui_path": "Main Menu > Customer Service > Work List > Register New Application",
+        "role": "Customer Service Specialist",
+        "objective": "Tiếp nhận yêu cầu thay đổi từ khách hàng, tra cứu hợp đồng có hiệu lực (Inforce) và đăng ký hồ sơ thay đổi (Application Registration) trên CS Workbench.",
+        "ui_path": "Main Menu > Customer Service > Registration",
+        "pdf_page": 204,
         "prerequisites": [
-          "Policy status in SOR is 'INFORCE'",
-          "No open unresolved disputes, freezing orders, or active claim investigations"
+          "Hợp đồng bảo hiểm đang ở trạng thái có hiệu lực (INFORCE) hoặc mất hiệu lực (LAPSED đối với nghiệp vụ Reinstatement).",
+          "Hợp đồng không bị khóa bởi hồ sơ bồi thường (Claim Frozen) hoặc hồ sơ thay đổi khác đang xử lý (CS Frozen).",
+          "Người dùng thuộc chi nhánh có thẩm quyền truy cập hợp đồng (Servicing Branch access)."
         ],
         "steps": [
-          "1. Navigate to Main Menu > Customer Service > Work List.",
-          "2. In the Search Criteria panel, enter Policy Number (e.g. 'POL-2026-0081723') and click Search.",
-          "3. Verify Policy Status is 'INFORCE' and Paid-To-Date is current.",
-          "4. Click 'Register New Application' button at top right.",
-          "5. In the CS Application Registration pop-up:\n   - Application Date: Defaults to current system date.\n   - Channel / Request Origin: Customer Service Counter, Mobile App, Mail In, Call Center.\n   - Alteration Category: Select 'Non-Financial' or 'Financial'.",
-          "6. In the Policy Alteration Item dropdown, select target transaction (alphabetically sorted A-Z):\n   - 'Change Address'\n   - 'Change Beneficiary'\n   - 'Apply Policy Loan'\n   - 'Surrender (Full)'\n   - 'Reduced Paid-Up (RPU)'\n   - 'Add Rider' / 'Increase Sum Assured'.",
-          "7. Click Submit Registration. Step Result: System creates CS Application Number (e.g. 'CS-2026-001094'), sets status to 'Waiting for Application Entry', and navigates to the alteration details screen."
+          "1. From the main menu, navigate to Customer Service > Registration.",
+          "2. In the Search Criteria, input Policy Number, Policyholder Name, or Identifier ID. Click Search.",
+          "3. Verify that the policy status is INFORCE, Premium Paid-To-Date (PTD) is current, and no CS_FROZEN flag is active.",
+          "4. In the Branch Received field, select the processing branch; select Touch Point (CS Counter, Mobile App, Agency Office).",
+          "5. In the Policy Alteration Items section, select one or more items to be altered from the alphabetical catalog (A...Z).",
+          "6. Click Submit. The system generates an Application Number (e.g. CS-2026-00412) and sets status to 'Pending Data Entry'.",
+          "7. Click 'Go to Application Entry' to proceed to detail data capture."
         ],
         "fields_table": [
           {
-            "name": "Policy Number",
+            "field": "POLICY_NO",
             "type": "String",
             "required": "Yes",
-            "desc": "Target inforce contract in SOR"
+            "default": "N/A",
+            "description": "Mã số hợp đồng bảo hiểm cần thay đổi"
           },
           {
-            "name": "Request Channel",
-            "type": "Select",
+            "field": "BRANCH_RECEIVED",
+            "type": "String",
             "required": "Yes",
-            "desc": "Counter, Postal Mail, Customer Portal, Agency"
+            "default": "CURRENT_BRANCH",
+            "description": "Chi nhánh tiếp nhận yêu cầu thay đổi"
           },
           {
-            "name": "Alteration Item",
-            "type": "Select (A-Z)",
+            "field": "TOUCH_POINT",
+            "type": "Enum",
             "required": "Yes",
-            "desc": "Specific endorsement transaction"
+            "default": "COUNTER",
+            "description": "Kênh tiếp nhận: COUNTER, PORTAL, MOBILE, CALL_CENTER"
+          },
+          {
+            "field": "ALTERATION_ITEMS",
+            "type": "Multi-Select",
+            "required": "Yes",
+            "default": "N/A",
+            "description": "Danh sách các nghiệp vụ thay đổi cần thực hiện"
+          },
+          {
+            "field": "REQUEST_DATE",
+            "type": "Date",
+            "required": "Yes",
+            "default": "CURRENT_DATE",
+            "description": "Ngày khách hàng nộp đơn yêu cầu thay đổi"
           }
         ],
-        "actuary_notes": "Financial alterations trigger re-evaluation of cash values, paid-to-dates, and unearned premium reserves.",
-        "op_notes": "Policies with pending claims or in 'Grace Period' block certain alterations until financial settlement occurs.",
-        "pdf_page": 204,
         "validation_rules": [
           {
-            "ruleId": "VAL-FL-001",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "05. 21-Day Free-Look",
-            "stage": "Cool-off Window Verification",
-            "targetEntity": "T_POLICY_DELIVERY",
-            "ruleName": "Delivery Date Anchor & 21-Day Statutory Window",
-            "condition": "Free-Look Cancellation request date must be <= Policy Delivery Date (DELIVERY_DATE) + 21 calendar days.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_FL_WINDOW_EXPIRED",
-            "errorMessage": "Free-look period has expired. Cancellation must be processed as Policy Surrender.",
-            "systemAction": "Rejects Free-Look transaction; redirects operator to Surrender Workbench.",
-            "actuarialBasis": "Insurance Business Law 08/2022/QH15 Article 35: 21-day cooling-off period measured strictly from confirmed receipt.",
-            "pdfPage": 483
+            "code": "VAL-CS-01-A",
+            "rule": "Không cho phép tạo hồ sơ thay đổi nếu hợp đồng đang bị khóa bởi tiến trình Claim hoặc hồ sơ CS khác."
           },
           {
-            "ruleId": "VAL-FL-002",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "05. 21-Day Free-Look",
-            "stage": "Claim Conflict Check",
-            "targetEntity": "T_CLAIM",
-            "ruleName": "Zero Paid Claim Prerequisite for Free-Look Refund",
-            "condition": "There must be absolutely zero claims paid out or pending under any benefit of this policy.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_FL_CLAIMS_EXIST",
-            "errorMessage": "There should be no claims paid out or pending under this policy to qualify for Free-Look cancellation.",
-            "systemAction": "Hard stop: aborts cancellation; policy remains inforce.",
-            "actuarialBasis": "Prevention of unjust enrichment: policyholder cannot claim insurance indemnity and subsequently demand premium refund.",
-            "pdfPage": 483
-          },
-          {
-            "ruleId": "VAL-LN-003",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "07. Policy Loans & APL",
-            "stage": "ILP Pending Transaction Check",
-            "targetEntity": "T_FUND_ORDER",
-            "ruleName": "Investment Linked Pending Fund Freeze",
-            "condition": "If policy is Investment-Linked (ILP), it must have zero pending fund unit orders (switches, top-ups, redemptions).",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_LN_PENDING_FUND_TX",
-            "errorMessage": "Policy has unsettled fund transactions. Await unit pricing reconciliation before loan processing.",
-            "systemAction": "Blocks loan calculation until all fund trades commit to SOR.",
-            "actuarialBasis": "Fluctuating unit value: cash value cannot be accurately determined while NAV trade orders remain pending.",
-            "pdfPage": 452
-          },
-          {
-            "ruleId": "VAL-CS-001",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "08. Policy Alterations",
-            "stage": "General Alteration",
-            "targetEntity": "T_POLICY",
-            "ruleName": "Policy Active Inforce Status Requirement",
-            "condition": "Policy status must be 'INFORCE' and Policy must not be in 'FROZEN' status (by pending claim or court freeze).",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CS_POLICY_NOT_INFORCE",
-            "errorMessage": "Policy is not active inforce or is currently frozen by Claims / Legal hold.",
-            "systemAction": "Blocks alteration registration on CS Work List.",
-            "actuarialBasis": "Alterations can only modify live contractual liabilities, not terminated or locked contracts.",
-            "pdfPage": 452
-          },
-          {
-            "ruleId": "VAL-RS-001",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "09. Reinstatement",
-            "stage": "Lapse Reason Validation",
-            "targetEntity": "T_POLICY",
-            "ruleName": "Permissible Lapse Reason Verification",
-            "condition": "Policy lapse reason must be 'Normal Lapse', 'APL Lapse', or 'ILP Lapse'. Terminated policies cannot reinstate.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_RS_INVALID_LAPSE_REASON",
-            "errorMessage": "Policy was terminated by Surrender, Death, or Maturity. Reinstatement is strictly prohibited.",
-            "systemAction": "Rejects Reinstatement application immediately.",
-            "actuarialBasis": "Surrendered or matured policies represent fully executed discharges of liability; contract cannot be revived.",
-            "pdfPage": 489
-          },
-          {
-            "ruleId": "VAL-RS-004",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "09. Reinstatement",
-            "stage": "Financial Settlement",
-            "targetEntity": "T_AR_INVOICE",
-            "ruleName": "Full Back-Premiums & Compound Interest Clearance",
-            "condition": "Policyholder must pay 100% of all unpaid back-premiums + compound interest (e.g. 6.5% p.a.) + outstanding loan interest.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_RS_INCOMPLETE_PAYMENT",
-            "errorMessage": "Cannot restore inforce status: back-premiums or reinstatement interest remain outstanding.",
-            "systemAction": "Reinstatement status held at `PENDING_PAYMENT` until cashier receipt verification commits.",
-            "actuarialBasis": "Restores mathematical reserves to the exact level required had the policy remained continuously inforce.",
-            "pdfPage": 489
+            "code": "VAL-CS-01-B",
+            "rule": "Hợp đồng đã chấm dứt (TERMINATED) hoặc hủy (CANCELLED) không được phép đăng ký thay đổi, ngoại trừ Reinstatement cho LAPSED."
           }
-        ]
+        ],
+        "actuary_notes": "Kiểm soát việc khóa hợp đồng ngăn chặn xung đột tính toán giá trị hoàn lại giữa hai nghiệp vụ diễn ra đồng thời.",
+        "op_notes": "Trong một lần đăng ký, chuyên viên có thể chọn nhiều hạng mục thay đổi kết hợp (ví dụ vừa đổi địa chỉ vừa đổi người thụ hưởng)."
       },
       {
         "code": "SOP-CS-02",
         "title": "Non-Financial Alteration: Change of Beneficiary & Share Allocation",
-        "ui_path": "Customer Service > Application Entry > Change Beneficiary",
+        "role": "Customer Service Specialist",
+        "objective": "Thực hiện cập nhật danh sách Người thụ hưởng, điều chỉnh tỷ lệ chia bảo hiểm bắt buộc tổng bằng 100%, và gán Người giám hộ cho người thụ hưởng dưới 18 tuổi.",
+        "ui_path": "Customer Service > Work List > Data Entry > Nomination - Beneficiary",
+        "pdf_page": 220,
         "prerequisites": [
-          "Policyholder signed Change of Beneficiary application form",
-          "If existing nomination was irrevocable, written consent of current beneficiary required"
+          "Đơn yêu cầu thay đổi người thụ hưởng có chữ ký xác nhận của Bên mua bảo hiểm.",
+          "Bản sao CCCD/Giấy khai sinh hợp lệ của tất cả Người thụ hưởng mới.",
+          "Hồ sơ CS đã được đăng ký thành công với hạng mục 'Nomination - Beneficiary'."
         ],
         "steps": [
-          "1. On the Application Entry screen for 'Change Beneficiary', review existing active beneficiary records.",
-          "2. To revoke existing beneficiary: Click Delete or Edit on the beneficiary row.",
-          "3. To add a new nominee: Click 'Add Beneficiary' button.",
-          "4. Enter Nominee Legal Name, National ID / Birth Certificate, Date of Birth, Gender, and Relationship to Life Assured.",
-          "5. In Share Percentage, enter the allocated percentage.",
-          "6. Repeat for additional nominees until the Cumulative Share Percentage equals exactly 100%.",
-          "7. If any nominee is a minor (<18): Designate Trustee details.",
-          "8. In the Document Checklist section, check 'Change Form Signed' and 'ID Copies Verified'.",
-          "9. Click 'Apply Change' button. Step Result: System validates share integrity.",
-          "10. Click 'Submit for Approval'. If within standard rule limits, auto-approval triggers; otherwise routes to CS Approval Worklist."
+          "1. From CS Work List, select the application and click Edit in the Application Entry section.",
+          "2. Click on the 'Nomination - Beneficiary' tab. System displays the current list of primary and contingent beneficiaries.",
+          "3. To modify existing allocations, adjust the Percentage Share column directly.",
+          "4. To add a new beneficiary, click '+ Add Beneficiary'. Input Full Name, ID Type, ID Number, DOB, and Relationship with Insured.",
+          "5. Verify that the sum of Percentage Share for all primary beneficiaries equals strictly 100.00%.",
+          "6. If any primary beneficiary is younger than 18 years, the Trustee section becomes mandatory. Input Trustee Full Name and ID.",
+          "7. Click Save. System performs AML/PEP screening against sanctions databases.",
+          "8. Click 'Submit Application'. Since this is Non-Financial, system routes directly to CS Approval without Underwriting."
         ],
         "fields_table": [
           {
-            "name": "Nominee Name",
-            "type": "Text",
+            "field": "BENEFICIARY_NAME",
+            "type": "String",
             "required": "Yes",
-            "desc": "Full legal name as per government registry"
+            "default": "N/A",
+            "description": "Họ và tên đầy đủ của người thụ hưởng"
           },
           {
-            "name": "Share Percentage",
-            "type": "Decimal",
+            "field": "RELATIONSHIP",
+            "type": "Enum",
             "required": "Yes",
-            "desc": "Must equal 100% across all nominees"
+            "default": "N/A",
+            "description": "Mối quan hệ với NĐBH: SPOUSE, CHILD, PARENT, SIBLING, OTHER"
           },
           {
-            "name": "Irrevocable Consent",
-            "type": "File Upload",
+            "field": "SHARE_PERCENT",
+            "type": "Decimal(5,2)",
+            "required": "Yes",
+            "default": "100.00",
+            "description": "Tỷ lệ hưởng quyền lợi bảo hiểm (Tổng = 100.00%)"
+          },
+          {
+            "field": "BENEFICIARY_TYPE",
+            "type": "Enum",
+            "required": "Yes",
+            "default": "PRIMARY",
+            "description": "Loại thụ hưởng: PRIMARY (Chính), CONTINGENT (Kế thừa)"
+          },
+          {
+            "field": "TRUSTEE_NAME",
+            "type": "String",
             "required": "Conditional",
-            "desc": "Required if previous nomination was irrevocable"
+            "default": "N/A",
+            "description": "Bắt buộc nhập nếu người thụ hưởng < 18 tuổi"
           }
         ],
-        "actuary_notes": "Beneficiary change has zero reserve or pricing impact, but accurate recordkeeping prevents interpleader legal liabilities during death settlements.",
-        "op_notes": "Confirmation letter and updated Policy Endorsement Schedule PDF are automatically generated upon approval.",
-        "pdf_page": 220,
         "validation_rules": [
           {
-            "ruleId": "VAL-CS-005",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "08. Policy Alterations",
-            "stage": "Transfer of Coverage",
-            "targetEntity": "T_POLICY_INSURED",
-            "ruleName": "Transfer of Coverage (Change Life Assured) Eligibility",
-            "condition": "Base plan product definition must have `Allow Transfer Coverage = Yes` AND FCC/AML validation passed.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CS_TRANSFER_NOT_ALLOWED",
-            "errorMessage": "The main benefit does not permit Transfer of Coverage in product definition, or party FCC check failed.",
-            "systemAction": "Blocks new life assured selection on CS Alteration UI.",
-            "actuarialBasis": "Product structure control: corporate keyman plans permit executive transfer; juvenile endowment plans disallow.",
-            "pdfPage": 254
+            "code": "VAL-CS-02-A",
+            "rule": "Tổng tỷ lệ chia của các người thụ hưởng chính bắt buộc phải bằng chính xác 100.00%."
           },
           {
-            "ruleId": "VAL-CS-007",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "08. Policy Alterations",
-            "stage": "Change of Assignment",
-            "targetEntity": "T_POLICY_ASSIGNMENT",
-            "ruleName": "Assignment Legal Entity & Type Integrity",
-            "condition": "Collateral Assignment strictly restricted to Corporate Entity (Bank/Lender). Absolute Assignment open to Company or Individual.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CS_INVALID_ASSIGNEE_TYPE",
-            "errorMessage": "Collateral assignment can only be assigned to a licensed corporate institution.",
-            "systemAction": "Blocks individual party selection when 'Collateral Assignment' is chosen.",
-            "actuarialBasis": "Banking loan security law: commercial collateral rights cannot be vested in private natural persons without commercial licensing.",
-            "pdfPage": 459
+            "code": "VAL-CS-02-B",
+            "rule": "Người thụ hưởng dưới 18 tuổi bắt buộc phải có thông tin Người giám hộ / Đại diện pháp luật (Trustee)."
           }
-        ]
+        ],
+        "actuary_notes": "Nghiệp vụ phi tài chính không làm biến động dòng tiền hay quỹ dự phòng toán học, không yêu cầu thẩm định viên can thiệp.",
+        "op_notes": "Hệ thống tự động phát hành Phụ lục hợp đồng sửa đổi bổ sung (Endorsement Annex) và gửi thông báo qua SMS/Email cho Bên mua bảo hiểm."
       },
       {
         "code": "SOP-CS-03",
         "title": "Full Policy Surrender & Cash Value Settlement with Debt Offsetting",
-        "ui_path": "Customer Service > Application Entry > Surrender",
+        "role": "CS Senior Officer / Cashier",
+        "objective": "Tiếp nhận yêu cầu hủy hợp đồng trước hạn (Surrender), tính toán Giá trị hoàn lại tích lũy, cấn trừ nợ gốc và lãi vay hợp đồng, và lập lệnh chi trả tiền giải ước ròng.",
+        "ui_path": "Customer Service > Work List > Data Entry > Surrender",
+        "pdf_page": 232,
         "prerequisites": [
-          "Policy has acquired cash value (qualifying tenure >= 2-3 years)",
-          "Policyholder signed Surrender Request Form with verified bank account details"
+          "Hợp đồng đã có Giá trị hoàn lại (thường từ sau năm hợp đồng thứ 2 trở đi).",
+          "Đơn yêu cầu chấm dứt hợp đồng kèm bản gốc bộ hợp đồng bảo hiểm hoặc cam kết thất lạc.",
+          "Xác minh danh tính Bên mua bảo hiểm qua CCCD gắn chip hoặc eKYC sinh trắc học."
         ],
         "steps": [
-          "1. From CS Work List, register 'Surrender' alteration item for target policy.",
-          "2. On Application Entry UI, system automatically calculates and displays real-time Surrender Financial Ledger:\n   - Guaranteed Surrender Value (GSV)\n   - Accumulated Reversionary Bonus Cash Value\n   - Terminal Bonus (if applicable)\n   - Total Gross Cash Value\n   - Less: Outstanding Policy Loan Principal\n   - Less: Accrued Policy Loan Interest up to Surrender Date\n   - Plus: Unearned Modal Premium (if cancelled mid-period)\n   - Equals: Net Surrender Value Payable.",
-          "3. Verify Disbursement Payee: Select Policyholder bank account from dropdown or add new verified bank account (Bank Name, Branch, Account Number, Account Holder Name).",
-          "4. Click 'Generate Surrender Quotation'. System generates binding quote showing exact deductions and net payout amount for client sign-off.",
-          "5. Upload signed client acceptance slip.",
-          "6. Click 'Apply Change' and click 'Submit'.",
-          "7. System checks approval limits: Senior CS Supervisor reviews and approves transaction.",
-          "8. Step Result: Policy status transitions from 'INFORCE' to 'TERMINATED_SURRENDER'. All coverage ceases immediately. System posts disbursement order to Payment Module 07."
+          "1. From CS Work List, open the Surrender application. System retrieves policy data from SOR.",
+          "2. Click 'Compute Surrender Value'. The Actuarial Valuation Engine calculates:",
+          "   a. Guaranteed Cash Value (CSV) based on current Policy Duration and Paid-To-Date (PTD).",
+          "   b. Accumulated Reversionary / Terminal Bonuses and Interest on dividends.",
+          "   c. Outstanding Policy Loan Principal and Accrued Daily Loan Interest.",
+          "   d. Any outstanding premium debt or administrative fees.",
+          "3. System presents the Net Surrender Settlement Breakdown:",
+          "   Net Payable = (Guaranteed CSV + Accrued Bonuses) - (Loan Principal + Accrued Interest + Debt).",
+          "4. Select Disbursement Method: Direct Bank Transfer (IBAN/Account No) or Cash at Counter.",
+          "5. Upload customer ID confirmation and signed surrender agreement.",
+          "6. Click 'Submit for Approval'. If Net Payable > 100,000,000 VND, system routes to CS Director DOA.",
+          "7. Upon Approval, system triggers PA BS to update Policy Status to 'SURRENDERED' and generates GL Journal Entry (Dr GL 4112 / Cr GL 1111)."
         ],
         "fields_table": [
           {
-            "name": "Gross Surrender Value",
-            "type": "Currency",
-            "required": "Read-only",
-            "desc": "Contractual accumulated cash value"
+            "field": "GROSS_CSV_AMOUNT",
+            "type": "Decimal",
+            "required": "System",
+            "default": "0",
+            "description": "Giá trị hoàn lại đảm bảo theo bảng biểu phí"
           },
           {
-            "name": "Outstanding Loan Balance",
-            "type": "Currency",
-            "required": "Read-only",
-            "desc": "Principal debt deducted from gross cash value"
+            "field": "BONUS_ACCUMULATED",
+            "type": "Decimal",
+            "required": "System",
+            "default": "0",
+            "description": "Bảo tức tích lũy và lãi chia lũy kế đến ngày giải ước"
           },
           {
-            "name": "Accrued Loan Interest",
-            "type": "Currency",
-            "required": "Read-only",
-            "desc": "Interest accrued from last anniversary to surrender date"
+            "field": "LOAN_PRINCIPAL_DUE",
+            "type": "Decimal",
+            "required": "System",
+            "default": "0",
+            "description": "Dư nợ gốc khoản vay hợp đồng cần cấn trừ"
           },
           {
-            "name": "Net Surrender Payout",
-            "type": "Currency",
-            "required": "Read-only",
-            "desc": "Final disbursement amount transferred to policyholder"
+            "field": "LOAN_INTEREST_DUE",
+            "type": "Decimal",
+            "required": "System",
+            "default": "0",
+            "description": "Lãi vay tích lũy tính đến ngày phê duyệt giải ước"
+          },
+          {
+            "field": "NET_PAYABLE_AMOUNT",
+            "type": "Decimal",
+            "required": "System",
+            "default": "0",
+            "description": "Số tiền thực chi trả cho Bên mua bảo hiểm"
+          },
+          {
+            "field": "BANK_ACCOUNT_NO",
+            "type": "String",
+            "required": "Yes",
+            "default": "N/A",
+            "description": "Số tài khoản ngân hàng chính chủ của Bên mua BH"
           }
         ],
-        "actuary_notes": "Surrender releases policy mathematical reserve into statutory surplus. Net Profit/Loss = Reserve Released - Surrender Value Paid.",
-        "op_notes": "Once surrender is confirmed and disbursed, the action is irreversible under standard PAS operating rules.",
-        "pdf_page": 232,
         "validation_rules": [
           {
-            "ruleId": "VAL-FL-001",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "05. 21-Day Free-Look",
-            "stage": "Cool-off Window Verification",
-            "targetEntity": "T_POLICY_DELIVERY",
-            "ruleName": "Delivery Date Anchor & 21-Day Statutory Window",
-            "condition": "Free-Look Cancellation request date must be <= Policy Delivery Date (DELIVERY_DATE) + 21 calendar days.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_FL_WINDOW_EXPIRED",
-            "errorMessage": "Free-look period has expired. Cancellation must be processed as Policy Surrender.",
-            "systemAction": "Rejects Free-Look transaction; redirects operator to Surrender Workbench.",
-            "actuarialBasis": "Insurance Business Law 08/2022/QH15 Article 35: 21-day cooling-off period measured strictly from confirmed receipt.",
-            "pdfPage": 483
+            "code": "VAL-CS-03-A",
+            "rule": "Hợp đồng chưa đủ thời gian phát sinh giá trị hoàn lại (năm 1) sẽ nhận giá trị hoàn lại = 0 VND."
           },
           {
-            "ruleId": "VAL-FL-002",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "05. 21-Day Free-Look",
-            "stage": "Claim Conflict Check",
-            "targetEntity": "T_CLAIM",
-            "ruleName": "Zero Paid Claim Prerequisite for Free-Look Refund",
-            "condition": "There must be absolutely zero claims paid out or pending under any benefit of this policy.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_FL_CLAIMS_EXIST",
-            "errorMessage": "There should be no claims paid out or pending under this policy to qualify for Free-Look cancellation.",
-            "systemAction": "Hard stop: aborts cancellation; policy remains inforce.",
-            "actuarialBasis": "Prevention of unjust enrichment: policyholder cannot claim insurance indemnity and subsequently demand premium refund.",
-            "pdfPage": 483
+            "code": "VAL-CS-03-B",
+            "rule": "Nếu tổng nợ vay và lãi lớn hơn tổng giá trị hoàn lại, hệ thống từ chối chi trả và yêu cầu thu hồi nợ."
           },
           {
-            "ruleId": "VAL-LN-001",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "07. Policy Loans & APL",
-            "stage": "Loan Eligibility",
-            "targetEntity": "T_POLICY_LOAN",
-            "ruleName": "Maximum Loan-to-Value (LTV 85%) Ceiling",
-            "condition": "Total Loan Amount + Existing Loan Principal + Accrued Interest <= Gross Cash Value * 85%.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_LN_EXCEEDS_MAX_AVAILABLE",
-            "errorMessage": "Requested loan amount exceeds maximum available borrowing limit (85% Net Cash Value).",
-            "systemAction": "Validation fails on Loan Application UI; sets max permissible amount in helper box.",
-            "actuarialBasis": "Collateral buffer: prevents policy lapse within 12 months due to compounding interest charges.",
-            "pdfPage": 452
-          },
-          {
-            "ruleId": "VAL-LN-003",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "07. Policy Loans & APL",
-            "stage": "ILP Pending Transaction Check",
-            "targetEntity": "T_FUND_ORDER",
-            "ruleName": "Investment Linked Pending Fund Freeze",
-            "condition": "If policy is Investment-Linked (ILP), it must have zero pending fund unit orders (switches, top-ups, redemptions).",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_LN_PENDING_FUND_TX",
-            "errorMessage": "Policy has unsettled fund transactions. Await unit pricing reconciliation before loan processing.",
-            "systemAction": "Blocks loan calculation until all fund trades commit to SOR.",
-            "actuarialBasis": "Fluctuating unit value: cash value cannot be accurately determined while NAV trade orders remain pending.",
-            "pdfPage": 452
-          },
-          {
-            "ruleId": "VAL-CS-001",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "08. Policy Alterations",
-            "stage": "General Alteration",
-            "targetEntity": "T_POLICY",
-            "ruleName": "Policy Active Inforce Status Requirement",
-            "condition": "Policy status must be 'INFORCE' and Policy must not be in 'FROZEN' status (by pending claim or court freeze).",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CS_POLICY_NOT_INFORCE",
-            "errorMessage": "Policy is not active inforce or is currently frozen by Claims / Legal hold.",
-            "systemAction": "Blocks alteration registration on CS Work List.",
-            "actuarialBasis": "Alterations can only modify live contractual liabilities, not terminated or locked contracts.",
-            "pdfPage": 452
-          },
-          {
-            "ruleId": "VAL-RS-001",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "09. Reinstatement",
-            "stage": "Lapse Reason Validation",
-            "targetEntity": "T_POLICY",
-            "ruleName": "Permissible Lapse Reason Verification",
-            "condition": "Policy lapse reason must be 'Normal Lapse', 'APL Lapse', or 'ILP Lapse'. Terminated policies cannot reinstate.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_RS_INVALID_LAPSE_REASON",
-            "errorMessage": "Policy was terminated by Surrender, Death, or Maturity. Reinstatement is strictly prohibited.",
-            "systemAction": "Rejects Reinstatement application immediately.",
-            "actuarialBasis": "Surrendered or matured policies represent fully executed discharges of liability; contract cannot be revived.",
-            "pdfPage": 489
-          },
-          {
-            "ruleId": "VAL-RS-002",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "09. Reinstatement",
-            "stage": "Statutory Window",
-            "targetEntity": "T_POLICY",
-            "ruleName": "24-Month Statutory Reinstatement Time Window",
-            "condition": "Reinstatement request date must be within 24 months of Lapse Date (`LAPSE_DATE + 2 Years > SYSTEM_DATE`).",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_RS_TIME_WINDOW_EXPIRED",
-            "errorMessage": "Statutory 2-year reinstatement window has expired. Policy is permanently lapsed.",
-            "systemAction": "Blocks reinstatement processing; policy remains permanently in `LAPSED` state.",
-            "actuarialBasis": "Article 26 Insurance Business Law: policyholder has the right to restore policy within 2 years from lapse date.",
-            "pdfPage": 489
-          },
-          {
-            "ruleId": "VAL-RS-004",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "09. Reinstatement",
-            "stage": "Financial Settlement",
-            "targetEntity": "T_AR_INVOICE",
-            "ruleName": "Full Back-Premiums & Compound Interest Clearance",
-            "condition": "Policyholder must pay 100% of all unpaid back-premiums + compound interest (e.g. 6.5% p.a.) + outstanding loan interest.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_RS_INCOMPLETE_PAYMENT",
-            "errorMessage": "Cannot restore inforce status: back-premiums or reinstatement interest remain outstanding.",
-            "systemAction": "Reinstatement status held at `PENDING_PAYMENT` until cashier receipt verification commits.",
-            "actuarialBasis": "Restores mathematical reserves to the exact level required had the policy remained continuously inforce.",
-            "pdfPage": 489
+            "code": "VAL-CS-03-C",
+            "rule": "Hợp đồng sau khi Surrender sẽ chấm dứt vĩnh viễn, không thể khôi phục (Reinstatement) dưới bất kỳ hình thức nào."
           }
-        ]
+        ],
+        "actuary_notes": "Giá trị giải ước được trích từ Quỹ dự phòng nghiệp vụ toán học, giải phóng nghĩa vụ bảo hiểm tương lai của doanh nghiệp.",
+        "op_notes": "Cần giải thích rõ cho khách hàng về tổn thất quyền lợi bảo vệ trước khi hoàn tất thủ tục hủy hợp đồng."
       },
       {
         "code": "SOP-CS-04",
         "title": "Applying for Policy Loan & Loan Repayment Operations",
-        "ui_path": "Customer Service > Application Entry > Apply Policy Loan",
+        "role": "Customer Service Officer / Finance Cashier",
+        "objective": "Xử lý yêu cầu tạm ứng từ giá trị hoàn lại (Vay theo hợp đồng tối đa 80% Net CSV) và ghi nhận thanh toán hoàn trả nợ gốc/lãi vay.",
+        "ui_path": "Customer Service > Work List > Data Entry > Apply Policy Loan",
+        "pdf_page": 254,
         "prerequisites": [
-          "Policy inforce with positive net cash surrender value",
-          "No existing loan foreclosure in progress"
+          "Hợp đồng có trạng thái INFORCE và có Giá trị hoàn lại ròng > 5,000,000 VND.",
+          "Hợp đồng không áp dụng quyền chọn RPU hoặc đang trong tình trạng nợ phí quá hạn.",
+          "Bên mua bảo hiểm có đầy đủ năng lực hành vi dân sự."
         ],
         "steps": [
-          "1. In CS Work List, select target inforce policy and register 'Apply Policy Loan'.",
-          "2. On the Policy Loan screen, system displays:\n   - Current Total Cash Value (e.g. $12,450 USD)\n   - Maximum Loan-to-Value (LTV) Limit (85% = $10,582.50 USD)\n   - Existing Outstanding Loan & Interest (e.g. $0.00)\n   - Maximum Available Loan Drawing ($10,582.50 USD).",
-          "3. In Requested Loan Amount field, enter desired advance (e.g. $5,000 USD).",
-          "4. Enter Loan Date (defaults to current date). System displays annual interest rate (e.g. 6.5% p.a.).",
-          "5. Specify Disbursement Bank Account details.",
-          "6. Click 'Apply Change' and click 'Submit'. Step Result: Loan transaction created. Policy status remains 'INFORCE'. Loan balance updated to $5,000 USD. Disbursement order dispatched to Payment Module 07.",
-          "7. For Loan Repayment (subsequent operation):\n   - Register 'Repay Policy Loan' in CS Work List.\n   - Select Repayment Mode: 'Full Settlement' or 'Partial Repayment'.\n   - System calculates principal and daily accrued interest up to repayment date.\n   - Enter received payment reference, apply change, and settle loan balance."
+          "1. From CS Work List, open the 'Apply Policy Loan' application.",
+          "2. System automatically queries SOR to determine Maximum Available Loan:",
+          "   Max Loan = (Current CSV + Bonuses) * 80% - Existing Loan Principal - Accrued Interest.",
+          "3. In the Requested Loan Amount field, enter the amount customer wishes to borrow (Min: 2,000,000 VND; Max: Max Available).",
+          "4. Confirm Annual Loan Interest Rate (fixed at 6.5%/year, daily compounding interest basis).",
+          "5. Select Disbursement Method (Bank Transfer) and input receiving bank account details.",
+          "6. Click 'Compute Loan Schedule' to view projected interest accumulation table.",
+          "7. Submit for CS Supervisor Approval. Upon approval, system creates a Disbursement Order in Module 07 GL.",
+          "8. Policy state updates: LOAN_PRINCIPAL increases; daily batch accrues daily interest (Principal * 6.5% / 365)."
         ],
         "fields_table": [
           {
-            "name": "Available Loan Credit",
-            "type": "Currency",
-            "required": "Read-only",
-            "desc": "85% Cash Value minus existing loan balance"
+            "field": "MAX_LOAN_ALLOWED",
+            "type": "Decimal",
+            "required": "System",
+            "default": "0",
+            "description": "Hạn mức tối đa được vay (80% Net CSV)"
           },
           {
-            "name": "Requested Loan Amount",
-            "type": "Currency",
+            "field": "REQUESTED_LOAN_AMT",
+            "type": "Decimal",
             "required": "Yes",
-            "desc": "Must not exceed Available Loan Credit"
+            "default": "N/A",
+            "description": "Số tiền khách hàng đề nghị vay"
           },
           {
-            "name": "Loan Interest Rate",
-            "type": "Percentage",
-            "required": "Read-only",
-            "desc": "Contractual compound interest rate (6.5% p.a.)"
+            "field": "LOAN_INTEREST_RATE",
+            "type": "Decimal(4,3)",
+            "required": "System",
+            "default": "0.065",
+            "description": "Lãi suất năm tính cho khoản vay (6.5%/năm)"
+          },
+          {
+            "field": "PAYOUT_BANK_CODE",
+            "type": "String",
+            "required": "Yes",
+            "default": "N/A",
+            "description": "Mã ngân hàng nhận tiền giải ngân"
+          },
+          {
+            "field": "LOAN_START_DATE",
+            "type": "Date",
+            "required": "System",
+            "default": "CURRENT_DATE",
+            "description": "Ngày bắt đầu tính lãi khoản vay"
           }
         ],
-        "actuary_notes": "Policy loans function as policyholder investments funded by company assets. Daily interest formula: Daily Interest = Principal * (Annual Rate / 365). Capitalized annually.",
-        "op_notes": "If loan balance + accrued interest reaches 100% of Cash Value, system issues formal 30-day Foreclosure Notice. If unpaid, policy terminates.",
-        "pdf_page": 254,
         "validation_rules": [
           {
-            "ruleId": "VAL-FL-001",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "05. 21-Day Free-Look",
-            "stage": "Cool-off Window Verification",
-            "targetEntity": "T_POLICY_DELIVERY",
-            "ruleName": "Delivery Date Anchor & 21-Day Statutory Window",
-            "condition": "Free-Look Cancellation request date must be <= Policy Delivery Date (DELIVERY_DATE) + 21 calendar days.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_FL_WINDOW_EXPIRED",
-            "errorMessage": "Free-look period has expired. Cancellation must be processed as Policy Surrender.",
-            "systemAction": "Rejects Free-Look transaction; redirects operator to Surrender Workbench.",
-            "actuarialBasis": "Insurance Business Law 08/2022/QH15 Article 35: 21-day cooling-off period measured strictly from confirmed receipt.",
-            "pdfPage": 483
+            "code": "VAL-CS-04-A",
+            "rule": "Số tiền vay không được vượt quá 80% Giá trị hoàn lại ròng tại thời điểm xét duyệt."
           },
           {
-            "ruleId": "VAL-FL-002",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "05. 21-Day Free-Look",
-            "stage": "Claim Conflict Check",
-            "targetEntity": "T_CLAIM",
-            "ruleName": "Zero Paid Claim Prerequisite for Free-Look Refund",
-            "condition": "There must be absolutely zero claims paid out or pending under any benefit of this policy.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_FL_CLAIMS_EXIST",
-            "errorMessage": "There should be no claims paid out or pending under this policy to qualify for Free-Look cancellation.",
-            "systemAction": "Hard stop: aborts cancellation; policy remains inforce.",
-            "actuarialBasis": "Prevention of unjust enrichment: policyholder cannot claim insurance indemnity and subsequently demand premium refund.",
-            "pdfPage": 483
+            "code": "VAL-CS-04-B",
+            "rule": "Mức vay tối thiểu là 2,000,000 VND trên mỗi giao dịch."
           },
           {
-            "ruleId": "VAL-LN-001",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "07. Policy Loans & APL",
-            "stage": "Loan Eligibility",
-            "targetEntity": "T_POLICY_LOAN",
-            "ruleName": "Maximum Loan-to-Value (LTV 85%) Ceiling",
-            "condition": "Total Loan Amount + Existing Loan Principal + Accrued Interest <= Gross Cash Value * 85%.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_LN_EXCEEDS_MAX_AVAILABLE",
-            "errorMessage": "Requested loan amount exceeds maximum available borrowing limit (85% Net Cash Value).",
-            "systemAction": "Validation fails on Loan Application UI; sets max permissible amount in helper box.",
-            "actuarialBasis": "Collateral buffer: prevents policy lapse within 12 months due to compounding interest charges.",
-            "pdfPage": 452
-          },
-          {
-            "ruleId": "VAL-LN-002",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "07. Policy Loans & APL",
-            "stage": "Loan Date Validation",
-            "targetEntity": "T_POLICY_LOAN",
-            "ruleName": "Loan Date Anti-Backdating Rule",
-            "condition": "Loan effective date cannot be backdated. May be forward-dated up to a maximum of 7 calendar days.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_LN_BACKDATING_DISALLOWED",
-            "errorMessage": "Loan date cannot be backdated. It can be forward dated up-to 7 days from system date.",
-            "systemAction": "Rejects loan request with date discrepancy error.",
-            "actuarialBasis": "Prevents retroactive interest manipulation and financial distortion.",
-            "pdfPage": 452
-          },
-          {
-            "ruleId": "VAL-LN-003",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "07. Policy Loans & APL",
-            "stage": "ILP Pending Transaction Check",
-            "targetEntity": "T_FUND_ORDER",
-            "ruleName": "Investment Linked Pending Fund Freeze",
-            "condition": "If policy is Investment-Linked (ILP), it must have zero pending fund unit orders (switches, top-ups, redemptions).",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_LN_PENDING_FUND_TX",
-            "errorMessage": "Policy has unsettled fund transactions. Await unit pricing reconciliation before loan processing.",
-            "systemAction": "Blocks loan calculation until all fund trades commit to SOR.",
-            "actuarialBasis": "Fluctuating unit value: cash value cannot be accurately determined while NAV trade orders remain pending.",
-            "pdfPage": 452
-          },
-          {
-            "ruleId": "VAL-CS-001",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "08. Policy Alterations",
-            "stage": "General Alteration",
-            "targetEntity": "T_POLICY",
-            "ruleName": "Policy Active Inforce Status Requirement",
-            "condition": "Policy status must be 'INFORCE' and Policy must not be in 'FROZEN' status (by pending claim or court freeze).",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CS_POLICY_NOT_INFORCE",
-            "errorMessage": "Policy is not active inforce or is currently frozen by Claims / Legal hold.",
-            "systemAction": "Blocks alteration registration on CS Work List.",
-            "actuarialBasis": "Alterations can only modify live contractual liabilities, not terminated or locked contracts.",
-            "pdfPage": 452
-          },
-          {
-            "ruleId": "VAL-RS-001",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "09. Reinstatement",
-            "stage": "Lapse Reason Validation",
-            "targetEntity": "T_POLICY",
-            "ruleName": "Permissible Lapse Reason Verification",
-            "condition": "Policy lapse reason must be 'Normal Lapse', 'APL Lapse', or 'ILP Lapse'. Terminated policies cannot reinstate.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_RS_INVALID_LAPSE_REASON",
-            "errorMessage": "Policy was terminated by Surrender, Death, or Maturity. Reinstatement is strictly prohibited.",
-            "systemAction": "Rejects Reinstatement application immediately.",
-            "actuarialBasis": "Surrendered or matured policies represent fully executed discharges of liability; contract cannot be revived.",
-            "pdfPage": 489
-          },
-          {
-            "ruleId": "VAL-RS-004",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "09. Reinstatement",
-            "stage": "Financial Settlement",
-            "targetEntity": "T_AR_INVOICE",
-            "ruleName": "Full Back-Premiums & Compound Interest Clearance",
-            "condition": "Policyholder must pay 100% of all unpaid back-premiums + compound interest (e.g. 6.5% p.a.) + outstanding loan interest.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_RS_INCOMPLETE_PAYMENT",
-            "errorMessage": "Cannot restore inforce status: back-premiums or reinstatement interest remain outstanding.",
-            "systemAction": "Reinstatement status held at `PENDING_PAYMENT` until cashier receipt verification commits.",
-            "actuarialBasis": "Restores mathematical reserves to the exact level required had the policy remained continuously inforce.",
-            "pdfPage": 489
+            "code": "VAL-CS-04-C",
+            "rule": "Nếu tổng nợ gốc + lãi vay đạt ngưỡng 100% CSV, hợp đồng sẽ bị cảnh báo mất hiệu lực trong 30 ngày."
           }
-        ]
+        ],
+        "actuary_notes": "Khoản vay hợp đồng là tài sản sinh lời của quỹ bảo hiểm, bảo đảm bằng chính giá trị hoàn lại của hợp đồng.",
+        "op_notes": "Khách hàng có thể hoàn trả nợ gốc và lãi bất kỳ lúc nào qua hình thức chuyển khoản vào Virtual Account của hợp đồng."
       },
       {
         "code": "SOP-CS-05",
         "title": "Non-Forfeiture Execution: Converting Policy to Reduced Paid-Up (RPU)",
-        "ui_path": "Customer Service > Application Entry > Reduced Paid-Up",
+        "role": "Actuarial Specialist / Senior CS Officer",
+        "objective": "Xử lý chuyển đổi hợp đồng sang chế độ Bảo hiểm giảm (RPU): Chấm dứt nghĩa vụ đóng phí tương lai, sử dụng Net CSV làm phí đơn thuần để mua số tiền bảo hiểm mới tương ứng.",
+        "ui_path": "Customer Service > Work List > Data Entry > Perform Reduced Paid Up",
+        "pdf_page": 278,
         "prerequisites": [
-          "Policyholder requests permanent cessation of future premium payments",
-          "Policy has sufficient cash value to purchase minimum allowable paid-up Sum Assured"
+          "Hợp đồng truyền thống có điều khoản phi hủy bỏ hiệu lực (Non-Forfeiture Provision).",
+          "Hợp đồng đã đóng phí tối thiểu 2 hoặc 3 năm và có Giá trị hoàn lại ròng dương.",
+          "Khách hàng đã được tư vấn đầy đủ về việc hủy bỏ toàn bộ quyền lợi bổ trợ khi áp dụng RPU."
         ],
         "steps": [
-          "1. From CS Work List, register 'Reduced Paid-Up' alteration item for target policy.",
-          "2. On the RPU Application Entry screen, system displays:\n   - Original Main Sum Assured (e.g. $100,000 USD)\n   - Current Net Cash Surrender Value (e.g. $21,300 USD)\n   - Attained Age of Life Assured\n   - Single Net Premium Rate for remaining term.",
-          "3. Click 'Calculate RPU Quotation'. Step Result: System executes actuarial conversion formula:\n   - Reduced Sum Assured = (Net Cash Value / Single Premium Rate per $1k) * 1,000 (e.g. $42,600 USD).\n   - Premium Due Amount permanently resets to $0.00.\n   - Supplementary riders (AD&D, CI, Waiver, Hospital Cash) are automatically terminated.",
-          "4. Review RPU Schedule showing Reduced Death Benefit and Maturity Benefit.",
-          "5. Upload signed client confirmation endorsement request.",
-          "6. Click 'Apply Change' and 'Submit'. Step Result: Policy status updates to 'REDUCED_PAID_UP'. Paid-To-Date advances to Maturity Date. No further billing notices will be issued."
+          "1. From CS Work List, select the 'Perform Reduced Paid Up' alteration application.",
+          "2. Click 'Calculate RPU Conversion'. The Engine executes the actuarial equation:",
+          "   a. Net CSV Available = (Current CSV - Outstanding Loans - Accrued Interest).",
+          "   b. Reduced SA = Original SA * (Net CSV / Full Reserve at Duration t).",
+          "3. System displays the new policy profile: Reduced Sum Assured, Future Premium = 0 VND, Maturity Date unchanged.",
+          "4. All attached Supplementary Riders are flagged for automatic TERMINATION on RPU effective date.",
+          "5. Present RPU Conversion Agreement to Policyholder for signed confirmation.",
+          "6. Submit for Actuarial / CS Manager Approval.",
+          "7. Upon Approval, PA BS updates contract status to 'PAID_UP', cancels recurring billing schedules, and synchronizes SOR."
         ],
         "fields_table": [
           {
-            "name": "Original Sum Assured",
-            "type": "Currency",
-            "required": "Read-only",
-            "desc": "Inception coverage amount"
+            "field": "ORIGINAL_SA",
+            "type": "Decimal",
+            "required": "System",
+            "default": "N/A",
+            "description": "Số tiền bảo hiểm gốc ban đầu của hợp đồng"
           },
           {
-            "name": "Net Cash Value",
-            "type": "Currency",
-            "required": "Read-only",
-            "desc": "Available single premium purchasing power"
+            "field": "NET_CSV_CONVERTED",
+            "type": "Decimal",
+            "required": "System",
+            "default": "0",
+            "description": "Giá trị hoàn lại ròng được sử dụng để mua RPU"
           },
           {
-            "name": "Reduced Sum Assured",
-            "type": "Currency",
-            "required": "Read-only",
-            "desc": "New death/maturity cover payable without future premiums"
+            "field": "REDUCED_SA_NEW",
+            "type": "Decimal",
+            "required": "System",
+            "default": "0",
+            "description": "Số tiền bảo hiểm giảm mới sau khi chuyển đổi RPU"
+          },
+          {
+            "field": "NEW_MODAL_PREMIUM",
+            "type": "Decimal",
+            "required": "System",
+            "default": "0",
+            "description": "Phí bảo hiểm định kỳ mới (= 0 VND)"
+          },
+          {
+            "field": "RPU_EFFECTIVE_DATE",
+            "type": "Date",
+            "required": "Yes",
+            "default": "NEXT_DUE_DATE",
+            "description": "Ngày bắt đầu có hiệu lực của chế độ RPU"
           }
         ],
-        "actuary_notes": "RPU is mathematically actuarially equivalent to the original contract at conversion date, preserving policyholder equity without financial loss to insurer.",
-        "op_notes": "Riders terminate immediately on RPU conversion; unearned rider premium from current period is refunded to policyholder.",
-        "pdf_page": 278,
         "validation_rules": [
           {
-            "ruleId": "VAL-FL-001",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "05. 21-Day Free-Look",
-            "stage": "Cool-off Window Verification",
-            "targetEntity": "T_POLICY_DELIVERY",
-            "ruleName": "Delivery Date Anchor & 21-Day Statutory Window",
-            "condition": "Free-Look Cancellation request date must be <= Policy Delivery Date (DELIVERY_DATE) + 21 calendar days.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_FL_WINDOW_EXPIRED",
-            "errorMessage": "Free-look period has expired. Cancellation must be processed as Policy Surrender.",
-            "systemAction": "Rejects Free-Look transaction; redirects operator to Surrender Workbench.",
-            "actuarialBasis": "Insurance Business Law 08/2022/QH15 Article 35: 21-day cooling-off period measured strictly from confirmed receipt.",
-            "pdfPage": 483
+            "code": "VAL-CS-05-A",
+            "rule": "Số tiền bảo hiểm giảm (Reduced SA) không được thấp hơn mức tối thiểu theo quy định (5,000,000 VND)."
           },
           {
-            "ruleId": "VAL-FL-002",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "05. 21-Day Free-Look",
-            "stage": "Claim Conflict Check",
-            "targetEntity": "T_CLAIM",
-            "ruleName": "Zero Paid Claim Prerequisite for Free-Look Refund",
-            "condition": "There must be absolutely zero claims paid out or pending under any benefit of this policy.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_FL_CLAIMS_EXIST",
-            "errorMessage": "There should be no claims paid out or pending under this policy to qualify for Free-Look cancellation.",
-            "systemAction": "Hard stop: aborts cancellation; policy remains inforce.",
-            "actuarialBasis": "Prevention of unjust enrichment: policyholder cannot claim insurance indemnity and subsequently demand premium refund.",
-            "pdfPage": 483
+            "code": "VAL-CS-05-B",
+            "rule": "Mọi sản phẩm bổ trợ (Riders) bắt buộc bị chấm dứt hiệu lực đồng thời với ngày kích hoạt RPU."
           },
           {
-            "ruleId": "VAL-LN-003",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "07. Policy Loans & APL",
-            "stage": "ILP Pending Transaction Check",
-            "targetEntity": "T_FUND_ORDER",
-            "ruleName": "Investment Linked Pending Fund Freeze",
-            "condition": "If policy is Investment-Linked (ILP), it must have zero pending fund unit orders (switches, top-ups, redemptions).",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_LN_PENDING_FUND_TX",
-            "errorMessage": "Policy has unsettled fund transactions. Await unit pricing reconciliation before loan processing.",
-            "systemAction": "Blocks loan calculation until all fund trades commit to SOR.",
-            "actuarialBasis": "Fluctuating unit value: cash value cannot be accurately determined while NAV trade orders remain pending.",
-            "pdfPage": 452
-          },
-          {
-            "ruleId": "VAL-CS-001",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "08. Policy Alterations",
-            "stage": "General Alteration",
-            "targetEntity": "T_POLICY",
-            "ruleName": "Policy Active Inforce Status Requirement",
-            "condition": "Policy status must be 'INFORCE' and Policy must not be in 'FROZEN' status (by pending claim or court freeze).",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CS_POLICY_NOT_INFORCE",
-            "errorMessage": "Policy is not active inforce or is currently frozen by Claims / Legal hold.",
-            "systemAction": "Blocks alteration registration on CS Work List.",
-            "actuarialBasis": "Alterations can only modify live contractual liabilities, not terminated or locked contracts.",
-            "pdfPage": 452
-          },
-          {
-            "ruleId": "VAL-RS-001",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "09. Reinstatement",
-            "stage": "Lapse Reason Validation",
-            "targetEntity": "T_POLICY",
-            "ruleName": "Permissible Lapse Reason Verification",
-            "condition": "Policy lapse reason must be 'Normal Lapse', 'APL Lapse', or 'ILP Lapse'. Terminated policies cannot reinstate.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_RS_INVALID_LAPSE_REASON",
-            "errorMessage": "Policy was terminated by Surrender, Death, or Maturity. Reinstatement is strictly prohibited.",
-            "systemAction": "Rejects Reinstatement application immediately.",
-            "actuarialBasis": "Surrendered or matured policies represent fully executed discharges of liability; contract cannot be revived.",
-            "pdfPage": 489
-          },
-          {
-            "ruleId": "VAL-RS-004",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "09. Reinstatement",
-            "stage": "Financial Settlement",
-            "targetEntity": "T_AR_INVOICE",
-            "ruleName": "Full Back-Premiums & Compound Interest Clearance",
-            "condition": "Policyholder must pay 100% of all unpaid back-premiums + compound interest (e.g. 6.5% p.a.) + outstanding loan interest.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_RS_INCOMPLETE_PAYMENT",
-            "errorMessage": "Cannot restore inforce status: back-premiums or reinstatement interest remain outstanding.",
-            "systemAction": "Reinstatement status held at `PENDING_PAYMENT` until cashier receipt verification commits.",
-            "actuarialBasis": "Restores mathematical reserves to the exact level required had the policy remained continuously inforce.",
-            "pdfPage": 489
+            "code": "VAL-CS-05-C",
+            "rule": "Hợp đồng sau khi chuyển đổi RPU không được tiếp tục áp dụng chính sách vay hợp đồng."
           }
-        ]
+        ],
+        "actuary_notes": "RPU giúp duy trì tỷ lệ duy trì hợp đồng (Persistency Rate) thay vì để hợp đồng bị hủy bỏ hoàn toàn khi khách hàng gặp khó khăn tài chính.",
+        "op_notes": "Bảo đảm xuất phụ lục hợp đồng ghi rõ Số tiền bảo hiểm mới để tránh hiểu lầm khi có sự kiện bảo hiểm xảy ra."
       },
       {
         "code": "SOP-CS-06",
-        "title": "Adding Supplementary Rider Post-Inforce: Underwriting, Effective Date & Pro-Rata Short Premium Calculation",
-        "ui_path": "Main Menu > Customer Service > Work List > Register Alteration > Add Rider (CS-FN-03)",
+        "title": "Adding Supplementary Rider Post-Inforce: Underwriting & Pro-Rata Short Premium",
+        "role": "CS Specialist / Underwriting Liaison",
+        "objective": "Gắn thêm sản phẩm bổ trợ vào hợp đồng đang có hiệu lực: Lựa chọn ngày hiệu lực, chuyển thẩm định y khoa và tính toán phí bảo hiểm ngắn hạn Pro-Rata đến kỳ đóng phí tiếp theo.",
+        "ui_path": "Customer Service > Work List > Data Entry > Add Rider",
+        "pdf_page": 214,
         "prerequisites": [
-          "Policy status in SOR is 'INFORCE' (Cannot attach rider if LAPSED, PAID_UP, or INFORCE_APL)",
-          "Premium Paid-To-Date (PTD) is current with no overdue billing receivables"
+          "Hợp đồng chính đang ở trạng thái INFORCE và không nợ phí bảo hiểm.",
+          "Sản phẩm bổ trợ đề nghị gắn nằm trong danh mục tương thích của sản phẩm chính (Rider Compatibility Matrix).",
+          "Tuổi hiện tại của Người được bảo hiểm nằm trong giới hạn tuổi tham gia của Rider."
         ],
         "steps": [
-          "1. Navigate to Customer Service > Work List > Search Policy Number.",
-          "2. Click 'Register New Application' > Select Category 'Financial' > Alteration Item 'Add Supplementary Rider' (CS-FN-03 / TX-CS-017).",
-          "3. In the Rider Selection panel, select available compatible rider (e.g. 'ACC-01 Personal Accident', 'CI-02 Critical Illness 50-Condition', or 'HI-03 Hospital Income').",
-          "4. Specify Rider Sum Assured and select Rider Inception Effective Date Option:\n   - Option 1 (Next Modal Due Date / Anniversary): Effective Date = Next Due Date. Pro-rata premium = 0 VND. Rider premium added to next scheduled modal invoice.\n   - Option 2 (Immediate Mid-Term Inception): Effective Date = UW Approval Date. System triggers Pro-Rata Short Period Premium calculation.",
-          "5. System executes Underwriting Rules Engine (UW APP): Generates T_UW_TASK. If Sum Assured exceeds non-medical limit, prompts medical questionnaire / MER requirement.",
-          "6. If Option 2 is selected and UW approved, system calculates Pro-Rata Short Premium: Pro-Rata = Annual Rider Premium * (Days Remaining until Next Due Date / 365).",
-          "7. System generates an Out-of-Cycle Billing Invoice (T_BILL_RECEIVABLE). Upon receipt of pro-rata settlement, rider transitions to 'INFORCE_RIDER' and synchronizes its PTD to the Main Policy PTD."
+          "1. From CS Work List, open the 'Add Rider' application. System loads active policy details.",
+          "2. Click '+ Add Rider'. Select Rider Plan (e.g. Accidental Death 24/7, 37 Critical Illness, Medical Expense).",
+          "3. Input Rider Sum Assured. System validates: Rider SA <= Base Plan SA.",
+          "4. Select Effective Date Option:",
+          "   a. 'Effective Immediately': Coverage starts today; requires Pro-Rata Short Period Premium.",
+          "   b. 'Effective on Next Due Date': Coverage starts on next Paid-To-Date; Pro-Rata Premium = 0 VND.",
+          "5. If 'Effective Immediately' is selected, system calculates Pro-Rata Short Premium:",
+          "   Short Premium = Annual Rider Premium * (Days from Effective Date to Next PTD / 365).",
+          "6. System prompts medical questions. If any 'Yes' response or SA exceeds Non-medical limit, system flags 'UW Required = YES'.",
+          "7. Submit application. If UW required, application routes to Underwriting Workbench (Benefit-Level UW).",
+          "8. Underwriter issues Standard Accept or Counter-Offer (LCA with Loading/Exclusion).",
+          "9. Client pays Pro-Rata Short Premium into Suspense. CS executes Inforce command to commit Rider into SOR."
         ],
         "fields_table": [
           {
-            "name": "Rider Code",
-            "type": "Select",
+            "field": "RIDER_CODE",
+            "type": "String",
             "required": "Yes",
-            "desc": "Compatible supplementary rider product code"
+            "default": "N/A",
+            "description": "Mã sản phẩm bổ trợ được chọn gắn thêm"
           },
           {
-            "name": "Rider Sum Assured",
-            "type": "Currency",
+            "field": "RIDER_SA",
+            "type": "Decimal",
             "required": "Yes",
-            "desc": "Requested coverage amount"
+            "default": "N/A",
+            "description": "Số tiền bảo hiểm của sản phẩm bổ trợ"
           },
           {
-            "name": "Effective Date Option",
-            "type": "Radio",
+            "field": "EFFECTIVE_TYPE",
+            "type": "Enum",
             "required": "Yes",
-            "desc": "Next Due Date (No Pro-rata) vs Immediate Inception (Pro-rata billed)"
+            "default": "IMMEDIATE",
+            "description": "Loại hiệu lực: IMMEDIATE (Ngay lập tức) hoặc NEXT_DUE (Kỳ tới)"
           },
           {
-            "name": "Pro-Rata Short Premium",
-            "type": "Read-Only Formula",
-            "required": "Auto",
-            "desc": "Annual Premium * (Days Remaining / 365)"
+            "field": "PRO_RATA_SHORT_PREM",
+            "type": "Decimal",
+            "required": "System",
+            "default": "0",
+            "description": "Phí ngắn hạn pro-rata phải thu bổ sung"
           },
           {
-            "name": "Rider Expiry Date",
+            "field": "NEXT_DUE_DATE",
             "type": "Date",
-            "required": "Auto",
-            "desc": "Lesser of Main Policy Maturity Date or Rider Max Attained Age (e.g. 65)"
+            "required": "System",
+            "default": "N/A",
+            "description": "Ngày đến hạn đóng phí định kỳ tiếp theo của HĐ chính"
           }
         ],
-        "actuary_notes": "Rider risk begins strictly on Effective Date. Pro-rata premium ensures actuarial cost of insurance (COI) matching without unearned risk gap.",
-        "op_notes": "At the next modal due date, the rider premium consolidates into the main modal bill, maintaining unified billing frequency.",
-        "pdf_page": 214,
         "validation_rules": [
           {
-            "ruleId": "VAL-FL-001",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "05. 21-Day Free-Look",
-            "stage": "Cool-off Window Verification",
-            "targetEntity": "T_POLICY_DELIVERY",
-            "ruleName": "Delivery Date Anchor & 21-Day Statutory Window",
-            "condition": "Free-Look Cancellation request date must be <= Policy Delivery Date (DELIVERY_DATE) + 21 calendar days.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_FL_WINDOW_EXPIRED",
-            "errorMessage": "Free-look period has expired. Cancellation must be processed as Policy Surrender.",
-            "systemAction": "Rejects Free-Look transaction; redirects operator to Surrender Workbench.",
-            "actuarialBasis": "Insurance Business Law 08/2022/QH15 Article 35: 21-day cooling-off period measured strictly from confirmed receipt.",
-            "pdfPage": 483
+            "code": "VAL-CS-06-A",
+            "rule": "Số tiền bảo hiểm Rider không được vượt quá Số tiền bảo hiểm hợp đồng chính."
           },
           {
-            "ruleId": "VAL-FL-003",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "05. 21-Day Free-Look",
-            "stage": "Financial Clawback",
-            "targetEntity": "T_COMMISSION_LEDGER",
-            "ruleName": "100% Commission Clawback & Medical Fee Offset",
-            "condition": "Refund = 100% Gross Premiums Paid minus Insurer Medical Examination Costs. 100% Agent Commission clawed back.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_FL_CLAWBACK_EXECUTION",
-            "errorMessage": "Negative commission voucher generated to reverse all agency earnings for cancelled policy.",
-            "systemAction": "Posts negative commission record to `T_COMMISSION_LEDGER` and releases refund voucher.",
-            "actuarialBasis": "Restores financial ledger to exact zero-liability pre-inception status.",
-            "pdfPage": 483
+            "code": "VAL-CS-06-B",
+            "rule": "Thời hạn bảo hiểm của Rider không được kéo dài vượt quá thời hạn hợp đồng chính."
           },
           {
-            "ruleId": "VAL-LN-002",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "07. Policy Loans & APL",
-            "stage": "Loan Date Validation",
-            "targetEntity": "T_POLICY_LOAN",
-            "ruleName": "Loan Date Anti-Backdating Rule",
-            "condition": "Loan effective date cannot be backdated. May be forward-dated up to a maximum of 7 calendar days.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_LN_BACKDATING_DISALLOWED",
-            "errorMessage": "Loan date cannot be backdated. It can be forward dated up-to 7 days from system date.",
-            "systemAction": "Rejects loan request with date discrepancy error.",
-            "actuarialBasis": "Prevents retroactive interest manipulation and financial distortion.",
-            "pdfPage": 452
-          },
-          {
-            "ruleId": "VAL-CS-002",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "08. Policy Alterations",
-            "stage": "Alteration Content Diff",
-            "targetEntity": "T_CS_ALTERATION",
-            "ruleName": "Mandatory Delta (Data Difference) Check",
-            "condition": "Submitted alteration payload must have at least one validated field difference compared to current SOR state.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CS_NO_CHANGES_DETECTED",
-            "errorMessage": "There must be at least one information change detected to register an alteration item.",
-            "systemAction": "Disables 'Apply Change' button until delta is present.",
-            "actuarialBasis": "Prevents redundant database transactions, audit clutter, and unnecessary endorsement processing.",
-            "pdfPage": 459
-          },
-          {
-            "ruleId": "VAL-CS-004",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "08. Policy Alterations",
-            "stage": "Mid-Term Rider Attachment",
-            "targetEntity": "T_POLICY_BENEFIT",
-            "ruleName": "Rider Term & Maturity Synchronization Rule",
-            "condition": "Rider coverage expiry date must not exceed Base Plan maturity date or Rider maximum coverage age limit.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CS_RIDER_TERM_OVERFLOW",
-            "errorMessage": "Rider term exceeds remaining policy term of main benefit.",
-            "systemAction": "Auto-caps rider term to match base plan or throws validation error.",
-            "actuarialBasis": "Ancillary rider contracts cannot survive past the termination of the principal life insurance contract.",
-            "pdfPage": 138
-          },
-          {
-            "ruleId": "VAL-CS-006",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "08. Policy Alterations",
-            "stage": "Transfer of Coverage Scope",
-            "targetEntity": "T_POLICY_BENEFIT",
-            "ruleName": "Automatic Rider Transfer & Premium Recalculation",
-            "condition": "When Life Assured is transferred, all attached riders transfer simultaneously, and premium recalculates for new age/gender.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CS_TRANSFER_PREMIUM_RECALC",
-            "errorMessage": "All riders attached to previous life assured transferred; premium adjusted to new risk profile.",
-            "systemAction": "Generates Collection/Refund record for premium difference between old and new risk.",
-            "actuarialBasis": "Mortality pricing adjustment: new life assured carries unique age, gender, and smoker actuarial risk factors.",
-            "pdfPage": 255
-          },
-          {
-            "ruleId": "VAL-RS-002",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "09. Reinstatement",
-            "stage": "Statutory Window",
-            "targetEntity": "T_POLICY",
-            "ruleName": "24-Month Statutory Reinstatement Time Window",
-            "condition": "Reinstatement request date must be within 24 months of Lapse Date (`LAPSE_DATE + 2 Years > SYSTEM_DATE`).",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_RS_TIME_WINDOW_EXPIRED",
-            "errorMessage": "Statutory 2-year reinstatement window has expired. Policy is permanently lapsed.",
-            "systemAction": "Blocks reinstatement processing; policy remains permanently in `LAPSED` state.",
-            "actuarialBasis": "Article 26 Insurance Business Law: policyholder has the right to restore policy within 2 years from lapse date.",
-            "pdfPage": 489
-          },
-          {
-            "ruleId": "VAL-RS-004",
-            "module": "MOD_04",
-            "moduleName": "Customer Service (CS APP)",
-            "lifecyclePhase": "09. Reinstatement",
-            "stage": "Financial Settlement",
-            "targetEntity": "T_AR_INVOICE",
-            "ruleName": "Full Back-Premiums & Compound Interest Clearance",
-            "condition": "Policyholder must pay 100% of all unpaid back-premiums + compound interest (e.g. 6.5% p.a.) + outstanding loan interest.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_RS_INCOMPLETE_PAYMENT",
-            "errorMessage": "Cannot restore inforce status: back-premiums or reinstatement interest remain outstanding.",
-            "systemAction": "Reinstatement status held at `PENDING_PAYMENT` until cashier receipt verification commits.",
-            "actuarialBasis": "Restores mathematical reserves to the exact level required had the policy remained continuously inforce.",
-            "pdfPage": 489
+            "code": "VAL-CS-06-C",
+            "rule": "Phí bảo hiểm ngắn hạn Pro-Rata phải được thanh toán đủ 100% trước khi kích hoạt lệnh Inforce."
           }
-        ]
+        ],
+        "actuary_notes": "Tính phí ngắn hạn pro-rata theo tỷ lệ số ngày thực tế bảo vệ bảo đảm tính chính xác của doanh thu phí thuần và trích lập dự phòng kỹ thuật.",
+        "op_notes": "Tại kỳ đóng phí tiếp theo, phí định kỳ của hợp đồng sẽ tự động cộng thêm phí năm của Rider vừa gắn."
+      },
+      {
+        "code": "SOP-CS-07",
+        "title": "Policy Reinstatement (Khôi Phục Hiệu Lực Hợp Đồng Sau Khi Lapsed)",
+        "role": "CS Specialist / Underwriting Officer",
+        "objective": "Tiếp nhận và xử lý yêu cầu khôi phục hiệu lực cho hợp đồng bảo hiểm đã bị mất hiệu lực (Lapsed) do quá hạn đóng phí 60 ngày trong thời hạn tối đa 24 tháng.",
+        "ui_path": "Customer Service > Work List > Data Entry > Reinstatement",
+        "pdf_page": 262,
+        "prerequisites": [
+          "Hợp đồng có trạng thái LAPSED và thời gian mất hiệu lực chưa quá 24 tháng kể từ ngày đến hạn đóng phí chưa nộp.",
+          "Người được bảo hiểm còn sống tại thời điểm nộp đơn yêu cầu khôi phục.",
+          "Bên mua bảo hiểm đồng ý thanh toán toàn bộ các khoản phí chậm nộp kèm lãi phạt tính theo quy định."
+        ],
+        "steps": [
+          "1. From CS Work List, search for the LAPSED policy and select 'Reinstatement' alteration item.",
+          "2. Click 'Compute Reinstatement Debt'. The Financial Engine calculates:",
+          "   a. Total Overdue Modal Premiums from the unpaid due date to current date.",
+          "   b. Reinstatement Late Interest (computed at statutory rate, e.g. 6.5%/year on unpaid premiums).",
+          "   c. Any outstanding policy loan debt and interest.",
+          "   Total Reinstatement Amount = Overdue Premiums + Late Interest + Due Debt.",
+          "3. Customer completes the Declaration of Good Health (Health Warranty questionnaire).",
+          "4. If health status has changed or lapsed duration > 6 months, system triggers mandatory Underwriting referral.",
+          "5. Underwriter reviews risk: Standard Reinstatement or Reinstatement with Loading/Exclusion.",
+          "6. Customer deposits the required Total Reinstatement Amount into the designated Virtual Account.",
+          "7. CS Officer verifies funds in Suspense GL 2211 and clicks 'Enforce Reinstatement'.",
+          "8. System updates Policy Status from LAPSED back to INFORCE, advances PTD, and resets the statutory 2-year Suicide Exclusion clause."
+        ],
+        "fields_table": [
+          {
+            "field": "LAPSED_DATE",
+            "type": "Date",
+            "required": "System",
+            "default": "N/A",
+            "description": "Ngày hợp đồng chính thức bị mất hiệu lực (Grace 60 days cutoff)"
+          },
+          {
+            "field": "OVERDUE_PREMIUM_TOTAL",
+            "type": "Decimal",
+            "required": "System",
+            "default": "0",
+            "description": "Tổng các kỳ phí bảo hiểm chưa nộp"
+          },
+          {
+            "field": "LATE_INTEREST_AMOUNT",
+            "type": "Decimal",
+            "required": "System",
+            "default": "0",
+            "description": "Tiền lãi phạt chậm nộp phí (6.5%/năm)"
+          },
+          {
+            "field": "TOTAL_REINSTATE_DUE",
+            "type": "Decimal",
+            "required": "System",
+            "default": "0",
+            "description": "Tổng số tiền khách hàng phải nộp để khôi phục"
+          },
+          {
+            "field": "HEALTH_WARRANTY_FLAG",
+            "type": "Boolean",
+            "required": "Yes",
+            "default": "TRUE",
+            "description": "Cam kết bảo đảm tình trạng sức khỏe không thay đổi"
+          }
+        ],
+        "validation_rules": [
+          {
+            "code": "VAL-CS-07-A",
+            "rule": "Hợp đồng đã mất hiệu lực quá 24 tháng không được phép khôi phục; bắt buộc phải mua hợp đồng mới."
+          },
+          {
+            "code": "VAL-CS-07-B",
+            "rule": "NĐBH đã tử vong hoặc thương tật toàn bộ vĩnh viễn trong thời gian Lapsed sẽ bị từ chối khôi phục tuyệt đối."
+          },
+          {
+            "code": "VAL-CS-07-C",
+            "rule": "Thời hạn loại trừ tự tử 2 năm (Suicide Exclusion) được tính lại từ ngày khôi phục hiệu lực hợp đồng thành công."
+          }
+        ],
+        "actuary_notes": "Tái lập điều khoản loại trừ tự tử 2 năm là nguyên tắc cốt lõi nhằm ngăn chặn rủi ro trục lợi bảo hiểm sau khi khôi phục.",
+        "op_notes": "Nhắc nhở khách hàng thiết lập phương thức trích nợ tự động Direct Debit để tránh bị mất hiệu lực lần sau."
+      },
+      {
+        "code": "SOP-CS-08",
+        "title": "Policy Alteration Financial Settlement & PTD Synchronization",
+        "role": "CS Supervisor / Finance Accountant",
+        "objective": "Đối soát các khoản thu/chi tài chính phát sinh từ thay đổi hợp đồng, kiểm soát phê duyệt phân quyền (DOA) và thực hiện cam kết 2PC đồng bộ dữ liệu lên SOR.",
+        "ui_path": "Customer Service > Work List > Approval & Inforce Workbench",
+        "pdf_page": 270,
+        "prerequisites": [
+          "Hồ sơ thay đổi đã vượt qua bước thẩm định (nếu có) và thu đủ tiền chênh lệch (nếu là nghiệp vụ thu phí).",
+          "Tài liệu chứng từ đính kèm (ID, e-sign, giấy khám) đã được hoàn tất 100%.",
+          "Chuyên viên phê duyệt có thẩm quyền DOA tương ứng với giá trị giao dịch."
+        ],
+        "steps": [
+          "1. From CS Work List, navigate to the 'Approval' queue. System lists applications waiting for sign-off.",
+          "2. Review the Alteration Summary: Changed attributes, Pre-Image vs Post-Image, and Financial Impact.",
+          "3. In the Collection / Refund section, verify transaction receipts:",
+          "   a. For Collections: Ensure Virtual Account has confirmed 100% receipt in Suspense GL 2211.",
+          "   b. For Refunds/Loans: Verify payee identity and validate bank account details against policyholder master.",
+          "4. Click 'Approve Application'. If within user DOA limit, status becomes 'Approved'; if exceeding, escalates to next DOA level.",
+          "5. In the Inforce section, click 'Execute Policy Alteration Inforce'.",
+          "6. PA BS initiates Global 2PC Transaction: persists snapshot in t_pub_tx_undo_log, updates SOR tables (t_pol_policy, t_pol_rider), and clears policy freeze flag.",
+          "7. System triggers Event Broadcast to RabbitMQ and generates Official Endorsement PDF Annex.",
+          "8. Dispatch confirmation notification (SMS & Email) to customer."
+        ],
+        "fields_table": [
+          {
+            "field": "APP_NO",
+            "type": "String",
+            "required": "System",
+            "default": "N/A",
+            "description": "Mã hồ sơ yêu cầu thay đổi (CS Application Number)"
+          },
+          {
+            "field": "FINANCIAL_BALANCE",
+            "type": "Decimal",
+            "required": "System",
+            "default": "0",
+            "description": "Số dư tài chính chênh lệch: Dương (Phải thu), Âm (Phải chi)"
+          },
+          {
+            "field": "DOA_LEVEL_REQUIRED",
+            "type": "String",
+            "required": "System",
+            "default": "L1",
+            "description": "Cấp phân quyền phê duyệt yêu cầu (L1: <50M, L2: <200M, L3: >200M)"
+          },
+          {
+            "field": "INFORCE_TIMESTAMP",
+            "type": "Timestamp",
+            "required": "System",
+            "default": "CURRENT_TIMESTAMP",
+            "description": "Thời điểm giao dịch chính thức có hiệu lực trên SOR"
+          }
+        ],
+        "validation_rules": [
+          {
+            "code": "VAL-CS-08-A",
+            "rule": "Tuyệt đối không được kích hoạt lệnh Inforce nếu số tiền phải thu trong Suspense chưa đủ 100%."
+          },
+          {
+            "code": "VAL-CS-08-B",
+            "rule": "Người phê duyệt (Approver) phải khác với người nhập liệu (Maker) để đảm bảo nguyên tắc kiểm soát 4 mắt."
+          },
+          {
+            "code": "VAL-CS-08-C",
+            "rule": "Nếu giao dịch 2PC thất bại, toàn bộ trạng thái hợp đồng trên SOR phải được hoàn tác nguyên trạng."
+          }
+        ],
+        "actuary_notes": "Bảo đảm đồng bộ ngày đến hạn PTD giữa hợp đồng chính và các sản phẩm bổ trợ tránh tình trạng lệch chu kỳ hóa đơn.",
+        "op_notes": "Sau khi Inforce thành công, hợp đồng được mở khóa (unfreeze) ngay lập tức để phục vụ các giao dịch tiếp theo."
       }
     ],
-    "sop_count": 5,
+    "sop_count": 8,
     "interconnections": {
       "module_code": "CS_APP",
       "upstream_sources": [
@@ -8061,284 +7763,604 @@ window.EBAO_MODULES = [
         "CONVERTED_TO_RPU"
       ]
     },
-    "pdf_start_page": 196,
-    "pdf_end_page": 303,
-    "pdf_chapter": "Chapter 4: Customer Service & Policy Servicing (CS APP)",
+    "pdf_start_page": 193,
+    "pdf_end_page": 275,
+    "pdf_chapter": "Module 04: Gemini Customer Service User Guide (Pages 193-275)",
     "validation_rules": [
-      {
-        "ruleId": "VAL-FL-001",
-        "module": "MOD_04",
-        "moduleName": "Customer Service (CS APP)",
-        "lifecyclePhase": "05. 21-Day Free-Look",
-        "stage": "Cool-off Window Verification",
-        "targetEntity": "T_POLICY_DELIVERY",
-        "ruleName": "Delivery Date Anchor & 21-Day Statutory Window",
-        "condition": "Free-Look Cancellation request date must be <= Policy Delivery Date (DELIVERY_DATE) + 21 calendar days.",
-        "severity": "HARD_STOP",
-        "errorCode": "ERR_FL_WINDOW_EXPIRED",
-        "errorMessage": "Free-look period has expired. Cancellation must be processed as Policy Surrender.",
-        "systemAction": "Rejects Free-Look transaction; redirects operator to Surrender Workbench.",
-        "actuarialBasis": "Insurance Business Law 08/2022/QH15 Article 35: 21-day cooling-off period measured strictly from confirmed receipt.",
-        "pdfPage": 483
-      },
-      {
-        "ruleId": "VAL-FL-002",
-        "module": "MOD_04",
-        "moduleName": "Customer Service (CS APP)",
-        "lifecyclePhase": "05. 21-Day Free-Look",
-        "stage": "Claim Conflict Check",
-        "targetEntity": "T_CLAIM",
-        "ruleName": "Zero Paid Claim Prerequisite for Free-Look Refund",
-        "condition": "There must be absolutely zero claims paid out or pending under any benefit of this policy.",
-        "severity": "HARD_STOP",
-        "errorCode": "ERR_FL_CLAIMS_EXIST",
-        "errorMessage": "There should be no claims paid out or pending under this policy to qualify for Free-Look cancellation.",
-        "systemAction": "Hard stop: aborts cancellation; policy remains inforce.",
-        "actuarialBasis": "Prevention of unjust enrichment: policyholder cannot claim insurance indemnity and subsequently demand premium refund.",
-        "pdfPage": 483
-      },
-      {
-        "ruleId": "VAL-FL-003",
-        "module": "MOD_04",
-        "moduleName": "Customer Service (CS APP)",
-        "lifecyclePhase": "05. 21-Day Free-Look",
-        "stage": "Financial Clawback",
-        "targetEntity": "T_COMMISSION_LEDGER",
-        "ruleName": "100% Commission Clawback & Medical Fee Offset",
-        "condition": "Refund = 100% Gross Premiums Paid minus Insurer Medical Examination Costs. 100% Agent Commission clawed back.",
-        "severity": "HARD_STOP",
-        "errorCode": "ERR_FL_CLAWBACK_EXECUTION",
-        "errorMessage": "Negative commission voucher generated to reverse all agency earnings for cancelled policy.",
-        "systemAction": "Posts negative commission record to `T_COMMISSION_LEDGER` and releases refund voucher.",
-        "actuarialBasis": "Restores financial ledger to exact zero-liability pre-inception status.",
-        "pdfPage": 483
-      },
-      {
-        "ruleId": "VAL-LN-001",
-        "module": "MOD_04",
-        "moduleName": "Customer Service (CS APP)",
-        "lifecyclePhase": "07. Policy Loans & APL",
-        "stage": "Loan Eligibility",
-        "targetEntity": "T_POLICY_LOAN",
-        "ruleName": "Maximum Loan-to-Value (LTV 85%) Ceiling",
-        "condition": "Total Loan Amount + Existing Loan Principal + Accrued Interest <= Gross Cash Value * 85%.",
-        "severity": "HARD_STOP",
-        "errorCode": "ERR_LN_EXCEEDS_MAX_AVAILABLE",
-        "errorMessage": "Requested loan amount exceeds maximum available borrowing limit (85% Net Cash Value).",
-        "systemAction": "Validation fails on Loan Application UI; sets max permissible amount in helper box.",
-        "actuarialBasis": "Collateral buffer: prevents policy lapse within 12 months due to compounding interest charges.",
-        "pdfPage": 452
-      },
-      {
-        "ruleId": "VAL-LN-002",
-        "module": "MOD_04",
-        "moduleName": "Customer Service (CS APP)",
-        "lifecyclePhase": "07. Policy Loans & APL",
-        "stage": "Loan Date Validation",
-        "targetEntity": "T_POLICY_LOAN",
-        "ruleName": "Loan Date Anti-Backdating Rule",
-        "condition": "Loan effective date cannot be backdated. May be forward-dated up to a maximum of 7 calendar days.",
-        "severity": "HARD_STOP",
-        "errorCode": "ERR_LN_BACKDATING_DISALLOWED",
-        "errorMessage": "Loan date cannot be backdated. It can be forward dated up-to 7 days from system date.",
-        "systemAction": "Rejects loan request with date discrepancy error.",
-        "actuarialBasis": "Prevents retroactive interest manipulation and financial distortion.",
-        "pdfPage": 452
-      },
-      {
-        "ruleId": "VAL-LN-003",
-        "module": "MOD_04",
-        "moduleName": "Customer Service (CS APP)",
-        "lifecyclePhase": "07. Policy Loans & APL",
-        "stage": "ILP Pending Transaction Check",
-        "targetEntity": "T_FUND_ORDER",
-        "ruleName": "Investment Linked Pending Fund Freeze",
-        "condition": "If policy is Investment-Linked (ILP), it must have zero pending fund unit orders (switches, top-ups, redemptions).",
-        "severity": "HARD_STOP",
-        "errorCode": "ERR_LN_PENDING_FUND_TX",
-        "errorMessage": "Policy has unsettled fund transactions. Await unit pricing reconciliation before loan processing.",
-        "systemAction": "Blocks loan calculation until all fund trades commit to SOR.",
-        "actuarialBasis": "Fluctuating unit value: cash value cannot be accurately determined while NAV trade orders remain pending.",
-        "pdfPage": 452
-      },
       {
         "ruleId": "VAL-CS-001",
         "module": "MOD_04",
-        "moduleName": "Customer Service (CS APP)",
-        "lifecyclePhase": "08. Policy Alterations",
-        "stage": "General Alteration",
-        "targetEntity": "T_POLICY",
-        "ruleName": "Policy Active Inforce Status Requirement",
-        "condition": "Policy status must be 'INFORCE' and Policy must not be in 'FROZEN' status (by pending claim or court freeze).",
+        "moduleName": "Customer Service",
+        "lifecyclePhase": "04. Policy Maintenance",
+        "stage": "Registration",
+        "targetEntity": "T_POL_POLICY",
+        "ruleName": "Frozen Policy Check",
+        "condition": "Policy must not be locked by pending CS or Claim processing.",
         "severity": "HARD_STOP",
-        "errorCode": "ERR_CS_POLICY_NOT_INFORCE",
-        "errorMessage": "Policy is not active inforce or is currently frozen by Claims / Legal hold.",
-        "systemAction": "Blocks alteration registration on CS Work List.",
-        "actuarialBasis": "Alterations can only modify live contractual liabilities, not terminated or locked contracts.",
-        "pdfPage": 452
+        "errorCode": "ERR_CS_POLICY_FROZEN",
+        "errorMessage": "Hợp đồng đang bị khóa bởi hồ sơ bồi thường hoặc giao dịch thay đổi khác đang xử lý.",
+        "systemAction": "Chặn tạo hồ sơ thay đổi mới.",
+        "actuarialBasis": "Ngăn chặn ghi đè dữ liệu và sai lệch giá trị giải ước khi có nhiều giao dịch đồng thời.",
+        "pdfPage": 200
       },
       {
         "ruleId": "VAL-CS-002",
         "module": "MOD_04",
-        "moduleName": "Customer Service (CS APP)",
-        "lifecyclePhase": "08. Policy Alterations",
-        "stage": "Alteration Content Diff",
-        "targetEntity": "T_CS_ALTERATION",
-        "ruleName": "Mandatory Delta (Data Difference) Check",
-        "condition": "Submitted alteration payload must have at least one validated field difference compared to current SOR state.",
+        "moduleName": "Customer Service",
+        "lifecyclePhase": "04. Policy Maintenance",
+        "stage": "Policy Loan",
+        "targetEntity": "T_POL_LOAN",
+        "ruleName": "Maximum Policy Loan Cap 80% Net CSV",
+        "condition": "Requested Loan <= 80% * (Cash Value - Existing Debt).",
         "severity": "HARD_STOP",
-        "errorCode": "ERR_CS_NO_CHANGES_DETECTED",
-        "errorMessage": "There must be at least one information change detected to register an alteration item.",
-        "systemAction": "Disables 'Apply Change' button until delta is present.",
-        "actuarialBasis": "Prevents redundant database transactions, audit clutter, and unnecessary endorsement processing.",
-        "pdfPage": 459
+        "errorCode": "ERR_CS_LOAN_CAP_EXCEEDED",
+        "errorMessage": "Số tiền vay vượt quá hạn mức tối đa cho phép (80% Giá trị hoàn lại ròng).",
+        "systemAction": "Từ chối duyệt khoản vay hoặc cắt giảm về mức trần cho phép.",
+        "actuarialBasis": "Bảo vệ an toàn tài chính của quỹ, bảo đảm hợp đồng không bị thấu chi âm vốn.",
+        "pdfPage": 254
       },
       {
         "ruleId": "VAL-CS-003",
         "module": "MOD_04",
-        "moduleName": "Customer Service (CS APP)",
-        "lifecyclePhase": "08. Policy Alterations",
-        "stage": "Sum Assured Increase",
-        "targetEntity": "T_POLICY_BENEFIT",
-        "ruleName": "Sum Assured Increase Underwriting Reassessment",
-        "condition": "Sum Assured Increase triggers mandatory medical health declaration and manual underwriting review.",
-        "severity": "ROUTING",
-        "errorCode": "ROUTE_CS_UW_REVIEW",
-        "errorMessage": "Sum Assured increase requires underwriting risk assessment. Transferring to Underwriting Workbench.",
-        "systemAction": "Generates Underwriting Task linked to CS Alteration ID.",
-        "actuarialBasis": "Anti-selection: policyholders developing health conditions may attempt to dramatically increase coverage.",
-        "pdfPage": 255
+        "moduleName": "Customer Service",
+        "lifecyclePhase": "04. Policy Maintenance",
+        "stage": "Surrender",
+        "targetEntity": "T_POL_SURRENDER",
+        "ruleName": "Debt Deduction Priority on Surrender",
+        "condition": "Outstanding Loan Principal + Accrued Interest must be deducted first before Net Payout.",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_CS_DEBT_RECOVERY_FAILED",
+        "errorMessage": "Không thể thanh toán tiền giải ước khi chưa thu hồi hết các khoản nợ vay hợp đồng.",
+        "systemAction": "Tự động cấn trừ toàn bộ nợ vào giá trị giải ước ròng.",
+        "actuarialBasis": "Ưu tiên thu hồi vốn vay bảo đảm khả năng thanh toán của doanh nghiệp bảo hiểm.",
+        "pdfPage": 232
       },
       {
         "ruleId": "VAL-CS-004",
         "module": "MOD_04",
-        "moduleName": "Customer Service (CS APP)",
-        "lifecyclePhase": "08. Policy Alterations",
-        "stage": "Mid-Term Rider Attachment",
-        "targetEntity": "T_POLICY_BENEFIT",
-        "ruleName": "Rider Term & Maturity Synchronization Rule",
-        "condition": "Rider coverage expiry date must not exceed Base Plan maturity date or Rider maximum coverage age limit.",
+        "moduleName": "Customer Service",
+        "lifecyclePhase": "04. Policy Maintenance",
+        "stage": "Beneficiary Change",
+        "targetEntity": "T_POL_BENEFICIARY",
+        "ruleName": "Beneficiary Allocation 100% Balance",
+        "condition": "Sum of primary beneficiary shares must equal strictly 100.00%.",
         "severity": "HARD_STOP",
-        "errorCode": "ERR_CS_RIDER_TERM_OVERFLOW",
-        "errorMessage": "Rider term exceeds remaining policy term of main benefit.",
-        "systemAction": "Auto-caps rider term to match base plan or throws validation error.",
-        "actuarialBasis": "Ancillary rider contracts cannot survive past the termination of the principal life insurance contract.",
-        "pdfPage": 138
+        "errorCode": "ERR_CS_BENEFICIARY_SUM_MISMATCH",
+        "errorMessage": "Tổng tỷ lệ hưởng quyền lợi của các người thụ hưởng chính phải bằng đúng 100.00%.",
+        "systemAction": "Chặn lưu danh sách người thụ hưởng.",
+        "actuarialBasis": "Tránh tranh chấp quyền thừa kế và xác định rõ ràng trách nhiệm chi trả bảo hiểm.",
+        "pdfPage": 220
       },
       {
         "ruleId": "VAL-CS-005",
         "module": "MOD_04",
-        "moduleName": "Customer Service (CS APP)",
-        "lifecyclePhase": "08. Policy Alterations",
-        "stage": "Transfer of Coverage",
-        "targetEntity": "T_POLICY_INSURED",
-        "ruleName": "Transfer of Coverage (Change Life Assured) Eligibility",
-        "condition": "Base plan product definition must have `Allow Transfer Coverage = Yes` AND FCC/AML validation passed.",
+        "moduleName": "Customer Service",
+        "lifecyclePhase": "04. Policy Maintenance",
+        "stage": "Reduced Paid-Up",
+        "targetEntity": "T_POL_RPU",
+        "ruleName": "Rider Termination on RPU Execution",
+        "condition": "All supplementary riders must be terminated upon conversion to Reduced Paid-Up.",
         "severity": "HARD_STOP",
-        "errorCode": "ERR_CS_TRANSFER_NOT_ALLOWED",
-        "errorMessage": "The main benefit does not permit Transfer of Coverage in product definition, or party FCC check failed.",
-        "systemAction": "Blocks new life assured selection on CS Alteration UI.",
-        "actuarialBasis": "Product structure control: corporate keyman plans permit executive transfer; juvenile endowment plans disallow.",
-        "pdfPage": 254
+        "errorCode": "ERR_CS_RPU_RIDER_CONFLICT",
+        "errorMessage": "Tất cả sản phẩm bổ trợ phải bị chấm dứt hiệu lực khi chuyển đổi sang Bảo hiểm giảm (RPU).",
+        "systemAction": "Tự động hủy các rider gắn kèm vào ngày hiệu lực RPU.",
+        "actuarialBasis": "Chế độ RPU không còn dòng tiền đóng phí định kỳ để duy trì chi phí rủi ro của rider.",
+        "pdfPage": 278
       },
       {
         "ruleId": "VAL-CS-006",
         "module": "MOD_04",
-        "moduleName": "Customer Service (CS APP)",
-        "lifecyclePhase": "08. Policy Alterations",
-        "stage": "Transfer of Coverage Scope",
-        "targetEntity": "T_POLICY_BENEFIT",
-        "ruleName": "Automatic Rider Transfer & Premium Recalculation",
-        "condition": "When Life Assured is transferred, all attached riders transfer simultaneously, and premium recalculates for new age/gender.",
+        "moduleName": "Customer Service",
+        "lifecyclePhase": "04. Policy Maintenance",
+        "stage": "Add Rider",
+        "targetEntity": "T_POL_RIDER",
+        "ruleName": "Rider Sum Assured Ceiling by Main Policy",
+        "condition": "Rider Sum Assured must be <= Base Policy Sum Assured.",
         "severity": "HARD_STOP",
-        "errorCode": "ERR_CS_TRANSFER_PREMIUM_RECALC",
-        "errorMessage": "All riders attached to previous life assured transferred; premium adjusted to new risk profile.",
-        "systemAction": "Generates Collection/Refund record for premium difference between old and new risk.",
-        "actuarialBasis": "Mortality pricing adjustment: new life assured carries unique age, gender, and smoker actuarial risk factors.",
-        "pdfPage": 255
+        "errorCode": "ERR_CS_RIDER_SA_OVERFLOW",
+        "errorMessage": "Số tiền bảo hiểm của sản phẩm bổ trợ không được lớn hơn hợp đồng chính.",
+        "systemAction": "Chặn lưu thông tin sản phẩm bổ trợ.",
+        "actuarialBasis": "Quyền lợi bổ trợ không thể vượt quá nghĩa vụ bảo vệ cốt lõi của hợp đồng chính.",
+        "pdfPage": 214
       },
       {
         "ruleId": "VAL-CS-007",
         "module": "MOD_04",
-        "moduleName": "Customer Service (CS APP)",
-        "lifecyclePhase": "08. Policy Alterations",
-        "stage": "Change of Assignment",
-        "targetEntity": "T_POLICY_ASSIGNMENT",
-        "ruleName": "Assignment Legal Entity & Type Integrity",
-        "condition": "Collateral Assignment strictly restricted to Corporate Entity (Bank/Lender). Absolute Assignment open to Company or Individual.",
+        "moduleName": "Customer Service",
+        "lifecyclePhase": "04. Policy Maintenance",
+        "stage": "Add Rider",
+        "targetEntity": "T_POL_RIDER",
+        "ruleName": "Rider Term Boundary by Main Policy",
+        "condition": "Rider Policy Term must expire on or before Base Policy Term.",
         "severity": "HARD_STOP",
-        "errorCode": "ERR_CS_INVALID_ASSIGNEE_TYPE",
-        "errorMessage": "Collateral assignment can only be assigned to a licensed corporate institution.",
-        "systemAction": "Blocks individual party selection when 'Collateral Assignment' is chosen.",
-        "actuarialBasis": "Banking loan security law: commercial collateral rights cannot be vested in private natural persons without commercial licensing.",
-        "pdfPage": 459
+        "errorCode": "ERR_CS_RIDER_TERM_EXCEEDED",
+        "errorMessage": "Thời hạn bảo vệ của sản phẩm bổ trợ vượt quá thời hạn hợp đồng chính.",
+        "systemAction": "Tự động rút ngắn thời hạn rider về bằng thời hạn hợp đồng chính.",
+        "actuarialBasis": "Sản phẩm bổ trợ phụ thuộc không thể tồn tại độc lập khi hợp đồng chính đã đáo hạn.",
+        "pdfPage": 214
       },
       {
-        "ruleId": "VAL-RS-001",
+        "ruleId": "VAL-CS-008",
         "module": "MOD_04",
-        "moduleName": "Customer Service (CS APP)",
-        "lifecyclePhase": "09. Reinstatement",
-        "stage": "Lapse Reason Validation",
-        "targetEntity": "T_POLICY",
-        "ruleName": "Permissible Lapse Reason Verification",
-        "condition": "Policy lapse reason must be 'Normal Lapse', 'APL Lapse', or 'ILP Lapse'. Terminated policies cannot reinstate.",
+        "moduleName": "Customer Service",
+        "lifecyclePhase": "04. Policy Maintenance",
+        "stage": "Reinstatement",
+        "targetEntity": "T_POL_REINSTATE",
+        "ruleName": "Reinstatement 24-Month Maximum Window",
+        "condition": "Elapsed time from Lapsed Date must be <= 24 calendar months.",
         "severity": "HARD_STOP",
-        "errorCode": "ERR_RS_INVALID_LAPSE_REASON",
-        "errorMessage": "Policy was terminated by Surrender, Death, or Maturity. Reinstatement is strictly prohibited.",
-        "systemAction": "Rejects Reinstatement application immediately.",
-        "actuarialBasis": "Surrendered or matured policies represent fully executed discharges of liability; contract cannot be revived.",
-        "pdfPage": 489
+        "errorCode": "ERR_CS_REINSTATE_EXPIRED",
+        "errorMessage": "Hợp đồng đã mất hiệu lực quá 24 tháng; không được phép khôi phục hiệu lực.",
+        "systemAction": "Từ chối tiếp nhận hồ sơ khôi phục; tư vấn khách hàng mua hợp đồng mới.",
+        "actuarialBasis": "Sau 24 tháng, rủi ro tử vong và bệnh tật biến đổi lớn so với định phí ban đầu.",
+        "pdfPage": 262
       },
       {
-        "ruleId": "VAL-RS-002",
+        "ruleId": "VAL-CS-009",
         "module": "MOD_04",
-        "moduleName": "Customer Service (CS APP)",
-        "lifecyclePhase": "09. Reinstatement",
-        "stage": "Statutory Window",
-        "targetEntity": "T_POLICY",
-        "ruleName": "24-Month Statutory Reinstatement Time Window",
-        "condition": "Reinstatement request date must be within 24 months of Lapse Date (`LAPSE_DATE + 2 Years > SYSTEM_DATE`).",
-        "severity": "HARD_STOP",
-        "errorCode": "ERR_RS_TIME_WINDOW_EXPIRED",
-        "errorMessage": "Statutory 2-year reinstatement window has expired. Policy is permanently lapsed.",
-        "systemAction": "Blocks reinstatement processing; policy remains permanently in `LAPSED` state.",
-        "actuarialBasis": "Article 26 Insurance Business Law: policyholder has the right to restore policy within 2 years from lapse date.",
-        "pdfPage": 489
+        "moduleName": "Customer Service",
+        "lifecyclePhase": "04. Policy Maintenance",
+        "stage": "Reinstatement",
+        "targetEntity": "T_POL_REINSTATE",
+        "ruleName": "Suicide Exclusion Clause Reset",
+        "condition": "Statutory 2-year Suicide Exclusion period resets from the successful Reinstatement Date.",
+        "severity": "CRITICAL",
+        "errorCode": "INFO_CS_SUICIDE_RESET",
+        "errorMessage": "Thời hạn loại trừ tự tử 2 năm được kích hoạt lại tính từ ngày khôi phục hợp đồng.",
+        "systemAction": "Cập nhật trường SUICIDE_EXCLUSION_END_DATE trên bảng SOR t_pol_policy.",
+        "actuarialBasis": "Phòng chống trục lợi bảo hiểm bằng hành vi tự sát sau khi khôi phục hợp đồng.",
+        "pdfPage": 262
       },
       {
-        "ruleId": "VAL-RS-003",
+        "ruleId": "VAL-CS-010",
         "module": "MOD_04",
-        "moduleName": "Customer Service (CS APP)",
-        "lifecyclePhase": "09. Reinstatement",
-        "stage": "Attained Age Cap",
-        "targetEntity": "T_POLICY_INSURED",
-        "ruleName": "Life Assured Attained Age Ceiling Check",
-        "condition": "Current attained age of Life Assured must not exceed maximum product coverage age limit.",
+        "moduleName": "Customer Service",
+        "lifecyclePhase": "04. Policy Maintenance",
+        "stage": "Mid-Term Attachment",
+        "targetEntity": "T_BCP_COLLECTION",
+        "ruleName": "Pro-Rata Short Premium 100% Collection",
+        "condition": "Calculated Pro-Rata Short Premium must be received in full before Inforce execution.",
         "severity": "HARD_STOP",
-        "errorCode": "ERR_RS_AGE_CEILING_EXCEEDED",
-        "errorMessage": "Life assured current age exceeds maximum product entry/coverage limit.",
-        "systemAction": "Throws warning/error message and blocks approval.",
-        "actuarialBasis": "Mortality rates at extreme attained ages are no longer covered by product pricing reserves.",
-        "pdfPage": 489
+        "errorCode": "ERR_CS_SHORT_PREM_UNPAID",
+        "errorMessage": "Phí ngắn hạn Pro-Rata chưa được nộp đủ 100% vào tài khoản Suspense.",
+        "systemAction": "Chặn kích hoạt lệnh Inforce cho sản phẩm bổ trợ gắn thêm giữa kỳ.",
+        "actuarialBasis": "Không bảo vệ rủi ro khi doanh nghiệp chưa nhận đủ phí bảo hiểm tương ứng.",
+        "pdfPage": 214
       },
       {
-        "ruleId": "VAL-RS-004",
+        "ruleId": "VAL-CS-011",
         "module": "MOD_04",
-        "moduleName": "Customer Service (CS APP)",
-        "lifecyclePhase": "09. Reinstatement",
-        "stage": "Financial Settlement",
-        "targetEntity": "T_AR_INVOICE",
-        "ruleName": "Full Back-Premiums & Compound Interest Clearance",
-        "condition": "Policyholder must pay 100% of all unpaid back-premiums + compound interest (e.g. 6.5% p.a.) + outstanding loan interest.",
+        "moduleName": "Customer Service",
+        "lifecyclePhase": "04. Policy Maintenance",
+        "stage": "Policyholder Change",
+        "targetEntity": "T_PARTY_RELATION",
+        "ruleName": "Insurable Interest on Policyholder Transfer",
+        "condition": "New Policyholder must have documented Insurable Interest with the Life Assured.",
         "severity": "HARD_STOP",
-        "errorCode": "ERR_RS_INCOMPLETE_PAYMENT",
-        "errorMessage": "Cannot restore inforce status: back-premiums or reinstatement interest remain outstanding.",
-        "systemAction": "Reinstatement status held at `PENDING_PAYMENT` until cashier receipt verification commits.",
-        "actuarialBasis": "Restores mathematical reserves to the exact level required had the policy remained continuously inforce.",
-        "pdfPage": 489
+        "errorCode": "ERR_CS_NO_INSURABLE_INTEREST",
+        "errorMessage": "Bên mua bảo hiểm mới không có quyền lợi có thể được bảo hiểm đối với NĐBH.",
+        "systemAction": "Từ chối chuyển giao quyền sở hữu hợp đồng bảo hiểm.",
+        "actuarialBasis": "Tuân thủ Điều 34 Luật Kinh doanh Bảo hiểm số 08/2022/QH15.",
+        "pdfPage": 230
+      },
+      {
+        "ruleId": "VAL-CS-012",
+        "module": "MOD_04",
+        "moduleName": "Customer Service",
+        "lifecyclePhase": "04. Policy Maintenance",
+        "stage": "Smoker Change",
+        "targetEntity": "T_POL_INSURED",
+        "ruleName": "Non-Smoker Rate Reclassification Minimum 12 Months",
+        "condition": "Smoker to Non-Smoker reclassification requires minimum 12 months non-smoking proof.",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_CS_SMOKER_TEST_FAILED",
+        "errorMessage": "Yêu cầu đổi sang phí Không hút thuốc phải có cam kết cai thuốc trên 12 tháng kèm xét nghiệm Cotinine âm tính.",
+        "systemAction": "Chuyển hồ sơ sang Bàn thẩm định y khoa đánh giá.",
+        "actuarialBasis": "Bảo đảm giảm phí tương xứng với mức giảm rủi ro tử vong thực tế.",
+        "pdfPage": 236
+      },
+      {
+        "ruleId": "VAL-CS-013",
+        "module": "MOD_04",
+        "moduleName": "Customer Service",
+        "lifecyclePhase": "04. Policy Maintenance",
+        "stage": "Occupation Change",
+        "targetEntity": "T_POL_INSURED",
+        "ruleName": "Occupational Loading Adjustment",
+        "condition": "Change in occupation class triggers immediate premium adjustment or special exclusions.",
+        "severity": "WARNING",
+        "errorCode": "WARN_CS_OCCUPATION_RATING",
+        "errorMessage": "Thay đổi nghề nghiệp sang nhóm rủi ro cao hơn (Nhóm 3 hoặc 4) làm phát sinh phụ phí nghề nghiệp.",
+        "systemAction": "Tính toán phụ phí bổ sung và gửi thông báo nộp tiền cho khách hàng.",
+        "actuarialBasis": "Tỷ lệ tử vong và tai nạn lao động biến thiên theo nhóm nghề nghiệp thực tế.",
+        "pdfPage": 223
+      },
+      {
+        "ruleId": "VAL-CS-014",
+        "module": "MOD_04",
+        "moduleName": "Customer Service",
+        "lifecyclePhase": "04. Policy Maintenance",
+        "stage": "Approval",
+        "targetEntity": "T_SEC_DOA",
+        "ruleName": "Delegation of Authority (DOA) Multi-Tier Sign-off",
+        "condition": "Approver must possess authority level matching or exceeding the transaction financial value.",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_CS_DOA_EXCEEDED",
+        "errorMessage": "Giá trị giao dịch vượt quá hạn mức phê duyệt của chuyên viên (DOA Limit Exceeded).",
+        "systemAction": "Tự động chuyển hồ sơ lên cấp phê duyệt cao hơn (Trưởng phòng/Giám đốc CS).",
+        "actuarialBasis": "Kiểm soát rủi ro gian lận và thất thoát tài chính nội bộ doanh nghiệp bảo hiểm.",
+        "pdfPage": 196
+      },
+      {
+        "ruleId": "VAL-CS-015",
+        "module": "MOD_04",
+        "moduleName": "Customer Service",
+        "lifecyclePhase": "04. Policy Maintenance",
+        "stage": "Free-Look",
+        "targetEntity": "T_POL_DELIVERY",
+        "ruleName": "Free-Look 21-Day Statutory Window",
+        "condition": "Free-look cancellation valid only if requested within 21 calendar days of e-ACK delivery date.",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_CS_FREELOOK_EXPIRED",
+        "errorMessage": "Đã quá thời hạn 21 ngày cân nhắc; yêu cầu hủy hợp đồng phải xử lý theo Giá trị giải ước (Surrender).",
+        "systemAction": "Chuyển giao dịch từ Free-Look sang Surrender.",
+        "actuarialBasis": "Quyền hủy hợp đồng nhận lại 100% phí chỉ có hiệu lực trong 21 ngày cân nhắc luật định.",
+        "pdfPage": 198
+      },
+      {
+        "ruleId": "VAL-CS-016",
+        "module": "MOD_04",
+        "moduleName": "Customer Service",
+        "lifecyclePhase": "04. Policy Maintenance",
+        "stage": "Increase SA",
+        "targetEntity": "T_UW_APPLICATION",
+        "ruleName": "Mandatory Underwriting on Increase SA",
+        "condition": "Any increase in Sum Assured triggers full medical and financial underwriting review.",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_CS_INCREASE_SA_UW_REQUIRED",
+        "errorMessage": "Yêu cầu tăng số tiền bảo hiểm bắt buộc phải chuyển sang Bàn thẩm định đánh giá rủi ro.",
+        "systemAction": "Khóa hợp đồng và tạo hồ sơ thẩm định trên Underwriting Workbench.",
+        "actuarialBasis": "Kiểm soát rủi ro lựa chọn nghịch (Anti-selection) khi khách hàng có dấu hiệu xấu về sức khỏe.",
+        "pdfPage": 198
+      },
+      {
+        "ruleId": "VAL-CS-017",
+        "module": "MOD_04",
+        "moduleName": "Customer Service",
+        "lifecyclePhase": "04. Policy Maintenance",
+        "stage": "Decrease SA",
+        "targetEntity": "T_POL_POLICY",
+        "ruleName": "Minimum Sum Assured Floor",
+        "condition": "Revised Sum Assured after decrease must be >= Product Minimum SA constraint.",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_CS_SA_BELOW_MINIMUM",
+        "errorMessage": "Số tiền bảo hiểm sau khi giảm không được thấp hơn hạn mức tối thiểu của sản phẩm.",
+        "systemAction": "Chặn lưu số tiền bảo hiểm mới.",
+        "actuarialBasis": "Bảo đảm quy mô hợp đồng đủ bù đắp chi phí quản lý vận hành định kỳ.",
+        "pdfPage": 198
+      },
+      {
+        "ruleId": "VAL-CS-018",
+        "module": "MOD_04",
+        "moduleName": "Customer Service",
+        "lifecyclePhase": "04. Policy Maintenance",
+        "stage": "Policy Loan Repayment",
+        "targetEntity": "T_FIN_GL_JOURNAL",
+        "ruleName": "Loan Repayment Allocation Hierarchy",
+        "condition": "Repayment funds must clear accrued loan interest first before reducing loan principal.",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_CS_REPAYMENT_ORDER_INVALID",
+        "errorMessage": "Thứ tự thu hồi nợ: Tiền nộp vào phải ưu tiên thanh toán hết lãi vay tích lũy trước khi giảm gốc.",
+        "systemAction": "Tự động phân bổ thu tiền theo thứ tự ưu tiên Lãi -> Gốc.",
+        "actuarialBasis": "Nguyên lý kế toán tài chính chuẩn tắc bảo vệ doanh thu lãi vay của công ty bảo hiểm.",
+        "pdfPage": 254
+      },
+      {
+        "ruleId": "VAL-CS-019",
+        "module": "MOD_04",
+        "moduleName": "Customer Service",
+        "lifecyclePhase": "04. Policy Maintenance",
+        "stage": "Inforce Sync",
+        "targetEntity": "T_PUB_TX_UNDO_LOG",
+        "ruleName": "Two-Phase Commit Undo Log Snapshot",
+        "condition": "JPA entity pre-image must be recorded in t_pub_tx_undo_log before applying CS changes to SOR.",
+        "severity": "CRITICAL",
+        "errorCode": "ERR_CS_2PC_UNDO_MISSING",
+        "errorMessage": "Không thể ghi nhật ký snapshot bù trừ trước khi cập nhật dữ liệu hợp đồng lên SOR.",
+        "systemAction": "Hủy giao dịch Inforce và hoàn tác toàn bộ thay đổi.",
+        "actuarialBasis": "Bảo toàn 100% tính toàn vẹn dữ liệu hợp đồng trên SOR khi có lỗi dịch vụ phân tán.",
+        "pdfPage": 196
+      },
+      {
+        "ruleId": "VAL-CS-020",
+        "module": "MOD_04",
+        "moduleName": "Customer Service",
+        "lifecyclePhase": "04. Policy Maintenance",
+        "stage": "Endorsement Dispatch",
+        "targetEntity": "T_POL_ENDORSEMENT",
+        "ruleName": "Mandatory Endorsement PDF Generation",
+        "condition": "Every successfully enforced alteration must generate an official digital Endorsement Annex PDF.",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_CS_ENDORSEMENT_GEN_FAILED",
+        "errorMessage": "Không thể khởi tạo Phụ lục hợp đồng điện tử sau khi cập nhật thay đổi thành công.",
+        "systemAction": "Kích hoạt cơ chế retry tự động của hệ thống DMS.",
+        "actuarialBasis": "Phụ lục hợp đồng là căn cứ pháp lý duy nhất xác nhận điều chỉnh thỏa thuận bảo hiểm.",
+        "pdfPage": 204
       }
     ],
-    "validation_rules_count": 17
+    "validation_rules_count": 20,
+    "alteration_catalog_30": [
+      {
+        "code": "ALT-01",
+        "name": "Add Rider",
+        "category": "Financial",
+        "product": "Both",
+        "uw": true,
+        "financial": true,
+        "desc": "Gắn thêm sản phẩm bổ trợ vào hợp đồng đang có hiệu lực; yêu cầu thẩm định y tế và tính phí ngắn hạn Pro-Rata."
+      },
+      {
+        "code": "ALT-02",
+        "name": "Apply Policy Loan",
+        "category": "Financial",
+        "product": "Both",
+        "uw": false,
+        "financial": true,
+        "desc": "Tạm ứng từ giá trị hoàn lại hợp đồng (tối đa 80% Net CSV), tính lãi 6.5%/năm."
+      },
+      {
+        "code": "ALT-03",
+        "name": "Cancellation (Void Policy)",
+        "category": "Financial",
+        "product": "Both",
+        "uw": false,
+        "financial": true,
+        "desc": "Hủy bỏ hiệu lực hợp đồng vô hiệu từ đầu do vi phạm nghĩa vụ kê khai trung thực hoặc gian lận."
+      },
+      {
+        "code": "ALT-04",
+        "name": "Change Assignment",
+        "category": "Non-Financial",
+        "product": "Both",
+        "uw": false,
+        "financial": false,
+        "desc": "Chuyển giao quyền lợi bảo hiểm từ Bên chuyển nhượng (Assignor) sang Bên nhận chuyển nhượng (Assignee)."
+      },
+      {
+        "code": "ALT-05",
+        "name": "Change Birth Date or Gender",
+        "category": "Financial",
+        "product": "Both",
+        "uw": true,
+        "financial": true,
+        "desc": "Đính chính ngày sinh hoặc giới tính của NĐBH; tính lại tỷ lệ phí, truy thu hoặc hoàn phí chênh lệch."
+      },
+      {
+        "code": "ALT-06",
+        "name": "Change Beneficial Owner",
+        "category": "Non-Financial",
+        "product": "Both",
+        "uw": false,
+        "financial": false,
+        "desc": "Cập nhật thông tin chủ sở hữu hưởng lợi phục vụ phòng chống rửa tiền (AML/CFT)."
+      },
+      {
+        "code": "ALT-07",
+        "name": "Change Benefits",
+        "category": "Financial",
+        "product": "Traditional",
+        "uw": true,
+        "financial": true,
+        "desc": "Thay đổi cơ cấu quyền lợi bảo hiểm truyền thống (nâng cấp/hạ cấp gói bảo vệ)."
+      },
+      {
+        "code": "ALT-08",
+        "name": "Change Contact Information",
+        "category": "Non-Financial",
+        "product": "Both",
+        "uw": false,
+        "financial": false,
+        "desc": "Thay đổi địa chỉ thường trú, email, số điện thoại liên lạc của Bên mua bảo hiểm."
+      },
+      {
+        "code": "ALT-09",
+        "name": "Change Discount Type",
+        "category": "Non-Financial",
+        "product": "Both",
+        "uw": false,
+        "financial": false,
+        "desc": "Cập nhật chính sách chiết khấu phí bảo hiểm cho khách hàng VIP hoặc nhân viên."
+      },
+      {
+        "code": "ALT-10",
+        "name": "Change Disbursement Method",
+        "category": "Non-Financial",
+        "product": "Both",
+        "uw": false,
+        "financial": false,
+        "desc": "Thay đổi phương thức chi trả quyền lợi: Chuyển khoản ngân hàng, PayNow, hoặc tiền mặt."
+      },
+      {
+        "code": "ALT-11",
+        "name": "Change Occupation",
+        "category": "Financial",
+        "product": "Both",
+        "uw": true,
+        "financial": true,
+        "desc": "Thay đổi nhóm nghề nghiệp của NĐBH (Nhóm 1 đến 4); điều chỉnh phụ phí nghề nghiệp."
+      },
+      {
+        "code": "ALT-12",
+        "name": "Change of Benefit Level (Health)",
+        "category": "Financial",
+        "product": "Both",
+        "uw": true,
+        "financial": true,
+        "desc": "Nâng hoặc hạ chương trình bảo hiểm sức khỏe y tế (Standard -> Gold -> Diamond)."
+      },
+      {
+        "code": "ALT-13",
+        "name": "Change Payer",
+        "category": "Non-Financial",
+        "product": "Both",
+        "uw": false,
+        "financial": false,
+        "desc": "Thay đổi người nộp phí bảo hiểm định kỳ và thiết lập ủy nhiệm thu mới."
+      },
+      {
+        "code": "ALT-14",
+        "name": "Change Payment Method",
+        "category": "Non-Financial",
+        "product": "Both",
+        "uw": false,
+        "financial": false,
+        "desc": "Thay đổi hình thức thanh toán phí: Thẻ tín dụng tự động, Trích nợ trực tiếp (Direct Debit), Chuyển khoản."
+      },
+      {
+        "code": "ALT-15",
+        "name": "Change Payment Frequency",
+        "category": "Financial",
+        "product": "Both",
+        "uw": false,
+        "financial": true,
+        "desc": "Thay đổi định kỳ đóng phí: Năm (1.0), Nửa năm (0.52), Quý (0.27), Tháng (0.09)."
+      },
+      {
+        "code": "ALT-16",
+        "name": "Change Policy Holder",
+        "category": "Non-Financial",
+        "product": "Both",
+        "uw": true,
+        "financial": false,
+        "desc": "Chuyển giao quyền sở hữu hợp đồng bảo hiểm cho Bên mua bảo hiểm mới thỏa mãn Insurable Interest."
+      },
+      {
+        "code": "ALT-17",
+        "name": "Change Survival Benefit Option",
+        "category": "Non-Financial",
+        "product": "Both",
+        "uw": false,
+        "financial": false,
+        "desc": "Thay đổi hình thức nhận quyền lợi định kỳ/bảo tức: Nhận tiền mặt, Tích lũy hưởng lãi, hoặc Mua bảo tức tích lũy."
+      },
+      {
+        "code": "ALT-18",
+        "name": "Change Smoker Status",
+        "category": "Financial",
+        "product": "Both",
+        "uw": true,
+        "financial": true,
+        "desc": "Đổi tình trạng hút thuốc từ Có sang Không hút (sau tối thiểu 12 tháng cai thuốc có kết quả xét nghiệm y khoa)."
+      },
+      {
+        "code": "ALT-19",
+        "name": "Change Term",
+        "category": "Financial",
+        "product": "Both",
+        "uw": true,
+        "financial": true,
+        "desc": "Thay đổi thời hạn hợp đồng bảo hiểm (Policy Term) hoặc thời hạn đóng phí (Premium Term)."
+      },
+      {
+        "code": "ALT-20",
+        "name": "Decrease SA",
+        "category": "Financial",
+        "product": "Traditional",
+        "uw": false,
+        "financial": true,
+        "desc": "Giảm số tiền bảo hiểm để giảm gánh nặng phí đóng; nhận hoàn lại phần giá trị hoàn lại tương ứng."
+      },
+      {
+        "code": "ALT-21",
+        "name": "Delete Rider",
+        "category": "Financial",
+        "product": "Both",
+        "uw": false,
+        "financial": true,
+        "desc": "Hủy bỏ sản phẩm bổ trợ gắn kèm; giảm mức phí bảo hiểm định kỳ của kỳ kế tiếp."
+      },
+      {
+        "code": "ALT-22",
+        "name": "Free look Cancellation",
+        "category": "Financial",
+        "product": "Both",
+        "uw": false,
+        "financial": true,
+        "desc": "Hủy hợp đồng trong thời hạn 21 ngày cân nhắc tính từ ngày nhận e-ACK; hoàn 100% phí trừ chi phí y tế."
+      },
+      {
+        "code": "ALT-23",
+        "name": "Increase SA",
+        "category": "Financial",
+        "product": "Traditional",
+        "uw": true,
+        "financial": true,
+        "desc": "Tăng số tiền bảo hiểm của hợp đồng; bắt buộc thẩm định y khoa và tài chính bổ sung."
+      },
+      {
+        "code": "ALT-24",
+        "name": "Nomination - Beneficiary",
+        "category": "Non-Financial",
+        "product": "Both",
+        "uw": false,
+        "financial": false,
+        "desc": "Cập nhật, thêm mới hoặc điều chỉnh tỷ lệ chia của danh sách Người thụ hưởng (tổng % = 100%)."
+      },
+      {
+        "code": "ALT-25",
+        "name": "Nomination - Trustee",
+        "category": "Non-Financial",
+        "product": "Both",
+        "uw": false,
+        "financial": false,
+        "desc": "Chỉ định hoặc thay đổi Người giám hộ / Người đại diện theo pháp luật cho người thụ hưởng dưới 18 tuổi."
+      },
+      {
+        "code": "ALT-26",
+        "name": "Perform Reduced Paid Up (RPU)",
+        "category": "Financial",
+        "product": "Traditional",
+        "uw": false,
+        "financial": true,
+        "desc": "Dừng đóng phí tương lai, chuyển đổi toàn bộ Net CSV thành hợp đồng có số tiền bảo hiểm giảm tương ứng."
+      },
+      {
+        "code": "ALT-27",
+        "name": "Reinstatement",
+        "category": "Financial",
+        "product": "Both",
+        "uw": true,
+        "financial": true,
+        "desc": "Khôi phục hiệu lực hợp đồng mất hiệu lực trong 24 tháng; đóng đủ phí nợ + lãi phạt và khai báo y tế."
+      },
+      {
+        "code": "ALT-28",
+        "name": "Reversionary Bonus Surrender",
+        "category": "Financial",
+        "product": "Traditional",
+        "uw": false,
+        "financial": true,
+        "desc": "Rút một phần hoặc toàn bộ giá trị hoàn lại của các khoản bảo tức tích lũy để lấy tiền mặt."
+      },
+      {
+        "code": "ALT-29",
+        "name": "Surrender (Full Surrender)",
+        "category": "Financial",
+        "product": "Both",
+        "uw": false,
+        "financial": true,
+        "desc": "Chấm dứt hiệu lực hợp đồng hoàn toàn để nhận Giá trị giải ước ròng sau khi cấn trừ nợ gốc và lãi vay."
+      },
+      {
+        "code": "ALT-30",
+        "name": "Transfer of Coverage",
+        "category": "Financial",
+        "product": "Traditional",
+        "uw": true,
+        "financial": true,
+        "desc": "Chuyển giao quyền lợi bảo hiểm sang một đối tượng được bảo hiểm mới hoặc gói bảo hiểm kế thừa."
+      }
+    ]
   },
   {
     "id": "MOD_05",

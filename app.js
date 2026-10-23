@@ -653,8 +653,8 @@ function renderModuleDossier(moduleId) {
             <p class="text-xs text-purple-800 mt-0.5">Nghiệp vụ CS-FN-03: Chọn hiệu lực vào Kỳ đóng phí tiếp theo (Phí ngắn hạn = 0 VND) hoặc Hiệu lực ngay lập tức với <b>Phí bảo hiểm ngắn hạn (Pro-Rata Short Period Premium)</b>. Đồng bộ PTD hoàn toàn tại kỳ kế tiếp.</p>
           </div>
         </div>
-        <button onclick="jumpToMilestone('card-ms-rider')" class="px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl whitespace-nowrap shadow-sm transition-all">
-          Xem Chi Tiết & Bộ Tính Phí Pro-Rata →
+        <button onclick="document.getElementById('sec-cs-interactive-engine')?.scrollIntoView({behavior: 'smooth'})" class="px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl whitespace-nowrap shadow-sm transition-all">
+          Mở Bàn Làm Việc Customer Service & Bộ Tính Phí Pro-Rata →
         </button>
       </div>
     `;
@@ -715,6 +715,9 @@ function renderModuleDossier(moduleId) {
         </button>
       </div>
     </div>
+
+    <!-- Milestone Highlight Banner -->
+    ${milestoneBannerHtml}
 
     <!-- Summary Box (Clean Bulleted Points) -->
     <div class="mb-6 p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs">
@@ -867,6 +870,37 @@ function renderModuleDossier(moduleId) {
       </div>
     ` : ''}
 
+    <!-- SPECIALIZED CUSTOMER SERVICE & POLICY ALTERATIONS WORKBENCH (Only for MOD_04) -->
+    ${mod.id === 'MOD_04' ? `
+      <div id="sec-cs-interactive-engine" class="mb-6 p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-5">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200 pb-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="p-1.5 bg-purple-100 text-purple-700 rounded-lg">${window.getLineIcon ? window.getLineIcon('refresh-cw', 'w-4 h-4') : ''}</span>
+              <h3 class="font-extrabold text-sm text-slate-900 uppercase tracking-wider">
+                Interactive Customer Service & Policy Alterations Engine Simulator
+              </h3>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Giả lập 30 nghiệp vụ thay đổi hợp đồng (Vay tối đa 80% CSV, Giải ước Surrender, Bảo hiểm giảm RPU, Khôi phục Reinstatement) và bộ tính phí ngắn hạn Pro-Rata gắn Rider giữa kỳ.</p>
+          </div>
+          <!-- Sub-mode Tabs -->
+          <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
+            <button id="btn-cs-tab-alterations" onclick="renderCsSimulator('alterations')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-purple-900 shadow-2xs">
+              30 Alteration Items & Execution
+            </button>
+            <button id="btn-cs-tab-midterm" onclick="renderCsSimulator('midterm')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
+              Mid-Term Rider & Pro-Rata Short Premium
+            </button>
+          </div>
+        </div>
+
+        <!-- Dynamic Container for Active Sub-mode -->
+        <div id="cs-simulator-content" class="space-y-4">
+          <!-- Populated dynamically by renderCsSimulator() -->
+        </div>
+      </div>
+    ` : ''}
+
     ${mod.id === 'MOD_07' ? `
       <div id="sec-gl-interactive-engine" class="mb-6 p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-5">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200 pb-3">
@@ -1008,6 +1042,10 @@ function renderModuleDossier(moduleId) {
   } else if (mod.id === 'MOD_02') {
     setTimeout(() => {
       if (window.renderNbSimulator) renderNbSimulator('lifecycle');
+    }, 50);
+  } else if (mod.id === 'MOD_04') {
+    setTimeout(() => {
+      if (window.renderCsSimulator) renderCsSimulator('alterations');
     }, 50);
   } else if (mod.id === 'MOD_07') {
     setTimeout(() => {
@@ -3859,3 +3897,566 @@ window.resetNbLifecycle = resetNbLifecycle;
 window.onNbRoutingChange = onNbRoutingChange;
 window.onNbFreelookInputChange = onNbFreelookInputChange;
 window.calculateNbFreelook = calculateNbFreelook;
+
+// ============================================================================
+// MODULE 04: CUSTOMER SERVICE & POLICY ALTERATIONS INTERACTIVE SIMULATOR
+// ============================================================================
+
+window.CS_SIM_STATE = {
+  currentTab: 'alterations',
+  selectedAltCode: 'ALT-02', // Default: Apply Policy Loan
+  // Financial baseline assumptions
+  policyYear: 5,
+  guaranteedCsv: 145000000,
+  accumulatedBonus: 18500000,
+  existingLoanPrincipal: 30000000,
+  accruedDailyInterest: 1250000,
+  overduePremiums: 10400000, // 2 quarters
+  // Mid-term Rider Attachment assumptions
+  midtermInceptionDate: '2026-01-01',
+  midtermNextDueDate: '2027-01-01',
+  midtermEffectiveDate: '2026-07-01',
+  midtermRiderCode: 'RIDER-CI-02',
+  midtermRiderSA: 150000000,
+  midtermAnnualPremium: 3600000,
+  midtermEffectiveType: 'IMMEDIATE', // IMMEDIATE vs NEXT_DUE
+  // Execution log
+  executing: false
+};
+
+function renderCsSimulator(mode) {
+  if (mode) window.CS_SIM_STATE.currentTab = mode;
+  const tab = window.CS_SIM_STATE.currentTab;
+
+  const btnAlt = document.getElementById('btn-cs-tab-alterations');
+  const btnMid = document.getElementById('btn-cs-tab-midterm');
+  const container = document.getElementById('cs-simulator-content');
+  if (!container) return;
+
+  if (tab === 'alterations') {
+    if (btnAlt) btnAlt.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-purple-900 shadow-2xs';
+    if (btnMid) btnMid.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900';
+    renderCsAlterationsView(container);
+  } else {
+    if (btnAlt) btnAlt.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900';
+    if (btnMid) btnMid.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-purple-900 shadow-2xs';
+    renderCsMidtermView(container);
+  }
+}
+
+function renderCsAlterationsView(container) {
+  const mod04 = (window.EBAO_MODULES || []).find(m => m.id === 'MOD_04');
+  const catalog = mod04?.alteration_catalog_30 || [];
+  const state = window.CS_SIM_STATE;
+  const currentItem = catalog.find(i => i.code === state.selectedAltCode) || catalog[1]; // default ALT-02
+
+  container.innerHTML = `
+    <!-- Top Selector Bar: 30 Alteration Items -->
+    <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div>
+        <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Chọn Nghiệp Vụ Thay Đổi (Master 30 Alteration Items - P.197-199)</span>
+        <div class="flex items-center gap-2 mt-1">
+          <select id="sel-cs-alt-item" onchange="onCsAlterationSelect(this.value)" class="text-xs bg-white border border-slate-300 rounded-lg px-3 py-1.5 font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500">
+            <optgroup label="Financial Alterations (Ảnh hưởng tài chính)">
+              ${catalog.filter(i => i.financial).map(i => `<option value="${i.code}" ${i.code === currentItem.code ? 'selected' : ''}>${i.code}: ${i.name} [UW: ${i.uw ? 'Yes' : 'No'}]</option>`).join('')}
+            </optgroup>
+            <optgroup label="Non-Financial Alterations (Phi tài chính)">
+              ${catalog.filter(i => !i.financial).map(i => `<option value="${i.code}" ${i.code === currentItem.code ? 'selected' : ''}>${i.code}: ${i.name}</option>`).join('')}
+            </optgroup>
+          </select>
+          <span class="text-[11px] font-semibold ${currentItem.financial ? 'bg-rose-100 text-rose-800 border-rose-200' : 'bg-blue-100 text-blue-800 border-blue-200'} px-2.5 py-1 rounded-md border">
+            ${currentItem.category} • ${currentItem.product}
+          </span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 text-xs">
+        <span class="px-2.5 py-1 bg-white border border-slate-200 rounded font-mono font-bold ${currentItem.uw ? 'text-amber-700 bg-amber-50' : 'text-slate-600'}">
+          Thẩm định (UW): ${currentItem.uw ? 'BẮT BUỘC' : 'KHÔNG'}
+        </span>
+        <span class="px-2.5 py-1 bg-white border border-slate-200 rounded font-mono font-bold text-purple-700">
+          Tác động tài chính: ${currentItem.financial ? 'CÓ (GL Sync)' : 'KHÔNG'}
+        </span>
+      </div>
+    </div>
+
+    <!-- Description & Regulatory Business Rule -->
+    <div class="p-3 bg-purple-50/50 rounded-xl border border-purple-100 text-xs text-slate-700 flex flex-col md:flex-row md:items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-purple-600"></span>
+        <span><b>Mô tả nghiệp vụ:</b> ${currentItem.desc}</span>
+      </div>
+      <span class="text-[10px] font-mono text-slate-500 font-bold bg-white px-2 py-0.5 rounded border border-slate-200">
+        Khóa giao dịch: POLICY_FREEZING_FLAG = TRUE
+      </span>
+    </div>
+
+    <!-- Financial Engine & Interactive Calculation Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <!-- Input Parameters & Policy Balance (5 cols) -->
+      <div class="lg:col-span-5 p-4 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+          <span class="font-bold text-xs text-slate-900 uppercase tracking-wide">Thông Số Tài Khoản Hợp Đồng</span>
+          <span class="text-[10px] font-mono text-slate-400">SOR: T_POL_CASH_VALUE</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Năm HĐ hiện tại:</label>
+            <input type="number" min="1" max="25" value="${state.policyYear}" id="inp-cs-year" onchange="onCsParamChange('policyYear', this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono font-bold">
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Giá trị hoàn lại gốc (CSV):</label>
+            <input type="number" step="10000000" value="${state.guaranteedCsv}" id="inp-cs-csv" onchange="onCsParamChange('guaranteedCsv', this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono font-bold text-slate-900">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Bảo tức tích lũy (Bonus):</label>
+            <input type="number" step="1000000" value="${state.accumulatedBonus}" id="inp-cs-bonus" onchange="onCsParamChange('accumulatedBonus', this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono text-emerald-700">
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Dư nợ gốc vay hiện tại:</label>
+            <input type="number" step="5000000" value="${state.existingLoanPrincipal}" id="inp-cs-loan" onchange="onCsParamChange('existingLoanPrincipal', this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono text-rose-700">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Lãi vay dồn tích (6.5%):</label>
+            <input type="number" step="100000" value="${state.accruedDailyInterest}" id="inp-cs-interest" onchange="onCsParamChange('accruedDailyInterest', this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono text-rose-700">
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Phí quá hạn (nếu Lapsed):</label>
+            <input type="number" step="1000000" value="${state.overduePremiums}" id="inp-cs-overdue" onchange="onCsParamChange('overduePremiums', this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono text-yellow-700">
+          </div>
+        </div>
+
+        <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+          <span class="text-[10px] text-slate-500">Trạng thái HĐ: <b class="text-emerald-700">INFORCE (Bình thường)</b></span>
+          <button onclick="executeCsAlteration()" id="btn-exec-cs" class="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-lg shadow-sm transition-all flex items-center gap-1.5">
+            <span>⚡ Thực Thi Nghiệp Vụ CS</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Financial Calculation Output & Settlement Breakdown (7 cols) -->
+      <div class="lg:col-span-7 p-4 bg-slate-900 text-white rounded-xl shadow-md space-y-4 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-purple-400">Kết Quả Định Phí & Quyết Toán Nghiệp Vụ</span>
+            <span class="text-[10px] font-mono bg-purple-900/50 text-purple-300 px-2 py-0.5 rounded border border-purple-700 font-bold">Actuarial Valuation</span>
+          </div>
+
+          <div id="cs-calc-output-box" class="pt-3 space-y-3">
+            <!-- Populated dynamically by calculateCsAlteration() -->
+          </div>
+        </div>
+
+        <!-- Terminal Execution Trace Box -->
+        <div id="cs-execution-terminal-box" class="pt-3 border-t border-slate-800 text-xs space-y-1.5 font-mono text-[11px]">
+          <!-- Populated dynamically upon execution -->
+        </div>
+      </div>
+    </div>
+  `;
+
+  calculateCsAlteration();
+}
+
+function onCsAlterationSelect(code) {
+  window.CS_SIM_STATE.selectedAltCode = code;
+  renderCsSimulator('alterations');
+}
+
+function onCsParamChange(field, val) {
+  window.CS_SIM_STATE[field] = parseFloat(val) || 0;
+  calculateCsAlteration();
+}
+
+function calculateCsAlteration() {
+  const state = window.CS_SIM_STATE;
+  const outBox = document.getElementById('cs-calc-output-box');
+  const termBox = document.getElementById('cs-execution-terminal-box');
+  if (!outBox) return;
+
+  const totalGross = state.guaranteedCsv + state.accumulatedBonus;
+  const totalDebt = state.existingLoanPrincipal + state.accruedDailyInterest;
+  const netCsv = Math.max(0, totalGross - totalDebt);
+
+  let resultHtml = '';
+  let bottomHtml = '';
+
+  if (state.selectedAltCode === 'ALT-02') {
+    // Apply Policy Loan (Max 80% Net CSV)
+    const maxLoanAllowed = netCsv * 0.8;
+    resultHtml = `
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+        <div class="p-2.5 bg-slate-800 rounded-lg">
+          <span class="text-[10px] text-slate-400 block">Tổng CSV + Bảo tức:</span>
+          <span class="font-mono font-bold text-white text-sm">${Math.round(totalGross).toLocaleString()} VND</span>
+        </div>
+        <div class="p-2.5 bg-slate-800 rounded-lg">
+          <span class="text-[10px] text-slate-400 block">Dư nợ cấn trừ:</span>
+          <span class="font-mono font-bold text-rose-400 text-sm">-${Math.round(totalDebt).toLocaleString()} VND</span>
+        </div>
+        <div class="p-2.5 bg-slate-800 rounded-lg col-span-2 sm:col-span-1">
+          <span class="text-[10px] text-slate-400 block">Giá trị hoàn lại ròng:</span>
+          <span class="font-mono font-bold text-emerald-400 text-sm">${Math.round(netCsv).toLocaleString()} VND</span>
+        </div>
+      </div>
+
+      <div class="p-3 bg-purple-950/80 border border-purple-600/50 rounded-xl flex items-center justify-between">
+        <div>
+          <span class="text-[10px] text-purple-300 uppercase font-bold tracking-wider block">Hạn Mức Cho Vay Tối Đa (Max Loan Limit = 80% Net CSV)</span>
+          <span class="text-xs text-slate-300">Lãi suất: 6.5%/năm tính gộp hàng ngày. Không phạt trả nợ trước hạn.</span>
+        </div>
+        <span class="font-mono text-xl font-extrabold text-emerald-400">${Math.round(maxLoanAllowed).toLocaleString()} VND</span>
+      </div>
+    `;
+    bottomHtml = `
+      <div class="text-slate-400 text-[11px] flex justify-between items-center">
+        <span>Bút toán giải ngân: <b>Nợ TK 1288 (Khoản vay HĐ) / Có TK 1111 (Chi tiền gửi)</b></span>
+        <span class="text-emerald-400 font-bold">Hợp đồng vẫn INFORCE</span>
+      </div>
+    `;
+  } else if (state.selectedAltCode === 'ALT-29') {
+    // Surrender (Full Surrender)
+    resultHtml = `
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+        <div class="p-2.5 bg-slate-800 rounded-lg">
+          <span class="text-[10px] text-slate-400 block">Tổng CSV cam kết:</span>
+          <span class="font-mono font-bold text-white text-sm">${Math.round(state.guaranteedCsv).toLocaleString()} VND</span>
+        </div>
+        <div class="p-2.5 bg-slate-800 rounded-lg">
+          <span class="text-[10px] text-slate-400 block">Bảo tức chi trả:</span>
+          <span class="font-mono font-bold text-yellow-400 text-sm">+${Math.round(state.accumulatedBonus).toLocaleString()} VND</span>
+        </div>
+        <div class="p-2.5 bg-slate-800 rounded-lg col-span-2 sm:col-span-1">
+          <span class="text-[10px] text-slate-400 block">Tổng nợ cấn trừ:</span>
+          <span class="font-mono font-bold text-rose-400 text-sm">-${Math.round(totalDebt).toLocaleString()} VND</span>
+        </div>
+      </div>
+
+      <div class="p-3 bg-rose-950/80 border border-rose-600/50 rounded-xl flex items-center justify-between">
+        <div>
+          <span class="text-[10px] text-rose-300 uppercase font-bold tracking-wider block">Số Tiền Thực Nhận Giải Ước (Net Surrender Payable)</span>
+          <span class="text-xs text-slate-300">Hợp đồng sẽ chấm dứt hiệu lực vĩnh viễn sau khi hoàn tất chi trả.</span>
+        </div>
+        <span class="font-mono text-xl font-extrabold text-rose-400">${Math.round(netCsv).toLocaleString()} VND</span>
+      </div>
+    `;
+    bottomHtml = `
+      <div class="text-slate-400 text-[11px] flex justify-between items-center">
+        <span>Bút toán giải ước: <b>Nợ TK 4112 (Chi bồi thường & giải ước) / Có TK 1111 & TK 1288</b></span>
+        <span class="text-rose-400 font-bold">Trạng thái -> SURRENDERED</span>
+      </div>
+    `;
+  } else if (state.selectedAltCode === 'ALT-26') {
+    // Perform Reduced Paid Up (RPU)
+    const baseSA = 500000000;
+    const reducedSa = Math.round(baseSA * (netCsv / (totalGross * 1.35)));
+    resultHtml = `
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+        <div class="p-2.5 bg-slate-800 rounded-lg">
+          <span class="text-[10px] text-slate-400 block">STBH ban đầu:</span>
+          <span class="font-mono font-bold text-white text-sm">${baseSA.toLocaleString()} VND</span>
+        </div>
+        <div class="p-2.5 bg-slate-800 rounded-lg">
+          <span class="text-[10px] text-slate-400 block">Phí thuần quy đổi (Net CSV):</span>
+          <span class="font-mono font-bold text-emerald-400 text-sm">${Math.round(netCsv).toLocaleString()} VND</span>
+        </div>
+        <div class="p-2.5 bg-slate-800 rounded-lg col-span-2 sm:col-span-1">
+          <span class="text-[10px] text-slate-400 block">Phí đóng tương lai:</span>
+          <span class="font-mono font-bold text-yellow-400 text-sm">0 VND (Miễn phí)</span>
+        </div>
+      </div>
+
+      <div class="p-3 bg-blue-950/80 border border-blue-600/50 rounded-xl flex items-center justify-between">
+        <div>
+          <span class="text-[10px] text-blue-300 uppercase font-bold tracking-wider block">Số Tiền Bảo Hiểm Giảm Mới (Reduced Sum Assured)</span>
+          <span class="text-xs text-slate-300">Công thức: Original SA * (Net CSV / Reserve_t). Mọi sản phẩm bổ trợ bị hủy bỏ.</span>
+        </div>
+        <span class="font-mono text-xl font-extrabold text-sky-400">${reducedSa.toLocaleString()} VND</span>
+      </div>
+    `;
+    bottomHtml = `
+      <div class="text-slate-400 text-[11px] flex justify-between items-center">
+        <span>Trạng thái HĐ: <b>PAID_UP</b> | Chấm dứt thu phí | Tắt tính năng vay</span>
+        <span class="text-sky-400 font-bold">Duy trì bảo vệ đến Đáo hạn</span>
+      </div>
+    `;
+  } else if (state.selectedAltCode === 'ALT-27') {
+    // Reinstatement
+    const lateInterest = state.overduePremiums * 0.065 * 0.5; // ~6 months late
+    const totalReinstate = state.overduePremiums + lateInterest;
+    resultHtml = `
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+        <div class="p-2.5 bg-slate-800 rounded-lg">
+          <span class="text-[10px] text-slate-400 block">Phí định kỳ nợ quá hạn:</span>
+          <span class="font-mono font-bold text-yellow-400 text-sm">${Math.round(state.overduePremiums).toLocaleString()} VND</span>
+        </div>
+        <div class="p-2.5 bg-slate-800 rounded-lg">
+          <span class="text-[10px] text-slate-400 block">Tiền lãi phạt chậm nộp (6.5%):</span>
+          <span class="font-mono font-bold text-rose-400 text-sm">+${Math.round(lateInterest).toLocaleString()} VND</span>
+        </div>
+        <div class="p-2.5 bg-slate-800 rounded-lg col-span-2 sm:col-span-1">
+          <span class="text-[10px] text-slate-400 block">Thời gian mất hiệu lực:</span>
+          <span class="font-mono font-bold text-slate-300 text-sm">6 Tháng (< 24 tháng)</span>
+        </div>
+      </div>
+
+      <div class="p-3 bg-emerald-950/80 border border-emerald-600/50 rounded-xl flex items-center justify-between">
+        <div>
+          <span class="text-[10px] text-emerald-300 uppercase font-bold tracking-wider block">Tổng Số Tiền Cần Đóng Để Khôi Phục (Total Reinstatement Due)</span>
+          <span class="text-xs text-slate-300">Yêu cầu nộp Giấy bảo đảm sức khỏe (Health Warranty). Tái lập điều khoản tự tử 2 năm.</span>
+        </div>
+        <span class="font-mono text-xl font-extrabold text-emerald-400">${Math.round(totalReinstate).toLocaleString()} VND</span>
+      </div>
+    `;
+    bottomHtml = `
+      <div class="text-slate-400 text-[11px] flex justify-between items-center">
+        <span>Bút toán thu: <b>Nợ TK 1111 / Có TK 4111 (Phí nợ) & Có TK 5115 (Thu lãi phạt)</b></span>
+        <span class="text-emerald-400 font-bold">Trạng thái: LAPSED -> INFORCE</span>
+      </div>
+    `;
+  } else {
+    // Other Alterations
+    resultHtml = `
+      <div class="p-4 bg-slate-800/80 rounded-xl text-center space-y-1">
+        <span class="font-bold text-sm text-purple-300">${state.selectedAltCode}: Nghiệp Vụ Phi Tài Chính Hoặc Điều Chỉnh Thông Tin</span>
+        <p class="text-xs text-slate-400">Nghiệp vụ không làm phát sinh nghĩa vụ tài chính tức thời. Sau khi phê duyệt, thông tin sẽ được cập nhật đồng bộ lên SOR và xuất Phụ lục hợp đồng sửa đổi bổ sung.</p>
+      </div>
+    `;
+    bottomHtml = `
+      <div class="text-slate-400 text-[11px] flex justify-between items-center">
+        <span>Phân luồng: <b>Maker-Checker Approval</b> -> Cập nhật SOR tables</span>
+        <span class="text-emerald-400 font-bold">Không phát sinh công nợ</span>
+      </div>
+    `;
+  }
+
+  outBox.innerHTML = resultHtml;
+  if (termBox) termBox.innerHTML = bottomHtml;
+}
+
+function executeCsAlteration() {
+  const btn = document.getElementById('btn-exec-cs');
+  const termBox = document.getElementById('cs-execution-terminal-box');
+  if (btn) btn.disabled = true;
+
+  if (termBox) {
+    termBox.innerHTML = `
+      <div class="space-y-1 text-slate-300 bg-slate-950 p-2.5 rounded-lg border border-purple-800">
+        <p class="text-purple-400 font-bold">[CS-WORKBENCH] Đang bắt đầu xử lý nghiệp vụ: ${window.CS_SIM_STATE.selectedAltCode}...</p>
+        <p class="text-slate-400">[1] Khóa trạng thái hợp đồng: POLICY_FREEZING_FLAG = TRUE</p>
+        <p class="text-sky-300">[2] Kiểm tra thẩm quyền phê duyệt: Approval DOA Passed</p>
+        <p class="text-yellow-300">[3] PA BS gọi 2PC Global Transaction: Ghi snapshot Pre-image vào t_pub_tx_undo_log</p>
+        <p class="text-emerald-400 font-bold">[4] Cam kết SOR thành công! Cập nhật trạng thái bảng t_pol_policy / t_pol_cash_value</p>
+        <p class="text-teal-300">[5] Mở khóa hợp đồng: POLICY_FREEZING_FLAG = FALSE. Đã xuất Phụ lục Endorsement PDF.</p>
+      </div>
+    `;
+  }
+
+  setTimeout(() => {
+    if (btn) btn.disabled = false;
+  }, 1200);
+}
+
+function renderCsMidtermView(container) {
+  const state = window.CS_SIM_STATE;
+
+  container.innerHTML = `
+    <!-- Mid-Term Attachment Regulations Alert Banner -->
+    <div class="p-3 bg-purple-50 rounded-xl border border-purple-200 text-xs text-purple-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span class="p-1 bg-purple-200 text-purple-900 rounded font-bold font-mono text-[10px]">CS-FN-03 SPEC</span>
+        <span><b>Quy tắc Gắn Rider Giữa Kỳ (Mid-Term Attachment):</b> Tính phí ngắn hạn Pro-Rata từ ngày gắn đến ngày đến hạn đóng phí định kỳ kế tiếp (PTD). Đồng bộ hóa kỳ hóa đơn 100%.</span>
+      </div>
+      <span class="text-[10px] font-mono font-bold bg-white px-2 py-0.5 rounded border border-purple-300 text-purple-800">P.214 Gemini User Guide</span>
+    </div>
+
+    <!-- Mid-Term Calculator Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <!-- Input Parameters Panel (5 cols) -->
+      <div class="lg:col-span-5 p-4 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+          <span class="font-bold text-xs text-slate-900 uppercase">Thông Số Rider & Ngày Hiệu Lực</span>
+          <span class="text-[10px] font-mono text-slate-400">T_POL_RIDER</span>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-medium text-slate-600 mb-1">Chọn Sản phẩm Bổ trợ (Rider Plan):</label>
+          <select id="sel-cs-mid-rider" onchange="onCsMidtermRiderChange(this.value)" class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg p-2 font-bold text-slate-800">
+            <option value="RIDER-CI-02" ${state.midtermRiderCode === 'RIDER-CI-02' ? 'selected' : ''}>RIDER-CI-02: 37 Bệnh lý nghiêm trọng (Phí năm: 3,600,000 VND)</option>
+            <option value="RIDER-PA-01" ${state.midtermRiderCode === 'RIDER-PA-01' ? 'selected' : ''}>RIDER-PA-01: Tai nạn toàn diện 24/7 (Phí năm: 1,800,000 VND)</option>
+            <option value="RIDER-MED-03" ${state.midtermRiderCode === 'RIDER-MED-03' ? 'selected' : ''}>RIDER-MED-03: Chăm sóc y tế cao cấp (Phí năm: 4,500,000 VND)</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Ngày gắn (Effective Date):</label>
+            <input type="date" value="${state.midtermEffectiveDate}" id="inp-cs-mid-eff" onchange="onCsMidtermDateChange('midtermEffectiveDate', this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono font-bold text-purple-900">
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Kỳ đóng phí tới (Next PTD):</label>
+            <input type="date" value="${state.midtermNextDueDate}" id="inp-cs-mid-ptd" onchange="onCsMidtermDateChange('midtermNextDueDate', this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono font-bold text-slate-800">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-medium text-slate-600 mb-1">Tùy chọn thời điểm hiệu lực:</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="onCsMidtermTypeChange('IMMEDIATE')" class="py-2 text-xs font-bold rounded-lg border transition-all ${state.midtermEffectiveType === 'IMMEDIATE' ? 'bg-purple-600 text-white border-purple-600 shadow-2xs' : 'bg-slate-50 text-slate-700 border-slate-200'}">
+              Hiệu lực ngay lập tức<br/><span class="text-[9px] font-normal opacity-90">(Thu phí ngắn hạn Pro-Rata)</span>
+            </button>
+            <button onclick="onCsMidtermTypeChange('NEXT_DUE')" class="py-2 text-xs font-bold rounded-lg border transition-all ${state.midtermEffectiveType === 'NEXT_DUE' ? 'bg-purple-600 text-white border-purple-600 shadow-2xs' : 'bg-slate-50 text-slate-700 border-slate-200'}">
+              Hiệu lực kỳ tiếp theo<br/><span class="text-[9px] font-normal opacity-90">(Phí ngắn hạn = 0 VND)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Calculation Breakdown (7 cols) -->
+      <div class="lg:col-span-7 p-4 bg-slate-900 text-white rounded-xl shadow-md space-y-4 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-purple-400">Bảng Tính Phí Ngắn Hạn & Đồng Bộ Hóa PTD</span>
+            <span id="cs-mid-uw-badge" class="text-[10px] font-mono px-2 py-0.5 rounded font-bold">UW CHECK</span>
+          </div>
+
+          <div id="cs-mid-calc-box" class="pt-3 space-y-3">
+            <!-- Computed dynamically in calculateCsMidtermProRata() -->
+          </div>
+        </div>
+
+        <!-- GL Voucher Sync Preview -->
+        <div id="cs-mid-gl-box" class="pt-3 border-t border-slate-800 text-xs space-y-1.5 font-mono text-[11px]">
+          <!-- Computed dynamically -->
+        </div>
+      </div>
+    </div>
+  `;
+
+  calculateCsMidtermProRata();
+}
+
+function onCsMidtermRiderChange(val) {
+  window.CS_SIM_STATE.midtermRiderCode = val;
+  if (val === 'RIDER-CI-02') {
+    window.CS_SIM_STATE.midtermAnnualPremium = 3600000;
+    window.CS_SIM_STATE.midtermRiderSA = 150000000;
+  } else if (val === 'RIDER-PA-01') {
+    window.CS_SIM_STATE.midtermAnnualPremium = 1800000;
+    window.CS_SIM_STATE.midtermRiderSA = 200000000;
+  } else {
+    window.CS_SIM_STATE.midtermAnnualPremium = 4500000;
+    window.CS_SIM_STATE.midtermRiderSA = 100000000;
+  }
+  calculateCsMidtermProRata();
+}
+
+function onCsMidtermDateChange(field, val) {
+  window.CS_SIM_STATE[field] = val;
+  calculateCsMidtermProRata();
+}
+
+function onCsMidtermTypeChange(type) {
+  window.CS_SIM_STATE.midtermEffectiveType = type;
+  renderCsSimulator('midterm');
+}
+
+function calculateCsMidtermProRata() {
+  const state = window.CS_SIM_STATE;
+  const outBox = document.getElementById('cs-mid-calc-box');
+  const glBox = document.getElementById('cs-mid-gl-box');
+  const badge = document.getElementById('cs-mid-uw-badge');
+  if (!outBox) return;
+
+  const effDate = new Date(state.midtermEffectiveDate);
+  const ptdDate = new Date(state.midtermNextDueDate);
+  const diffTime = Math.max(0, ptdDate - effDate);
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const proRataFactor = Math.min(1.0, diffDays / 365);
+  const annualPrem = state.midtermAnnualPremium;
+
+  let shortPremium = 0;
+  if (state.midtermEffectiveType === 'IMMEDIATE') {
+    shortPremium = Math.round(annualPrem * proRataFactor);
+  }
+
+  if (badge) {
+    if (state.midtermRiderCode === 'RIDER-CI-02' || state.midtermRiderCode === 'RIDER-MED-03') {
+      badge.className = 'text-[10px] font-mono px-2 py-0.5 rounded font-bold bg-amber-900/60 text-amber-300 border border-amber-500';
+      badge.textContent = 'UW REVIEW REQUIRED';
+    } else {
+      badge.className = 'text-[10px] font-mono px-2 py-0.5 rounded font-bold bg-emerald-900/60 text-emerald-300 border border-emerald-500';
+      badge.textContent = 'AUTO-UW PASS';
+    }
+  }
+
+  outBox.innerHTML = `
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+      <div class="p-2.5 bg-slate-800 rounded-lg">
+        <span class="text-[10px] text-slate-400 block">Số ngày bảo vệ đến PTD:</span>
+        <span class="font-mono font-bold text-yellow-400 text-sm">${diffDays} / 365 ngày</span>
+      </div>
+      <div class="p-2.5 bg-slate-800 rounded-lg">
+        <span class="text-[10px] text-slate-400 block">Hệ số Pro-Rata Factor:</span>
+        <span class="font-mono font-bold text-sky-400 text-sm">x${proRataFactor.toFixed(4)}</span>
+      </div>
+      <div class="p-2.5 bg-slate-800 rounded-lg col-span-2 sm:col-span-1">
+        <span class="text-[10px] text-slate-400 block">Phí năm chuẩn của Rider:</span>
+        <span class="font-mono font-bold text-white text-sm">${annualPrem.toLocaleString()} VND</span>
+      </div>
+    </div>
+
+    <!-- Highlighted Short Premium Result Box -->
+    <div class="p-3 bg-purple-950/80 border border-purple-600/50 rounded-xl flex items-center justify-between">
+      <div>
+        <span class="text-[10px] text-purple-300 uppercase font-bold tracking-wider block">Phí Bảo Hiểm Ngắn Hạn Phải Thu (Pro-Rata Short Premium)</span>
+        <span class="text-xs text-slate-300">Công thức: Annual Premium * (Days Remaining / 365). Thu đủ trước khi Inforce.</span>
+      </div>
+      <span class="font-mono text-xl font-extrabold text-emerald-400">${shortPremium.toLocaleString()} VND</span>
+    </div>
+  `;
+
+  if (glBox) {
+    if (shortPremium > 0) {
+      glBox.innerHTML = `
+        <div class="flex items-center justify-between text-slate-400 pb-1">
+          <span class="font-bold text-slate-300 uppercase tracking-wide">Bút Toán Sổ Phụ GL Gắn Rider Giữa Kỳ (Module 07 Sync)</span>
+          <span class="text-[10px] text-emerald-400">Collection Matched</span>
+        </div>
+        <div class="space-y-1 text-slate-300 bg-slate-950 p-2.5 rounded-lg border border-slate-800">
+          <div class="flex justify-between"><span>Nợ TK 1111 (Tiền gửi ngân hàng thu phí ngắn hạn):</span> <span class="text-emerald-400 font-bold">${shortPremium.toLocaleString()} VND</span></div>
+          <div class="flex justify-between"><span>Có TK 2211 (Treo tài khoản trung gian Suspense):</span> <span class="text-yellow-400 font-bold">${shortPremium.toLocaleString()} VND</span></div>
+          <div class="flex justify-between border-t border-slate-800 pt-1 text-purple-300">
+            <span>Sau khi Inforce: Nợ TK 2211 / Có TK 4111 (Doanh thu phí Rider):</span>
+            <span class="font-bold">${shortPremium.toLocaleString()} VND</span>
+          </div>
+        </div>
+      `;
+    } else {
+      glBox.innerHTML = `
+        <div class="p-2.5 bg-slate-800/80 rounded-lg text-slate-400 text-center">
+          <span>Chọn hiệu lực vào Kỳ đóng phí kế tiếp: <b>Không phát sinh phí ngắn hạn tại thời điểm hiện tại.</b> Phí Rider sẽ bắt đầu thu từ kỳ hóa đơn tiếp theo (${state.midtermNextDueDate}).</span>
+        </div>
+      `;
+    }
+  }
+}
+
+// Make functions globally available
+window.renderCsSimulator = renderCsSimulator;
+window.renderCsAlterationsView = renderCsAlterationsView;
+window.renderCsMidtermView = renderCsMidtermView;
+window.onCsAlterationSelect = onCsAlterationSelect;
+window.onCsParamChange = onCsParamChange;
+window.calculateCsAlteration = calculateCsAlteration;
+window.executeCsAlteration = executeCsAlteration;
+window.onCsMidtermRiderChange = onCsMidtermRiderChange;
+window.onCsMidtermDateChange = onCsMidtermDateChange;
+window.onCsMidtermTypeChange = onCsMidtermTypeChange;
+window.calculateCsMidtermProRata = calculateCsMidtermProRata;
