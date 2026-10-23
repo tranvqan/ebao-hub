@@ -132,17 +132,21 @@ function setupSystemDateControls() {
 }
 
 function setupNavigation() {
-  // Main Tab Navigation
-  document.querySelectorAll('.nav-tab').forEach(button => {
-    button.addEventListener('click', () => {
+  // Main Tab Navigation (Support .ribbon-tab, .nav-tab, and button[data-tab])
+  document.querySelectorAll('.ribbon-tab, .nav-tab, button[data-tab]').forEach(button => {
+    button.addEventListener('click', (e) => {
+      e.preventDefault();
       const targetTab = button.dataset.tab;
-      switchTab(targetTab);
+      if (targetTab) {
+        switchTab(targetTab);
+      }
     });
   });
 
   // Master Tables Subtabs
   document.querySelectorAll('.subtab-btn').forEach(button => {
-    button.addEventListener('click', () => {
+    button.addEventListener('click', (e) => {
+      e.preventDefault();
       document.querySelectorAll('.subtab-btn').forEach(b => {
         b.classList.remove('subtab-active');
       });
@@ -158,29 +162,31 @@ function setupNavigation() {
 
   // Diagrams Subtabs
   document.querySelectorAll('.diag-subtab-btn').forEach(button => {
-    button.addEventListener('click', () => {
+    button.addEventListener('click', (e) => {
+      e.preventDefault();
       document.querySelectorAll('.diag-subtab-btn').forEach(b => {
-        b.classList.remove('bg-blue-600', 'text-white', 'shadow-sm');
-        b.classList.add('bg-slate-100', 'text-slate-700');
+        b.classList.remove('subtab-active', 'bg-blue-600', 'text-white', 'shadow-sm');
       });
-      button.classList.remove('bg-slate-100', 'text-slate-700');
-      button.classList.add('bg-blue-600', 'text-white', 'shadow-sm');
+      button.classList.add('subtab-active');
 
       const targetDiag = button.dataset.diagtab;
-      STATE.activeDiagSubtab = targetDiag;
-      document.querySelectorAll('.diagram-subview').forEach(view => view.classList.add('hidden'));
-      const activeDiagView = document.getElementById(`diag-content-${targetDiag}`);
-      if (activeDiagView) activeDiagView.classList.remove('hidden');
+      if (targetDiag) {
+        STATE.activeDiagSubtab = targetDiag;
+        document.querySelectorAll('.diagram-subview').forEach(view => view.classList.add('hidden'));
+        const activeDiagView = document.getElementById(`diag-content-${targetDiag}`);
+        if (activeDiagView) activeDiagView.classList.remove('hidden');
 
-      if (window.mermaid) {
-        try { mermaid.run(); } catch (e) {}
+        if (window.mermaid) {
+          try { mermaid.run(); } catch (e) {}
+        }
       }
     });
   });
 
   // Simulator Workbench Selector Tabs
   document.querySelectorAll('.wb-tab-btn').forEach(button => {
-    button.addEventListener('click', () => {
+    button.addEventListener('click', (e) => {
+      e.preventDefault();
       document.querySelectorAll('.wb-tab-btn').forEach(b => {
         b.classList.remove('bg-blue-600', 'text-white', 'border-2', 'border-blue-600', 'shadow-sm');
         b.classList.add('border-slate-300', 'bg-white', 'text-slate-700');
@@ -196,13 +202,13 @@ function setupNavigation() {
 }
 
 function switchTab(tabName) {
+  if (!tabName) return;
   STATE.activeTab = tabName;
-  document.querySelectorAll('.nav-tab').forEach(b => {
-    b.classList.remove('tab-active');
-    b.classList.add('border-transparent', 'text-slate-400');
+  document.querySelectorAll('.ribbon-tab, .nav-tab, button[data-tab]').forEach(b => {
     if (b.dataset.tab === tabName) {
-      b.classList.add('tab-active', 'text-blue-400', 'border-blue-500');
-      b.classList.remove('border-transparent', 'text-slate-400');
+      b.classList.add('tab-active');
+    } else {
+      b.classList.remove('tab-active');
     }
   });
 
@@ -217,6 +223,7 @@ function switchTab(tabName) {
     try { mermaid.run(); } catch (e) {}
   }
 }
+window.switchTab = switchTab;
 
 // ==============================================================
 // 2. BUILT-IN PDF REFERENCE VIEWER CONTROLS (517 PAGES)
