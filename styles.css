@@ -1,21 +1,55 @@
-/* eBao Gemini & InsureForge Knowledge and Simulator Portal Styles */
+/* =====================================================================
+   SACOM LIFE x eBao Gemini & InsureForge Knowledge Hub Styles
+   Brand Color Tokens from Sacomlife_2-7-2026_Fa (2).ai:
+   - Primary Navy / Blue:  #005fa6 (C:95 M:67 Y:4 K:0 | R:0 G:95 B:166)
+   - Secondary Burgundy:   #5f230a (C:35 M:85 Y:100 K:55 | R:95 G:35 B:10)
+   - Accent Gold:          #f2b642 (C:4 M:30 Y:85 K:0 | R:242 G:182 B:66)
+   ===================================================================== */
+
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
-  --primary: #2563eb;
-  --primary-dark: #1d4ed8;
-  --primary-light: #eff6ff;
-  --secondary: #0f172a;
+  /* Brand Core Tokens (Sacom Life) */
+  --brand-navy: #005fa6;
+  --brand-navy-hover: #004e8a;
+  --brand-navy-dark: #00457a;
+  --brand-navy-darker: #002d52;
+  --brand-navy-surface: #07192d;
+  --brand-navy-light: #edf6fc;
+  --brand-navy-border: #bce0f7;
+  --brand-navy-subtle: rgba(0, 95, 166, 0.08);
+
+  --brand-burgundy: #5f230a;
+  --brand-burgundy-light: #faede8;
+  --brand-burgundy-border: #eecbc0;
+  --brand-burgundy-subtle: rgba(95, 35, 10, 0.08);
+
+  --brand-gold: #f2b642;
+  --brand-gold-dark: #c98616;
+  --brand-gold-light: #fef8ed;
+  --brand-gold-border: #f9e2ab;
+  --brand-gold-subtle: rgba(242, 182, 66, 0.12);
+
+  /* Primary Theme Aliases */
+  --primary: var(--brand-navy);
+  --primary-dark: var(--brand-navy-dark);
+  --primary-light: var(--brand-navy-light);
+  --secondary: var(--brand-navy-darker);
+  
+  /* Semantic Tokens */
   --accent-actuary: #059669;
   --accent-actuary-bg: #ecfdf5;
-  --accent-op: #d97706;
-  --accent-op-bg: #fffbeb;
+  --accent-op: var(--brand-gold-dark);
+  --accent-op-bg: var(--brand-gold-light);
   --border-color: #e2e8f0;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #64748b;
 }
 
 body {
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  color: #1e293b;
+  color: var(--color-text-primary);
   background-color: #f8fafc;
 }
 
@@ -39,31 +73,115 @@ code, pre, .font-mono {
   background: #94a3b8;
 }
 
-/* Callout Styling */
+/* =====================================================================
+   FLAT RIBBON LAYOUT SYSTEM
+   ===================================================================== */
+.ribbon-header {
+  background-color: var(--brand-navy-surface);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ribbon-stripe {
+  height: 3px;
+  background: linear-gradient(90deg, 
+    var(--brand-navy) 0%, 
+    var(--brand-navy) 40%, 
+    var(--brand-burgundy) 40%, 
+    var(--brand-burgundy) 70%, 
+    var(--brand-gold) 70%, 
+    var(--brand-gold) 100%
+  );
+}
+
+.ribbon-nav {
+  background-color: rgba(0, 0, 0, 0.18);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ribbon-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1rem;
+  font-size: 0.775rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.72);
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s ease-in-out;
+  white-space: nowrap;
+}
+
+.ribbon-tab:hover {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.ribbon-tab.tab-active {
+  color: var(--brand-gold);
+  border-bottom-color: var(--brand-gold);
+  background-color: rgba(255, 255, 255, 0.07);
+  font-weight: 600;
+}
+
+/* Flat Subtab Buttons */
+.flat-subtab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-color);
+  background-color: #ffffff;
+  color: var(--color-text-secondary);
+  transition: all 0.15s ease-in-out;
+}
+
+.flat-subtab-btn:hover {
+  background-color: var(--brand-navy-light);
+  color: var(--brand-navy);
+  border-color: var(--brand-navy-border);
+}
+
+.flat-subtab-btn.subtab-active {
+  background-color: var(--brand-navy) !important;
+  color: #ffffff !important;
+  border-color: var(--brand-navy-dark) !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 95, 166, 0.2);
+}
+
+/* Callouts Styled with Brand Tokens */
 .actuary-callout {
   border-left: 4px solid var(--accent-actuary);
   background-color: var(--accent-actuary-bg);
+  border-radius: 0.5rem;
+  padding: 1rem;
 }
 
 .op-callout {
-  border-left: 4px solid var(--accent-op);
-  background-color: var(--accent-op-bg);
+  border-left: 4px solid var(--brand-gold-dark);
+  background-color: var(--brand-gold-light);
+  border-radius: 0.5rem;
+  padding: 1rem;
 }
 
 .architecture-callout {
-  border-left: 4px solid var(--primary);
-  background-color: var(--primary-light);
+  border-left: 4px solid var(--brand-navy);
+  background-color: var(--brand-navy-light);
+  border-radius: 0.5rem;
+  padding: 1rem;
 }
 
 /* Animation utilities */
 .fade-in {
-  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
@@ -71,23 +189,11 @@ code, pre, .font-mono {
   }
 }
 
-/* Tab active state */
-.tab-active {
-  border-bottom: 2px solid var(--primary);
-  color: var(--primary);
-  font-weight: 600;
-}
-
 .workbench-tab-active {
-  background-color: #2563eb !important;
+  background-color: var(--brand-navy) !important;
   color: #ffffff !important;
-  border-color: #2563eb !important;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-}
-
-.subtab-active {
-  background-color: #2563eb;
-  color: #ffffff !important;
+  border-color: var(--brand-navy-dark) !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 95, 166, 0.2);
 }
 
 /* Pristine Table Styling */
@@ -96,7 +202,7 @@ code, pre, .font-mono {
   border: 1px solid #e2e8f0;
   border-radius: 0.75rem;
   background-color: #ffffff;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
 }
 
 .standard-table {
@@ -137,16 +243,16 @@ code, pre, .font-mono {
 }
 
 .standard-table tbody tr:hover {
-  background-color: #f8fafc;
+  background-color: var(--brand-navy-light);
 }
 
 /* Terminal log styling */
 .terminal-window {
-  background-color: #090d16;
-  border: 1px solid #1e293b;
+  background-color: #07192d;
+  border: 1px solid #142a42;
   border-radius: 0.75rem;
   font-family: 'JetBrains Mono', monospace;
-  color: #38bdf8;
+  color: #7dd3fc;
 }
 
 /* Interactive Diagram & Timeline */
@@ -157,9 +263,9 @@ code, pre, .font-mono {
   transform: translateY(-2px);
 }
 .pipeline-step.active-step {
-  border-color: #2563eb;
-  background-color: #eff6ff;
-  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.1), 0 2px 4px -1px rgba(37, 99, 235, 0.06);
+  border-color: var(--brand-navy);
+  background-color: var(--brand-navy-light);
+  box-shadow: 0 4px 6px -1px rgba(0, 95, 166, 0.12);
 }
 
 .module-node {
@@ -167,12 +273,12 @@ code, pre, .font-mono {
   cursor: pointer;
 }
 .module-node:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 .module-node.selected-node {
-  border-color: #2563eb;
-  outline: 2px solid #2563eb;
+  border-color: var(--brand-navy);
+  outline: 2px solid var(--brand-navy);
 }
 
 /* Mermaid graph styling helper */

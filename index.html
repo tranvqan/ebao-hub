@@ -6,74 +6,125 @@
   <title>eBao Gemini Life Core PAS & InsureForge Knowledge Hub & Simulator</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tailwind Custom Brand Config (SACOM LIFE Tokens) -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              navy: '#005fa6',
+              'navy-hover': '#004e8a',
+              'navy-dark': '#00457a',
+              'navy-surface': '#07192d',
+              'navy-light': '#edf6fc',
+              'navy-border': '#bce0f7',
+              burgundy: '#5f230a',
+              'burgundy-light': '#faede8',
+              'burgundy-border': '#eecbc0',
+              gold: '#f2b642',
+              'gold-dark': '#c98616',
+              'gold-light': '#fef8ed',
+              'gold-border': '#f9e2ab'
+            }
+          }
+        }
+      }
+    };
+  </script>
+
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Mermaid.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script src="icons.js"></script>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased">
 
   <!-- TOP HEADER -->
-  <header class="bg-slate-900 text-white sticky top-0 z-40 shadow-md border-b border-slate-800">
+    <!-- FLAT RIBBON TOP HEADER -->
+  <header class="ribbon-header text-white sticky top-0 z-40 shadow-sm">
+    <!-- Brand Flat Ribbon Stripe (Navy 40%, Burgundy 30%, Gold 30%) -->
+    <div class="ribbon-stripe"></div>
+
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-16">
-        <!-- Logo & Branding -->
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-black text-white text-lg shadow-sm">
-            eB
+        
+        <!-- Brand Identity: SACOM LIFE Vector Logo & PAS Sub-brand -->
+        <div class="flex items-center gap-3.5">
+          <!-- Official SACOM LIFE SVG Logo -->
+          <div class="flex items-center cursor-pointer" onclick="switchTab('modules')">
+            <svg viewBox="0 0 240 40" height="30" class="h-7 sm:h-8 w-auto select-none" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <text x="0" y="27" font-family="'Plus Jakarta Sans', 'Inter', sans-serif" font-weight="900" font-size="23" letter-spacing="0.5" fill="#f2b642">SACOM</text>
+              <text x="98" y="27" font-family="'Plus Jakarta Sans', 'Inter', sans-serif" font-weight="900" font-size="23" letter-spacing="0.5" fill="#f2b642">LIFE</text>
+              <g transform="translate(176, 4)">
+                <circle cx="16" cy="16" r="15" stroke="#f2b642" stroke-width="2.5" fill="none"/>
+                <circle cx="16" cy="16" r="12" stroke="#f2b642" stroke-width="1" stroke-dasharray="2 2" fill="none"/>
+                <path d="M21 11.5C20 9.5 17.5 8.5 15.5 8.5C12.5 8.5 10.5 10 10.5 12.5C10.5 16 21.5 15.5 21.5 20C21.5 23 18.5 24.5 15.5 24.5C12.5 24.5 10 23 9 20.5M16 6.5V26.5" stroke="#f2b642" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+              </g>
+            </svg>
           </div>
-          <div>
+
+          <div class="h-6 w-px bg-white/20 hidden md:block"></div>
+
+          <div class="hidden sm:block">
             <div class="flex items-center gap-2">
-              <span class="font-extrabold text-base tracking-tight text-white">eBao Gemini Life Core PAS</span>
-              <span class="text-[10px] font-mono bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full border border-blue-400/30">v2026.04</span>
-              <span class="text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-400/30">InsureForge Ready</span>
+              <span class="font-bold text-xs tracking-tight text-white">eBao Gemini Core PAS</span>
+              <span class="text-[9px] font-mono bg-white/10 text-white/90 px-1.5 py-0.5 rounded border border-white/20">v2026.04</span>
+              <span class="text-[9px] font-semibold bg-brand-gold/20 text-brand-gold px-1.5 py-0.5 rounded border border-brand-gold/30">IPOS Enterprise</span>
             </div>
-            <div class="text-[11px] text-slate-400">Operations & Actuarial Knowledge Platform & Lite Core Engine</div>
+            <div class="text-[10px] text-white/60 font-medium">Policy-to-Launch Knowledge & Actuarial Simulator</div>
           </div>
         </div>
 
         <!-- Controls: System Date & PDF Viewer Button -->
-        <div class="flex items-center gap-3">
-          <!-- System Biz Date -->
-          <div class="hidden sm:flex items-center gap-2 bg-slate-800/90 px-3 py-1.5 rounded-lg border border-slate-700 text-xs font-mono">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span class="text-slate-400">Biz Date:</span>
-            <span id="header-biz-date" class="font-bold text-white">2026-10-20</span>
-            <button id="btn-quick-roll-date" title="Advance business date +1 day" class="ml-1 text-slate-300 hover:text-white px-1.5 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-[10px] font-bold transition-colors">
+        <div class="flex items-center gap-2.5">
+          <!-- System Biz Date Status Pill -->
+          <div class="flex items-center gap-2 bg-white/10 px-2.5 py-1.5 rounded-lg border border-white/15 text-xs font-mono">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-white/70 text-[11px]">Biz Date:</span>
+            <span id="header-biz-date" class="font-bold text-white text-[11px]">2026-10-20</span>
+            <button id="btn-quick-roll-date" title="Advance business date +1 day" class="ml-1 text-white/90 hover:text-white px-1.5 py-0.5 rounded bg-white/15 hover:bg-white/25 text-[10px] font-bold transition-colors">
               +1D
             </button>
           </div>
 
-          <!-- Open PDF Viewer Button -->
-          <button id="btn-open-pdf-viewer" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-sm transition-all border border-indigo-400/40">
-            <span>📖</span>
-            <span class="hidden md:inline">Open PDF Guide (517 Pages)</span>
+          <!-- Open PDF Viewer Button (Flat Ribbon Token) -->
+          <button id="btn-open-pdf-viewer" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-navy hover:bg-brand-navy-hover text-white text-xs font-semibold shadow-sm transition-all border border-brand-navy-border/40">
+            <svg class="w-3.5 h-3.5 inline-block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+            <span class="hidden md:inline">PDF Guide (517 Pages)</span>
             <span class="md:hidden">PDF</span>
           </button>
         </div>
       </div>
 
-      <!-- Main Navigation Tabs Bar -->
-      <nav class="flex items-center space-x-1 overflow-x-auto py-1 border-t border-slate-800/80 text-xs">
-        <button data-tab="modules" class="nav-tab px-3.5 py-2.5 font-bold rounded-lg border-b-2 tab-active text-blue-400 border-blue-500 flex items-center gap-2 whitespace-nowrap transition-all">
-          <span>🏛️</span> <span>8 Modules & SOP Hub</span>
+      <!-- Main Navigation Ribbon Bar (Flat Ribbon Tabs with Line Icons) -->
+      <nav class="ribbon-nav flex items-center space-x-1 overflow-x-auto py-0.5 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 text-xs select-none">
+        <button data-tab="modules" class="ribbon-tab tab-active">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+          <span>8 Modules & SOP Hub</span>
         </button>
-        <button data-tab="master-tables" class="nav-tab px-3.5 py-2.5 font-semibold rounded-lg border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 whitespace-nowrap transition-all">
-          <span>📊</span> <span>Master Reference Tables</span>
+        <button data-tab="master-tables" class="ribbon-tab">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"></path><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M3 9h18"></path><path d="M3 15h18"></path></svg>
+          <span>Master Reference Tables</span>
         </button>
-        <button data-tab="diagrams" class="nav-tab px-3.5 py-2.5 font-semibold rounded-lg border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 whitespace-nowrap transition-all">
-          <span>🔀</span> <span>Interactive Diagrams & ERD</span>
+        <button data-tab="diagrams" class="ribbon-tab">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+          <span>Interactive Diagrams & ERD</span>
         </button>
-        <button data-tab="simulator" class="nav-tab px-3.5 py-2.5 font-semibold rounded-lg border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 whitespace-nowrap transition-all">
-          <span>🧪</span> <span>eBao Lite Simulator</span>
+        <button data-tab="simulator" class="ribbon-tab">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="4" rx="2"></rect><rect width="6" height="6" x="9" y="9" rx="1"></rect><path d="M15 2v2"></path><path d="M15 20v2"></path><path d="M2 15h2"></path><path d="M2 9h2"></path><path d="M20 15h2"></path><path d="M20 9h2"></path><path d="M9 2v2"></path><path d="M9 20v2"></path></svg>
+          <span>eBao Lite Simulator</span>
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
         </button>
-        <button data-tab="functions" class="nav-tab px-3.5 py-2.5 font-semibold rounded-lg border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 whitespace-nowrap transition-all">
-          <span>📑</span> <span>394 Functions Matrix</span>
+        <button data-tab="functions" class="ribbon-tab">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg>
+          <span>394 Functions Matrix</span>
         </button>
-        <button data-tab="config" class="nav-tab px-3.5 py-2.5 font-semibold rounded-lg border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 whitespace-nowrap transition-all">
-          <span>⚙️</span> <span>InsureForge Studio</span>
+        <button data-tab="config" class="ribbon-tab">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+          <span>InsureForge Studio</span>
         </button>
       </nav>
     </div>
@@ -88,7 +139,7 @@
     <section id="view-modules" class="tab-view fade-in">
       <div class="mb-4">
         <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-          <span>🏛️</span> eBao Gemini 8 Standard Modules Architecture & SOP Hub
+          <span>eBao Gemini 8 Standard Modules Architecture & SOP Hub</span>
         </h1>
         <p class="text-xs text-slate-500 mt-1">
           Click any module node in the diagram below to inspect its detailed specifications, SOP procedures, and jump directly to its PDF reference pages.
@@ -269,28 +320,33 @@
     <section id="view-master-tables" class="tab-view hidden fade-in">
       <div class="mb-6">
         <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-          <span>📊</span> eBao Core Master Reference & Policy Life Cycle Tables
+          <span>eBao Core Master Reference & Policy Life Cycle Tables</span>
         </h1>
         <p class="text-xs text-slate-500 mt-1">
           Statutory dates taxonomy, 21-day Free-Look mechanics, Customer Service alteration rules, and chronological batch job executions formatted in standard tables.
         </p>
 
         <!-- Subtabs -->
-        <div class="flex items-center gap-2 mt-4 border-b border-slate-200 pb-2 overflow-x-auto text-xs">
-          <button data-subtab="tbl-milestones" class="subtab-btn px-3.5 py-1.5 font-extrabold rounded-lg bg-blue-600 text-white shadow-sm transition-all flex items-center gap-1.5 border border-blue-500">
-            <span>⭐</span> <span>⏱️ 3 Core Milestones (21-Day, 60-Day, Mid-Term Rider)</span>
+        <div class="flex items-center gap-2 mt-4 border-b border-slate-200 pb-2.5 overflow-x-auto text-xs">
+          <button data-subtab="tbl-milestones" class="subtab-btn flat-subtab-btn subtab-active">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            <span>3 Core Milestones (21-Day, 60-Day, Mid-Term Rider)</span>
           </button>
-          <button data-subtab="tbl-dates" class="subtab-btn px-3 py-1.5 font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all">
-            📅 13 Policy Lifecycle Dates
+          <button data-subtab="tbl-dates" class="subtab-btn flat-subtab-btn">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            <span>13 Policy Lifecycle Dates</span>
           </button>
-          <button data-subtab="tbl-freelook" class="subtab-btn px-3 py-1.5 font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all">
-            🛡️ 21-Day Free-Look Statutory Rules
+          <button data-subtab="tbl-freelook" class="subtab-btn flat-subtab-btn">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            <span>21-Day Free-Look Statutory Rules</span>
           </button>
-          <button data-subtab="tbl-alterations" class="subtab-btn px-3 py-1.5 font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all">
-            🔄 CS Alteration Master Taxonomy
+          <button data-subtab="tbl-alterations" class="subtab-btn flat-subtab-btn">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            <span>CS Alteration Master Taxonomy</span>
           </button>
-          <button data-subtab="tbl-batch-seq" class="subtab-btn px-3 py-1.5 font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all">
-            ⏱️ Nightly Batch Pipeline Sequence
+          <button data-subtab="tbl-batch-seq" class="subtab-btn flat-subtab-btn">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+            <span>Nightly Batch Pipeline Sequence</span>
           </button>
         </div>
       </div>
@@ -311,13 +367,13 @@
             </div>
             <div class="flex items-center gap-2">
               <button onclick="openPdfViewer(88)" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs border border-indigo-400/30 flex items-center gap-1.5">
-                <span>📖</span> <span>PDF P.88 (Free-Look)</span>
+                <svg class="w-3.5 h-3.5 inline-block mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg><span>PDF P.88 (Free-Look)</span>
               </button>
               <button onclick="openPdfViewer(214)" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg text-xs border border-purple-400/30 flex items-center gap-1.5">
-                <span>📖</span> <span>PDF P.214 (Rider Inception)</span>
+                <svg class="w-3.5 h-3.5 inline-block mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg><span>PDF P.214 (Rider Inception)</span>
               </button>
               <button onclick="openPdfViewer(368)" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-xs border border-amber-400/30 flex items-center gap-1.5">
-                <span>📖</span> <span>PDF P.368 (Grace & APL)</span>
+                <svg class="w-3.5 h-3.5 inline-block mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg><span>PDF P.368 (Grace & APL)</span>
               </button>
             </div>
           </div>
@@ -361,7 +417,7 @@
         <div id="card-ms-freelook" class="bg-white rounded-2xl border border-slate-200 shadow-sm mb-6 overflow-hidden">
           <div class="bg-emerald-50/60 p-4 border-b border-emerald-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div class="flex items-center gap-3">
-              <span class="text-3xl p-2 bg-emerald-100 text-emerald-700 rounded-xl border border-emerald-200">🛡️</span>
+              <span class="p-2.5 bg-emerald-100 text-emerald-700 rounded-xl border border-emerald-200"><svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg></span>
               <div>
                 <div class="flex items-center gap-2">
                   <span class="font-mono text-xs font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">MỐC 01: 21 NGÀY CÂN NHẮC</span>
@@ -372,7 +428,7 @@
             </div>
             <div class="flex items-center gap-2">
               <button onclick="openPdfViewer(88)" class="px-3 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold rounded-lg text-xs border border-emerald-300">
-                📄 PDF Guide P.88
+                <svg class="w-3.5 h-3.5 inline-block mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>PDF Guide P.88
               </button>
             </div>
           </div>
@@ -389,7 +445,7 @@
                   Theo Điều khoản chuẩn và Luật Kinh doanh Bảo hiểm, thời hạn 21 ngày cân nhắc <b>bắt đầu đếm từ ngày Bên mua bảo hiểm xác nhận đã nhận Hợp đồng bảo hiểm</b> (<code class="bg-slate-200 px-1.5 py-0.5 rounded font-mono text-blue-700">T_POLICY.DELIVERY_DATE</code> qua Chữ ký nhận bàn giao hoặc OTP e-ACK xác nhận trên Cổng thông tin).
                 </p>
                 <div class="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-rose-800 font-semibold text-[11px]">
-                  ⚠️ LƯU Ý CỐT LÕI CỦA EBAO PAS: Tuyệt đối KHÔNG ĐƯỢC tính thời hạn 21 ngày từ ngày Phát hành hợp đồng (<code class="font-mono">ISSUE_DATE</code>). Nếu sau 14 ngày kể từ Issue Date chưa có e-ACK, hệ thống tự động fallback: <code class="font-mono">DELIVERY_DATE = ISSUE_DATE + 14 ngày</code> bưu điện.
+                  <svg class="w-4 h-4 inline-block mr-1 text-rose-600 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg><strong>LƯU Ý CỐT LÕI CỦA EBAO PAS:</strong> Tuyệt đối KHÔNG ĐƯỢC tính thời hạn 21 ngày từ ngày Phát hành hợp đồng (<code class="font-mono">ISSUE_DATE</code>). Nếu sau 14 ngày kể từ Issue Date chưa có e-ACK, hệ thống tự động fallback: <code class="font-mono">DELIVERY_DATE = ISSUE_DATE + 14 ngày</code> bưu điện.
                 </div>
               </div>
 
@@ -439,7 +495,7 @@
               <div>
                 <div class="flex items-center justify-between mb-2">
                   <h4 class="font-bold text-emerald-900 text-xs flex items-center gap-1.5">
-                    <span>⚡</span> <span>Bộ Tính Hoàn Phí 21 Ngày Cân Nhắc (Live Calculator)</span>
+                    <svg class="w-4 h-4 text-emerald-700 inline-block mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg><span>Bộ Tính Hoàn Phí 21 Ngày Cân Nhắc (Live Calculator)</span>
                   </h4>
                   <span class="text-[10px] font-mono text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded font-bold">Interactive</span>
                 </div>
@@ -507,7 +563,7 @@
         <div id="card-ms-grace" class="bg-white rounded-2xl border border-slate-200 shadow-sm mb-6 overflow-hidden">
           <div class="bg-amber-50/60 p-4 border-b border-amber-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div class="flex items-center gap-3">
-              <span class="text-3xl p-2 bg-amber-100 text-amber-700 rounded-xl border border-amber-200">⏳</span>
+              <span class="p-2.5 bg-brand-gold-light text-brand-gold-dark rounded-xl border border-brand-gold-border"><svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg></span>
               <div>
                 <div class="flex items-center gap-2">
                   <span class="font-mono text-xs font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded">MỐC 02: 60 NGÀY GIA HẠN ĐÓNG PHÍ</span>
@@ -518,7 +574,7 @@
             </div>
             <div class="flex items-center gap-2">
               <button onclick="openPdfViewer(368)" class="px-3 py-1 bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold rounded-lg text-xs border border-amber-300">
-                📄 PDF Guide P.368
+                <svg class="w-3.5 h-3.5 inline-block mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>PDF Guide P.368
               </button>
             </div>
           </div>
@@ -593,7 +649,7 @@
               <div>
                 <div class="flex items-center justify-between mb-2">
                   <h4 class="font-bold text-amber-900 text-xs flex items-center gap-1.5">
-                    <span>⚡</span> <span>Bộ Mô Phỏng Đếm Ngược 60 Ngày & Quyết Định Nửa Đêm</span>
+                    <svg class="w-4 h-4 text-brand-gold-dark inline-block mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg><span>Bộ Mô Phỏng Đếm Ngược 60 Ngày & Quyết Định Nửa Đêm</span>
                   </h4>
                   <span class="text-[10px] font-mono text-amber-700 bg-amber-100 px-2 py-0.5 rounded font-bold">Interactive</span>
                 </div>
@@ -640,7 +696,7 @@
                 <div class="pt-2 border-t border-slate-200">
                   <span class="block text-[11px] text-slate-500 mb-1">Dự báo Xử lý lúc 23:59:59 Ngày 60:</span>
                   <div id="out-gr-decision-box" class="p-2.5 rounded-lg font-bold text-xs bg-emerald-50 text-emerald-800 border border-emerald-200">
-                    ✅ Kích hoạt Tự Động Vay Đóng Phí (APL) - Trạng thái: INFORCE_APL
+                    <svg class="w-4 h-4 inline-block mr-1 text-emerald-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>Kích hoạt Tự Động Vay Đóng Phí (APL) - Trạng thái: INFORCE_APL
                   </div>
                 </div>
               </div>
@@ -652,7 +708,7 @@
         <div id="card-ms-rider" class="bg-white rounded-2xl border border-slate-200 shadow-sm mb-6 overflow-hidden">
           <div class="bg-purple-50/60 p-4 border-b border-purple-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div class="flex items-center gap-3">
-              <span class="text-3xl p-2 bg-purple-100 text-purple-700 rounded-xl border border-purple-200">➕</span>
+              <span class="p-2.5 bg-brand-navy-light text-brand-navy rounded-xl border border-brand-navy-border"><svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg></span>
               <div>
                 <div class="flex items-center gap-2">
                   <span class="font-mono text-xs font-bold text-purple-800 bg-purple-100 px-2 py-0.5 rounded">MỐC 03: GẮN SẢN PHẨM BỔ TRỢ (RIDER) SAU KHI HĐ ĐANG INFORCE</span>
@@ -663,7 +719,7 @@
             </div>
             <div class="flex items-center gap-2">
               <button onclick="openPdfViewer(214)" class="px-3 py-1 bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold rounded-lg text-xs border border-purple-300">
-                📄 PDF Guide P.214
+                <svg class="w-3.5 h-3.5 inline-block mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>PDF Guide P.214
               </button>
             </div>
           </div>
@@ -741,7 +797,7 @@
               <div>
                 <div class="flex items-center justify-between mb-2">
                   <h4 class="font-bold text-purple-900 text-xs flex items-center gap-1.5">
-                    <span>⚡</span> <span>Bộ Tính Phí Ngắn Hạn Pro-Rata & Lịch Đồng Bộ Kỳ Phí</span>
+                    <svg class="w-4 h-4 text-brand-navy inline-block mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg><span>Bộ Tính Phí Ngắn Hạn Pro-Rata & Lịch Đồng Bộ Kỳ Phí</span>
                   </h4>
                   <span class="text-[10px] font-mono text-purple-700 bg-purple-100 px-2 py-0.5 rounded font-bold">Interactive</span>
                 </div>
@@ -862,7 +918,7 @@
           <div class="flex items-center gap-2">
             <input type="text" id="search-alterations-input" placeholder="Search alteration code, name..." class="px-3 py-1.5 text-xs border border-slate-300 rounded-lg w-64 focus:ring-2 focus:ring-blue-500">
             <button onclick="openPdfViewer(196)" class="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold rounded-lg text-xs border border-blue-200">
-              📄 PDF P.196
+              <svg class="w-3.5 h-3.5 inline-block mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>PDF P.196
             </button>
           </div>
         </div>
@@ -895,7 +951,7 @@
           <div class="flex items-center gap-2">
             <input type="text" id="search-batch-seq-input" placeholder="Search job code, name..." class="px-3 py-1.5 text-xs border border-slate-300 rounded-lg w-64 focus:ring-2 focus:ring-blue-500">
             <button onclick="openPdfViewer(426)" class="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold rounded-lg text-xs border border-blue-200">
-              📄 PDF P.426
+              <svg class="w-3.5 h-3.5 inline-block mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>PDF P.426
             </button>
           </div>
         </div>
@@ -927,22 +983,33 @@
     <section id="view-diagrams" class="tab-view hidden fade-in">
       <div class="mb-6">
         <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-          <span>🔀</span> Interactive Pipeline, Database Tables & Master Transactions
+          <span>Interactive Pipeline, Database Tables & Master Transactions</span>
         </h1>
         <p class="text-xs text-slate-500 mt-1">
           Explore interactive batch execution, database ERD relations (100% verified syntax), and the comprehensive transaction catalog.
         </p>
 
         <!-- Diagrams Subtabs -->
-        <div class="flex items-center gap-2 mt-4 border-b border-slate-200 pb-2 overflow-x-auto text-xs">
-          <button data-diagtab="diag-pipeline" class="diag-subtab-btn px-3 py-1.5 font-bold rounded-lg bg-blue-600 text-white shadow-sm transition-all">
-            ⏱️ Nightly Batch Pipeline Runner
+        <div class="flex items-center gap-2 mt-4 border-b border-slate-200 pb-2.5 overflow-x-auto text-xs">
+          <button data-subtab="tbl-milestones" class="subtab-btn flat-subtab-btn subtab-active">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            <span>3 Core Milestones (21-Day, 60-Day, Mid-Term Rider)</span>
           </button>
-          <button data-diagtab="diag-tables" class="diag-subtab-btn px-3 py-1.5 font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all">
-            🗄️ Database Tables & ERD Explorer
+          <button data-subtab="tbl-dates" class="subtab-btn flat-subtab-btn">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            <span>13 Policy Lifecycle Dates</span>
           </button>
-          <button data-diagtab="diag-tx" class="diag-subtab-btn px-3 py-1.5 font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all">
-            ⚡ Master Transaction Catalog (81 Tx)
+          <button data-subtab="tbl-freelook" class="subtab-btn flat-subtab-btn">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            <span>21-Day Free-Look Statutory Rules</span>
+          </button>
+          <button data-subtab="tbl-alterations" class="subtab-btn flat-subtab-btn">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            <span>CS Alteration Master Taxonomy</span>
+          </button>
+          <button data-subtab="tbl-batch-seq" class="subtab-btn flat-subtab-btn">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+            <span>Nightly Batch Pipeline Sequence</span>
           </button>
         </div>
       </div>

@@ -144,11 +144,9 @@ function setupNavigation() {
   document.querySelectorAll('.subtab-btn').forEach(button => {
     button.addEventListener('click', () => {
       document.querySelectorAll('.subtab-btn').forEach(b => {
-        b.classList.remove('bg-blue-600', 'text-white', 'shadow-sm');
-        b.classList.add('bg-slate-100', 'text-slate-700');
+        b.classList.remove('subtab-active');
       });
-      button.classList.remove('bg-slate-100', 'text-slate-700');
-      button.classList.add('bg-blue-600', 'text-white', 'shadow-sm');
+      button.classList.add('subtab-active');
 
       const targetSubtab = button.dataset.subtab;
       STATE.activeMasterSubtab = targetSubtab;
@@ -200,7 +198,7 @@ function setupNavigation() {
 function switchTab(tabName) {
   STATE.activeTab = tabName;
   document.querySelectorAll('.nav-tab').forEach(b => {
-    b.classList.remove('tab-active', 'text-blue-400', 'border-blue-500');
+    b.classList.remove('tab-active');
     b.classList.add('border-transparent', 'text-slate-400');
     if (b.dataset.tab === tabName) {
       b.classList.add('tab-active', 'text-blue-400', 'border-blue-500');
@@ -419,7 +417,7 @@ function renderModuleDossier(moduleId) {
           <span class="w-2 h-2 rounded-full bg-blue-600 flex-shrink-0"></span>
           ${c.term}
         </span>
-        <span class="text-[10px] font-mono font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">Core Concept</span>
+        <span class="text-[10px] font-mono font-semibold text-brand-navy bg-brand-navy-light px-2 py-0.5 rounded border border-blue-200">Core Concept</span>
       </div>
       <p class="text-xs text-slate-600 leading-relaxed pl-4">${c.def}</p>
     </div>
@@ -491,7 +489,7 @@ function renderModuleDossier(moduleId) {
     milestoneBannerHtml = `
       <div class="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-2xs">
         <div class="flex items-center gap-3">
-          <span class="text-2xl p-2 bg-emerald-100 text-emerald-800 rounded-lg">🛡️</span>
+          <span class="p-2 bg-emerald-100 text-emerald-800 rounded-lg">${window.getLineIcon ? window.getLineIcon('shield-check', 'w-5 h-5') : ''}</span>
           <div>
             <div class="flex items-center gap-2">
               <span class="text-xs font-bold text-emerald-900 uppercase font-mono">Quy Tắc Trọng Yếu Vòng Đời</span>
@@ -501,7 +499,7 @@ function renderModuleDossier(moduleId) {
           </div>
         </div>
         <button onclick="jumpToMilestone('card-ms-freelook')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl whitespace-nowrap shadow-sm transition-all">
-          Xem Chi Tiết Mốc 21 Ngày ➜
+          Xem Chi Tiết Mốc 21 Ngày →
         </button>
       </div>
     `;
@@ -509,7 +507,7 @@ function renderModuleDossier(moduleId) {
     milestoneBannerHtml = `
       <div class="mb-6 p-4 rounded-xl bg-purple-50 border border-purple-200 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-2xs">
         <div class="flex items-center gap-3">
-          <span class="text-2xl p-2 bg-purple-100 text-purple-800 rounded-lg">➕</span>
+          <span class="p-2 bg-brand-navy-light text-brand-navy rounded-lg">${window.getLineIcon ? window.getLineIcon('plus-circle', 'w-5 h-5') : ''}</span>
           <div>
             <div class="flex items-center gap-2">
               <span class="text-xs font-bold text-purple-900 uppercase font-mono">Quy Tắc Trọng Yếu Vòng Đời</span>
@@ -519,7 +517,7 @@ function renderModuleDossier(moduleId) {
           </div>
         </div>
         <button onclick="jumpToMilestone('card-ms-rider')" class="px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl whitespace-nowrap shadow-sm transition-all">
-          Xem Chi Tiết & Bộ Tính Phí Pro-Rata ➜
+          Xem Chi Tiết & Bộ Tính Phí Pro-Rata →
         </button>
       </div>
     `;
@@ -527,7 +525,7 @@ function renderModuleDossier(moduleId) {
     milestoneBannerHtml = `
       <div class="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-2xs">
         <div class="flex items-center gap-3">
-          <span class="text-2xl p-2 bg-amber-100 text-amber-800 rounded-lg">⏳</span>
+          <span class="p-2 bg-brand-gold-light text-brand-gold-dark rounded-lg">${window.getLineIcon ? window.getLineIcon('clock', 'w-5 h-5') : ''}</span>
           <div>
             <div class="flex items-center gap-2">
               <span class="text-xs font-bold text-amber-900 uppercase font-mono">Quy Tắc Trọng Yếu Vòng Đời</span>
@@ -537,7 +535,7 @@ function renderModuleDossier(moduleId) {
           </div>
         </div>
         <button onclick="jumpToMilestone('card-ms-grace')" class="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg whitespace-nowrap shadow-sm transition-all">
-          Xem Chi Tiết Mốc 60 Ngày & APL ➜
+          Xem Chi Tiết Mốc 60 Ngày & APL →
         </button>
       </div>
     `;
@@ -555,10 +553,12 @@ function renderModuleDossier(moduleId) {
     <!-- Module Header Banner -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-5 mb-6">
       <div class="flex items-center gap-3.5">
-        <span class="text-4xl p-2.5 bg-slate-100 rounded-2xl border border-slate-200 shadow-inner">${mod.icon}</span>
+        <div class="p-3 bg-brand-navy-light text-brand-navy rounded-2xl border border-brand-navy-border flex items-center justify-center">
+        ${window.getLineIcon ? window.getLineIcon(mod.icon || 'layers', 'w-7 h-7') : ''}
+      </div>
         <div>
           <div class="flex items-center gap-2">
-            <span class="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-200">${mod.id}</span>
+            <span class="font-mono text-xs font-bold text-brand-navy bg-brand-navy-light px-2.5 py-0.5 rounded-md border border-blue-200">${mod.id}</span>
             <span class="text-xs font-semibold text-slate-500 font-mono">${mod.page_range}</span>
             <span class="text-[11px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded">${mod.function_count} Functions</span>
             <span class="text-[11px] font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded">${mod.sop_count} SOPs</span>
@@ -571,12 +571,10 @@ function renderModuleDossier(moduleId) {
       <!-- Action Buttons -->
       <div class="flex items-center gap-2.5">
         <button onclick="openPdfViewer(${mod.pdf_start_page || 1})" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-2 border border-indigo-400/30">
-          <span>📖</span>
-          <span>Open PDF Page ${mod.pdf_start_page || 1}</span>
+          ${window.getLineIcon ? window.getLineIcon("book", "w-3.5 h-3.5") : ""} <span>Open PDF Page ${mod.pdf_start_page || 1}</span>
         </button>
         <button onclick="jumpToSimulatorWorkbench('${mod.id}')" class="px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-xl border border-blue-200 transition-colors flex items-center gap-1.5">
-          <span>⚡</span>
-          <span>Test in Simulator</span>
+          ${window.getLineIcon ? window.getLineIcon("zap", "w-3.5 h-3.5") : ""} <span>Test in Simulator</span>
         </button>
       </div>
     </div>
@@ -595,7 +593,7 @@ function renderModuleDossier(moduleId) {
       <div class="space-y-5">
         <div>
           <h3 class="font-extrabold text-xs uppercase tracking-wider text-slate-900 mb-3 flex items-center gap-2">
-            <span>🧠</span> Core Architectural Concepts (${(mod.core_concepts || []).length})
+            ${window.getLineIcon ? window.getLineIcon("box", "w-3.5 h-3.5 text-brand-navy") : ""} Core Architectural Concepts (${(mod.core_concepts || []).length})
           </h3>
           <div class="space-y-2.5">
             ${conceptsHtml}
@@ -605,7 +603,7 @@ function renderModuleDossier(moduleId) {
         <!-- Actuary Deep-Dive Callout (Clean Bulleted List) -->
         <div class="actuary-callout space-y-2 text-xs text-slate-700">
           <div class="font-bold text-emerald-900 flex items-center gap-2 border-b border-emerald-200/60 pb-1.5">
-            <span>📈</span> Actuary Technical Notes & Valuation Specifications:
+            ${window.getLineIcon ? window.getLineIcon("activity", "w-3.5 h-3.5 text-emerald-700") : ""} Actuary Technical Notes & Valuation Specifications:
           </div>
           <ul class="space-y-1.5">
             ${actuaryHtml}
@@ -637,7 +635,7 @@ function renderModuleDossier(moduleId) {
       <div>
         <div class="flex items-center justify-between mb-3">
           <h3 class="font-extrabold text-xs uppercase tracking-wider text-slate-900 flex items-center gap-2">
-            <span>📋</span> Standard Operating Procedures (${mod.sop_count} Procedures)
+            ${window.getLineIcon ? window.getLineIcon("file-text", "w-3.5 h-3.5 text-slate-700") : ""} Standard Operating Procedures (${mod.sop_count} Procedures)
           </h3>
           <span class="text-[11px] font-mono text-slate-500 font-semibold">Step-by-step checklist</span>
         </div>
@@ -821,10 +819,10 @@ function renderMilestonesSubtab() {
     if (outDecision) {
       if (netCv >= prem) {
         outDecision.className = 'p-2.5 rounded-lg font-bold text-xs bg-emerald-50 text-emerald-800 border border-emerald-200';
-        outDecision.innerHTML = `✅ Kích hoạt Tự Động Vay Đóng Phí (APL) - Trạng thái: <code class="font-mono text-emerald-900 bg-white px-1 py-0.5 rounded">INFORCE_APL</code> (PTD nâng +1 kỳ, lãi vay 6.5%/năm).`;
+        outDecision.innerHTML = `Kích hoạt Tự Động Vay Đóng Phí (APL) - Trạng thái: <code class="font-mono text-emerald-900 bg-white px-1 py-0.5 rounded">INFORCE_APL</code> (PTD nâng +1 kỳ, lãi vay 6.5%/năm).`;
       } else {
         outDecision.className = 'p-2.5 rounded-lg font-bold text-xs bg-rose-50 text-rose-800 border border-rose-200';
-        outDecision.innerHTML = `❌ Không đủ điều kiện APL (Net CV &lt; Phí). Hợp đồng Chuyển sang <code class="font-mono text-rose-900 bg-white px-1 py-0.5 rounded">LAPSED</code> (SA = 0, Rider hủy, khởi tạo 2 năm khôi phục).`;
+        outDecision.innerHTML = `Không đủ điều kiện APL (Net CV &lt; Phí). Hợp đồng Chuyển sang <code class="font-mono text-rose-900 bg-white px-1 py-0.5 rounded">LAPSED</code> (SA = 0, Rider hủy, khởi tạo 2 năm khôi phục).`;
       }
     }
   };
@@ -977,7 +975,7 @@ function renderBatchSeqTable() {
       <td class="text-center font-mono font-bold text-slate-400">${b.step}</td>
       <td class="font-mono text-xs font-semibold text-slate-600 bg-slate-50">${b.time}</td>
       <td>
-        <code class="font-mono text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">${b.code}</code>
+        <code class="font-mono text-xs text-brand-navy bg-brand-navy-light px-2 py-0.5 rounded border border-blue-200">${b.code}</code>
       </td>
       <td class="font-bold text-slate-900">${b.name}</td>
       <td><span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-600">${b.freq}</span></td>
@@ -1283,7 +1281,7 @@ function renderTransactionsCatalogTable() {
   tbody.innerHTML = filtered.map(tx => `
     <tr>
       <td>
-        <code class="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">${tx.code}</code>
+        <code class="font-mono text-xs font-bold text-brand-navy bg-brand-navy-light px-2 py-0.5 rounded border border-blue-200">${tx.code}</code>
       </td>
       <td class="font-bold text-slate-900">${tx.name}</td>
       <td>
@@ -1376,7 +1374,7 @@ function renderWorkbench(wbId) {
         </div>
       </div>
       <div class="mt-4 pt-4 border-t border-slate-100 flex justify-end">
-        <button id="btn-wb1-reconfigure" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs shadow-sm">
+        <button id="btn-wb1-reconfigure" class="px-4 py-2 bg-brand-navy hover:bg-brand-navy-hover text-white font-bold rounded-lg text-xs shadow-sm">
           Save Configuration & Recalculate
         </button>
       </div>
@@ -1432,7 +1430,7 @@ function renderWorkbench(wbId) {
       </div>
 
       <div class="flex items-center justify-between pt-2 border-t border-slate-100">
-        <span class="text-xs text-rose-600 font-semibold">⚠️ Action executes 100% Agent Commission Clawback and terminates policy VOID_AB_INITIO.</span>
+        <span class="text-xs text-rose-600 font-semibold">Action executes 100% Agent Commission Clawback and terminates policy VOID_AB_INITIO.</span>
         <button id="btn-wb2-execute-freelook" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-xs shadow-sm">
           Execute 21-Day Free-Look Cancellation
         </button>
@@ -1480,7 +1478,7 @@ function renderWorkbench(wbId) {
         <div class="font-bold text-blue-700 mt-1">New Rated Premium: $${p.currentAnnualPrem.toLocaleString()}</div>
       </div>
       <div class="flex justify-end pt-2 border-t border-slate-100">
-        <button id="btn-wb3-apply-rating" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs shadow-sm">
+        <button id="btn-wb3-apply-rating" class="px-4 py-2 bg-brand-navy hover:bg-brand-navy-hover text-white font-bold rounded-lg text-xs shadow-sm">
           Apply Underwriting Loadings
         </button>
       </div>
@@ -1531,7 +1529,7 @@ function renderWorkbench(wbId) {
               </div>
             </div>
           </div>
-          <button id="btn-wb4-rerate-dob" class="mt-3 w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs shadow-sm">
+          <button id="btn-wb4-rerate-dob" class="mt-3 w-full py-2 bg-brand-navy hover:bg-brand-navy-hover text-white font-bold rounded-lg text-xs shadow-sm">
             Recalculate Premium & Post Journal
           </button>
         </div>
@@ -1752,7 +1750,7 @@ function renderWorkbench(wbId) {
         </div>
       </div>
       <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
-        <button id="btn-wb5-gen-bill" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs">
+        <button id="btn-wb5-gen-bill" class="px-3.5 py-2 bg-brand-navy hover:bg-brand-navy-hover text-white font-bold rounded-lg text-xs">
           Generate T-30 Billing Notice
         </button>
         <button id="btn-wb5-advance-grace" class="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-xs">
@@ -1882,7 +1880,7 @@ function renderWorkbench(wbId) {
       </div>
 
       <div class="flex justify-end pt-2 border-t border-slate-100">
-        <button id="btn-wb7-roll-gl" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs shadow-sm">
+        <button id="btn-wb7-roll-gl" class="px-4 py-2 bg-brand-navy hover:bg-brand-navy-hover text-white font-bold rounded-lg text-xs shadow-sm">
           Transmit Sub-Ledger Batch to ERP GL (SAP)
         </button>
       </div>
@@ -1919,7 +1917,7 @@ function renderWorkbench(wbId) {
       </div>
 
       <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
-        <button id="btn-wb8-run-apl" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs">
+        <button id="btn-wb8-run-apl" class="px-3.5 py-2 bg-brand-navy hover:bg-brand-navy-hover text-white font-bold rounded-lg text-xs">
           Trigger Batch Job 08: Auto Premium Loan (APL)
         </button>
         <button id="btn-wb8-run-lapse" class="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-xs">
