@@ -348,6 +348,11 @@
             <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
             <span>Nightly Batch Pipeline Sequence</span>
           </button>
+          <button data-subtab="tbl-validations" class="subtab-btn flat-subtab-btn">
+            <svg class="w-3.5 h-3.5 text-rose-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg>
+            <span class="font-bold">Lifecycle Validation Matrix (50+ Core Rules)</span>
+            <span class="text-[9px] bg-rose-100 text-rose-700 font-bold px-1.5 py-0.2 rounded-full border border-rose-200">Enforcement</span>
+          </button>
         </div>
       </div>
 
@@ -975,6 +980,98 @@
           </table>
         </div>
       </div>
+    
+      <!-- Subtab 5: Master Policy Lifecycle Validation Matrix (50+ Core Rules) -->
+      <div id="subtab-content-tbl-validations" class="master-subtab-view hidden">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm mb-6">
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-200 pb-4 mb-4">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="p-1.5 bg-rose-100 text-rose-700 rounded-lg">
+                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg>
+                </span>
+                <h3 class="font-black text-lg text-slate-900 tracking-tight">
+                  Master Policy Lifecycle Validation Matrix & System Enforcement Rules
+                </h3>
+              </div>
+              <p class="text-xs text-slate-500 mt-1 max-w-4xl">
+                50+ Exhaustive Core PAS Business & Actuarial Validations, Hard Stops, Soft Warnings, Error Codes, and System Actions across 12 Lifecycle Stages and 8 Modules (Source: eBao Gemini Life Core User Guide, 517 Pages).
+              </p>
+            </div>
+            
+            <!-- Quick Summary KPI Badges -->
+            <div class="flex flex-wrap items-center gap-2 text-[11px] font-mono">
+              <span class="px-2.5 py-1 bg-slate-100 text-slate-800 rounded-lg border border-slate-200 font-bold">
+                Total: <span id="val-badge-total" class="text-brand-navy">50</span> Rules
+              </span>
+              <span class="px-2.5 py-1 bg-rose-50 text-rose-700 rounded-lg border border-rose-200 font-bold">
+                Hard Stop: <span class="text-red-700">36</span>
+              </span>
+              <span class="px-2.5 py-1 bg-amber-50 text-amber-800 rounded-lg border border-amber-200 font-bold">
+                Soft Warning: <span class="text-amber-700">6</span>
+              </span>
+              <span class="px-2.5 py-1 bg-sky-50 text-sky-800 rounded-lg border border-sky-200 font-bold">
+                Routing: <span class="text-sky-700">6</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Search & Filter Controls -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200 mb-4 text-xs">
+            <div class="md:col-span-2 relative">
+              <input id="val-search-input" type="text" placeholder="Search by Rule ID, Error Code, Target Entity, Condition, or Keyword..." 
+                     class="w-full pl-8 pr-3 py-2 bg-white rounded-lg border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-navy text-xs">
+              <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </div>
+            <div>
+              <select id="val-filter-phase" class="w-full py-2 px-2.5 bg-white rounded-lg border border-slate-300 text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-brand-navy">
+                <option value="All">All Lifecycle Phases (12 Phases)</option>
+                <option value="01. Product Configuration">01. Product Configuration</option>
+                <option value="02. Proposal Registration">02. Proposal Registration</option>
+                <option value="03. Underwriting Assessment">03. Underwriting Assessment</option>
+                <option value="04. Policy Issuance">04. Policy Issuance</option>
+                <option value="05. 21-Day Free-Look">05. 21-Day Free-Look</option>
+                <option value="06. Billing & Grace Period">06. Billing & Grace Period</option>
+                <option value="07. Policy Loans & APL">07. Policy Loans & APL</option>
+                <option value="08. Policy Alterations">08. Policy Alterations</option>
+                <option value="09. Reinstatement">09. Reinstatement</option>
+                <option value="10. Claims Management">10. Claims Management</option>
+                <option value="11. Finance & Accounting">11. Finance & Accounting</option>
+                <option value="12. Batch Operations">12. Batch Operations</option>
+              </select>
+            </div>
+            <div>
+              <select id="val-filter-severity" class="w-full py-2 px-2.5 bg-white rounded-lg border border-slate-300 text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-brand-navy">
+                <option value="All">All Severities</option>
+                <option value="HARD_STOP">HARD_STOP (System Blocks Action)</option>
+                <option value="SOFT_WARNING">SOFT_WARNING (Prompts User Confirmation)</option>
+                <option value="ROUTING">ROUTING (Redirects to Queue)</option>
+                <option value="INFORMATIONAL">INFORMATIONAL (Audit Logged)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- High-Density Validation Matrix Table -->
+          <div class="overflow-x-auto border border-slate-200 rounded-xl shadow-2xs">
+            <table class="w-full text-xs text-left border-collapse">
+              <thead class="bg-slate-100 text-slate-800 font-bold border-b border-slate-200 text-[11px] uppercase tracking-wider">
+                <tr>
+                  <th class="p-3 w-32">Rule ID & Severity</th>
+                  <th class="p-3 w-40">Phase & Stage</th>
+                  <th class="p-3 w-36">Target SOR Table</th>
+                  <th class="p-3">Validation Condition & Error Code</th>
+                  <th class="p-3">System Action & Actuarial Basis</th>
+                  <th class="p-3 w-20 text-center">PDF Ref</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-validation-rules" class="divide-y divide-slate-200 bg-white">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
     </section>
 
     <!-- ============================================================== -->

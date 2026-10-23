@@ -430,37 +430,122 @@ function renderModuleDossier(moduleId) {
     </div>
   `).join('');
 
-  // 2. Structured SOPs checklist (FIX: NO DUPLICATE NUMBERING "1 1.")
-  const sopsHtml = (mod.sops || []).map((sop, idx) => `
-    <div class="p-4 bg-slate-50/70 hover:bg-slate-50 rounded-xl border border-slate-200 transition-all space-y-2.5">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/80 pb-2.5">
-        <div class="flex items-center gap-2">
-          <span class="font-mono text-xs font-bold text-blue-700 bg-white px-2.5 py-0.5 rounded border border-blue-200 shadow-2xs">${sop.code}</span>
-          <span class="font-bold text-xs text-slate-900">${sop.title}</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="text-[10px] font-semibold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">${sop.role}</span>
-          <button onclick="openPdfViewer(${sop.pdf_page || mod.pdf_start_page || 1})" class="text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-lg border border-indigo-200 flex items-center gap-1 transition-colors">
-            <span>📄</span> PDF P.${sop.pdf_page || mod.pdf_start_page}
-          </button>
-        </div>
+  // 2. Comprehensive SOPs checklist with Prerequisites, Exact Steps, Validation Rules & Field Specs
+  const sopsHtml = (mod.sops || []).map((sop, idx) => {
+    // A. Prerequisites HTML
+    const prereqHtml = (sop.prerequisites && sop.prerequisites.length > 0) ? `
+      <div class="bg-amber-50/70 p-2.5 rounded-lg border border-amber-200/60 text-xs text-amber-950">
+        <span class="font-bold uppercase tracking-wider block mb-1 text-[10px] text-amber-900 flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Prerequisites & Required System State:
+        </span>
+        <ul class="list-disc list-inside space-y-0.5 text-[11px] text-slate-700">
+          ${sop.prerequisites.map(p => `<li>${p}</li>`).join('')}
+        </ul>
       </div>
-      ${sop.objective ? `<p class="text-xs text-slate-600 italic bg-white/80 p-2 rounded-lg border border-slate-100">${sop.objective}</p>` : ''}
-      
-      <!-- SOP Step by Step Checklist with Number Badges (Regex strips existing "1. " or "2. ") -->
-      <div class="space-y-2 pt-1">
-        ${(sop.steps || []).map((stepText, sIdx) => {
-          const cleanStep = stepText.replace(/^\s*\d+[\.\)]\s*/, '').trim();
-          return `
-            <div class="flex items-start gap-3 text-xs text-slate-700">
-              <span class="std-num-badge">${sIdx + 1}</span>
-              <span class="leading-relaxed mt-0.5">${cleanStep}</span>
+    ` : '';
+
+    // B. Validation Rules HTML
+    const valRules = sop.validation_rules || [];
+    const valRulesHtml = (valRules.length > 0) ? `
+      <div class="bg-rose-50/70 p-3 rounded-xl border border-rose-200 text-xs space-y-2">
+        <div class="font-bold text-rose-950 flex items-center justify-between">
+          <span class="flex items-center gap-1.5 text-xs">
+            <span class="w-2 h-2 rounded-full bg-rose-600"></span> Strict Validation Rules & System Hard Stops (${valRules.length})
+          </span>
+          <span class="text-[9px] bg-rose-200 text-rose-900 font-mono font-bold px-2 py-0.5 rounded">Core PAS Enforcement</span>
+        </div>
+        <div class="space-y-1.5">
+          ${valRules.map(vr => `
+            <div class="p-2 bg-white rounded-lg border border-rose-100 shadow-2xs space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="font-mono text-[10px] font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">${vr.ruleId} • ${vr.errorCode}</span>
+                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded ${vr.severity === 'HARD_STOP' ? 'bg-red-600 text-white' : (vr.severity === 'SOFT_WARNING' ? 'bg-amber-500 text-white' : 'bg-blue-600 text-white')}">${vr.severity}</span>
+              </div>
+              <div class="font-bold text-slate-900 text-xs">${vr.ruleName}</div>
+              <div class="text-[11px] text-slate-700"><span class="font-semibold text-slate-900">Condition:</span> ${vr.condition}</div>
+              <div class="text-[10px] text-slate-500 italic"><span class="font-semibold text-slate-600">Action:</span> ${vr.systemAction}</div>
+              <div class="text-[10px] text-emerald-800 bg-emerald-50/60 p-1 rounded leading-relaxed"><span class="font-semibold">Actuarial Note:</span> ${vr.actuarialBasis}</div>
             </div>
-          `;
-        }).join('')}
+          `).join('')}
+        </div>
       </div>
-    </div>
-  `).join('');
+    ` : '';
+
+    // C. Fields Table HTML
+    const fields = sop.fields_table || [];
+    const fieldsHtml = (fields.length > 0) ? `
+      <details class="text-xs group">
+        <summary class="cursor-pointer font-bold text-brand-navy hover:text-brand-navy-hover flex items-center gap-1.5 py-1 select-none">
+          <span>📋 Inspect UI Input Fields Specification (${fields.length} Fields)</span>
+        </summary>
+        <div class="mt-2 overflow-x-auto border border-slate-200 rounded-lg shadow-2xs">
+          <table class="w-full text-[11px] text-left border-collapse">
+            <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+              <tr>
+                <th class="p-1.5">Field Name</th>
+                <th class="p-1.5">Type</th>
+                <th class="p-1.5">Required</th>
+                <th class="p-1.5">Description & Validation Rule</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 bg-white">
+              ${fields.map(f => `
+                <tr>
+                  <td class="p-1.5 font-semibold text-slate-900">${f.name}</td>
+                  <td class="p-1.5 font-mono text-slate-600">${f.type}</td>
+                  <td class="p-1.5 ${f.required === 'Yes' ? 'font-bold text-rose-600' : 'text-slate-500'}">${f.required}</td>
+                  <td class="p-1.5 text-slate-600">${f.desc}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </details>
+    ` : '';
+
+    return `
+      <div class="p-4 bg-slate-50/70 hover:bg-slate-50 rounded-xl border border-slate-200 transition-all space-y-3">
+        <!-- SOP Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/80 pb-2.5">
+          <div class="flex items-center gap-2">
+            <span class="font-mono text-xs font-bold text-blue-700 bg-white px-2.5 py-0.5 rounded border border-blue-200 shadow-2xs">${sop.code}</span>
+            <span class="font-bold text-xs text-slate-900">${sop.title}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-semibold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">${sop.role || 'Operator'}</span>
+            <button onclick="openPdfViewer(${sop.pdf_page || mod.pdf_start_page || 1})" class="text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-lg border border-indigo-200 flex items-center gap-1 transition-colors">
+              <span>📄</span> PDF P.${sop.pdf_page || mod.pdf_start_page}
+            </button>
+          </div>
+        </div>
+        
+        ${sop.objective ? `<p class="text-xs text-slate-600 italic bg-white/80 p-2 rounded-lg border border-slate-100">${sop.objective}</p>` : ''}
+        
+        <!-- Prerequisites -->
+        ${prereqHtml}
+        
+        <!-- SOP Step by Step Checklist with Number Badges -->
+        <div class="space-y-2 pt-1">
+          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono">Step-by-Step Procedure:</div>
+          ${(sop.steps || []).map((stepText, sIdx) => {
+            const cleanStep = stepText.replace(/^\s*\d+[\.\)]\s*/, '').trim();
+            return `
+              <div class="flex items-start gap-3 text-xs text-slate-700">
+                <span class="std-num-badge">${sIdx + 1}</span>
+                <span class="leading-relaxed mt-0.5">${cleanStep}</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        <!-- Strict Validation Rules & Hard Stops -->
+        ${valRulesHtml}
+
+        <!-- Field Specifications -->
+        ${fieldsHtml}
+      </div>
+    `;
+  }).join('');
 
   // 3. Actuary Notes as clean bulleted list (NO COMMA RUN-ON)
   const actuaryList = Array.isArray(mod.actuary_notes) ? mod.actuary_notes : [mod.actuary_notes];
@@ -668,6 +753,7 @@ function renderMasterTables() {
   renderDatesTable();
   renderFreelookTable();
   renderAlterationsTable();
+  renderValidationRulesTable();
   renderBatchSeqTable();
 
   // Search filters
@@ -2238,3 +2324,110 @@ function renderConfiguratorView() {
     });
   }
 }
+
+
+// ==============================================================
+// 4F. MASTER POLICY LIFECYCLE VALIDATION MATRIX (50+ RULES)
+// ==============================================================
+function renderValidationRulesTable() {
+  const tbody = document.getElementById('tbody-validation-rules');
+  if (!tbody || !window.EBAO_VALIDATION_RULES) return;
+
+  const searchInput = document.getElementById('val-search-input');
+  const phaseSelect = document.getElementById('val-filter-phase');
+  const severitySelect = document.getElementById('val-filter-severity');
+  const badgeTotal = document.getElementById('val-badge-total');
+
+  if (!window._valListenersAttached) {
+    if (searchInput) searchInput.addEventListener('input', () => renderValidationRulesTable());
+    if (phaseSelect) phaseSelect.addEventListener('change', () => renderValidationRulesTable());
+    if (severitySelect) severitySelect.addEventListener('change', () => renderValidationRulesTable());
+    window._valListenersAttached = true;
+  }
+
+  const query = (searchInput ? searchInput.value : '').toLowerCase().trim();
+  const phase = phaseSelect ? phaseSelect.value : 'All';
+  const severity = severitySelect ? severitySelect.value : 'All';
+
+  const filtered = window.EBAO_VALIDATION_RULES.filter(r => {
+    if (phase !== 'All' && r.lifecyclePhase !== phase) return false;
+    if (severity !== 'All' && r.severity !== severity) return false;
+    if (query) {
+      const matchText = `${r.ruleId} ${r.ruleName} ${r.errorCode} ${r.targetEntity} ${r.condition} ${r.systemAction} ${r.moduleName} ${r.actuarialBasis}`.toLowerCase();
+      if (!matchText.includes(query)) return false;
+    }
+    return true;
+  });
+
+  if (badgeTotal) {
+    badgeTotal.textContent = filtered.length;
+  }
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" class="p-8 text-center text-slate-400 text-xs italic">
+          No validation rules matched your search and filter criteria.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(r => {
+    let severityBadge = '';
+    if (r.severity === 'HARD_STOP') {
+      severityBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800 border border-red-200"><span class="w-1.5 h-1.5 rounded-full bg-red-600"></span>HARD STOP</span>';
+    } else if (r.severity === 'SOFT_WARNING') {
+      severityBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200"><span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>WARNING</span>';
+    } else if (r.severity === 'ROUTING') {
+      severityBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200"><span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>ROUTING</span>';
+    } else {
+      severityBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">INFO</span>';
+    }
+
+    return `
+      <tr class="hover:bg-slate-50/80 transition-colors">
+        <td class="p-3 align-top">
+          <div class="font-mono text-xs font-bold text-slate-900">${r.ruleId}</div>
+          <div class="mt-1">${severityBadge}</div>
+        </td>
+        <td class="p-3 align-top">
+          <div class="font-semibold text-slate-900 text-xs">${r.lifecyclePhase}</div>
+          <div class="text-[11px] text-slate-500 font-mono mt-0.5">${r.stage}</div>
+          <span class="inline-block mt-1 text-[10px] font-mono bg-slate-100 text-brand-navy px-1.5 py-0.5 rounded font-semibold border border-slate-200">${r.module}</span>
+        </td>
+        <td class="p-3 align-top">
+          <span class="font-mono text-[11px] text-indigo-700 bg-indigo-50/80 px-2 py-0.5 rounded border border-indigo-200 font-bold block w-fit">
+            ${r.targetEntity}
+          </span>
+        </td>
+        <td class="p-3 align-top space-y-1.5">
+          <div class="font-bold text-slate-900 text-xs">${r.ruleName}</div>
+          <div class="text-xs text-slate-700 leading-relaxed bg-slate-50 p-2 rounded border border-slate-100">
+            <span class="font-semibold text-slate-900">Condition:</span> ${r.condition}
+          </div>
+          <div class="flex items-center gap-1.5 font-mono text-[10px] text-rose-700 font-bold">
+            <span>⚠️ Error Code:</span>
+            <span class="bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">${r.errorCode}</span>
+          </div>
+        </td>
+        <td class="p-3 align-top space-y-1.5">
+          <div class="text-xs text-slate-800 leading-relaxed">
+            <span class="font-semibold text-slate-900">System Enforcement:</span> ${r.systemAction}
+          </div>
+          <div class="text-[11px] text-emerald-800 bg-emerald-50/80 p-2 rounded border border-emerald-200/60 leading-relaxed">
+            <span class="font-bold text-emerald-900">Actuarial / Legal Rationale:</span> ${r.actuarialBasis}
+          </div>
+        </td>
+        <td class="p-3 align-top text-center">
+          <button onclick="openPdfViewer(${r.pdfPage || 1})" 
+                  class="px-2.5 py-1 bg-white hover:bg-indigo-50 text-indigo-700 font-mono text-[11px] font-bold rounded border border-indigo-300 shadow-2xs transition-colors flex items-center gap-1 mx-auto">
+            <span>📄</span> P.${r.pdfPage}
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+window.renderValidationRulesTable = renderValidationRulesTable;
