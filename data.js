@@ -9616,40 +9616,57 @@ window.EBAO_MODULES = [
   {
     "id": "MOD_06",
     "num": "06",
-    "title": "Mod 06: Claims Management (CLM APP)",
+    "title": "Mod 06: Claims Management (CLM APP & Settlement Engine)",
     "subtitle": "FNOL, Medical Assessment, Benefit Calculation, Adjudication & Settlement",
     "icon": "activity",
     "badge": "Claim Adjudication",
     "page_range": "Pages 304 - 341",
-    "summary": "The Claims application orchestrates the entire claims lifecycle across all benefit lines. It covers First Notice of Loss (FNOL), claimant verification, medical and investigator assessment, benefit calculation (Death, TPD, Critical Illness, Hospital Cash, Medical Reimbursement), claims committee escalation, settlement execution, and subsequent policy status adjustments.",
+    "summary": "Trung tâm giải quyết quyền lợi bảo hiểm toàn diện (Claims Workbench) theo chuẩn eBao Gemini Core PAS (Pages 271-341 Gemini User Guide), bao gồm toàn bộ vòng đời: Tiếp nhận thông báo tổn thất (FNOL), Tiếp nhận hồ sơ (Case Acceptance), Thẩm định quyền lợi (Policy Evaluation), Nhập viện phí & Đồng chi trả (Medical Bill & Co-pay), Lập kế hoạch chi trả & Cấn trừ nợ (Disbursement & Debt Offset), Thẩm định chuyên sâu & Điều tra trục lợi (Claim UW & Investigation), Phê duyệt DOA đa cấp (Claim Approval), và Hạch toán chi trả & Cập nhật trạng thái hợp đồng/khách hàng (Settlement & Post-Claim Life Cycle Updates). Quản lý tất cả các dòng quyền lợi bảo hiểm: Quyền lợi Tử vong (Death Claim), Thương tật toàn bộ và vĩnh viễn (TPD Lump sum / Installment Annuity), Bệnh hiểm nghèo (Critical Illness - Early/Advanced), Y tế & Nằm viện (Medical Reimbursement & Hospital Cash), và Quyền lợi Miễn đóng phí (Waiver of Premium - WP). Cơ chế Khóa hợp đồng tự động (Automatic Policy Freezing): Khi tiếp nhận yêu cầu bồi thường tử vong, hệ thống tự động gắn cờ Freeze Policy = TRUE để khóa toàn bộ giao dịch CS, đổi người thụ hưởng, vay tiền hoặc trích nợ tự động trong suốt quá trình xử lý hồ sơ. Cơ chế Quyết toán cấn trừ nợ tự động (Automatic Debt & Premium Offsetting): Đối với quyền lợi Tử vong, hệ thống tự động cấn trừ Dư nợ vay hợp đồng gốc + Lãi vay gộp dồn tích và Số phí bảo hiểm định kỳ còn nợ (Outstanding Modal Premium) trong thời gian gia hạn 60 ngày trước khi xác định Số tiền chi trả thực tế (Net Claim Payable). Động cơ Phân bổ Người thụ hưởng đa cấp (Payee Priority Hierarchy Engine): Tự động xác định người nhận tiền theo thứ tự ưu tiên pháp lý nghiêm ngặt: Bên nhận chuyển nhượng (Assignee) > Người được ủy thác (Trustee) > Người thụ hưởng được chỉ định theo tỷ lệ % (Beneficiary Nominees) > Bên mua bảo hiểm / Người thừa kế hợp pháp. Cơ chế Tự động Bán chứng chỉ quỹ (Auto-Liquidation of Unit-Link Units): Đối với sản phẩm liên kết đầu tư (ILP), khi tiếp nhận hồ sơ Tử vong hoặc TPD, hệ thống tự động bán toàn bộ đơn vị quỹ tại ngày định giá tiếp theo (Next Valuation Date) để chuẩn bị thanh khoản giải ngân. Từ chối bồi thường & Hủy hợp đồng do gian lận (Denied & Rescind with Refund): Trường hợp vi phạm nghiêm trọng nghĩa vụ kê khai theo Điều 22 Luật KDBH, hệ thống thực hiện hủy hợp đồng và tự động hoàn lại phí đã đóng (Traditional) hoặc hoàn lại Giá trị tài khoản hợp đồng TIV (ILP) sau khi trừ chi phí y tế hợp lý.",
     "mermaid_workflow": "graph TD\n    Incident[\"Insured Event Occurs\"] --> FNOL[\"Claim Registration (FNOL)\"]\n    FNOL --> Checklist[\"Document Verification & Checklist\"]\n    Checklist --> Accept[\"Claim Case Acceptance\"]\n    Accept --> Assess[\"Claim Evaluation & Medical Assessment\"]\n    Assess --> ExcludeCheck{\"Exclusion / Contestability?\"}\n    ExcludeCheck -- Incontestable & Valid --> Calc[\"Benefit Calculation Engine\"]\n    ExcludeCheck -- Incontestable / Fraud --> Rej[\"Claim Repudiation / Decline\"]\n    Calc --> Deduct[\"Deduct Outstanding Loans & Due Premiums\"]\n    Deduct --> Approve[\"Claim Approval Hierarchy\"]\n    Approve --> Settle[\"Settlement & Payout (Module 07)\"]\n    Settle --> PolicyEffect[\"Policy Termination or Sum Assured Reduction\"]",
     "core_concepts": [
       {
-        "term": "FNOL (First Notice of Loss)",
-        "definition": "Initial registration capturing event date, cause (Illness, Accident, Natural), reporter details, claimant identity, and initial estimated claim liability."
+        "term": "FNOL & Claim Case Registration (P.274)",
+        "def": "Khởi tạo hồ sơ bồi thường (First Notice of Loss). Hệ thống tự sinh mã Claim Case No duy nhất, ghi nhận Ngày xảy ra sự kiện (Event Date <= System Date), Ngày thông báo (Notification Date <= System Date), Kênh tiếp nhận, Người nộp đơn (Claimant), và gắn kết với Người được bảo hiểm (Life Assured) trong Core PAS."
       },
       {
-        "term": "Contestability Period (2-Year Rule)",
-        "definition": "Statutory rule where claims occurring within 24 months of policy inception or reinstatement are subject to strict non-disclosure and pre-existing condition investigation."
+        "term": "Policy Freezing & Liability Locking (P.323, 333)",
+        "def": "Cơ chế phong tỏa hợp đồng tự động (Freeze Policy Flag). Mặc định là TRUE và bắt buộc (không được bỏ chọn) đối với Tử vong (DTH), có thể cấu hình đối với TPD và CI. Khi hợp đồng bị Freeze, mọi giao dịch CS (vay, hủy, rút tiền), BCP (trích nợ tự động) đều bị chặn đứng để bảo vệ an toàn tài chính."
       },
       {
-        "term": "Accelerated vs Additional Benefit",
-        "definition": "Accelerated CI pays out from and reduces the Main Plan Death Sum Assured; Additional CI pays an independent benefit without diminishing the base death protection."
+        "term": "Claim Reserve & Auto-Provisioning (P.324)",
+        "def": "Trích lập dự phòng bồi thường tự động (Notified Amount / Case Reserve). Ngay khi hồ sơ được chấp nhận (Acceptance), hệ thống tự động tính toán và trích lập dự phòng bồi thường ban đầu theo công thức định phí sản phẩm, ghi nhận bút toán Nợ TK 6211 / Có TK 3318 (Dự phòng bồi thường chờ giải quyết)."
       },
       {
-        "term": "Net Claim Settlement Amount",
-        "definition": "Gross Calculated Benefit minus Outstanding Policy Loans minus Accrued Loan Interest minus Unpaid Grace Period Premiums plus Unearned Advance Premiums."
+        "term": "Deductibles, Co-insurance & Accumulators (P.287, 300, 328)",
+        "def": "Động cơ tính toán viện phí & y tế. Bóc tách hóa đơn viện phí theo từng hạng mục (Tiền phòng, Phẫu thuật, Thuốc men, Điều trị đặc biệt), tự động áp dụng Mức miễn thường (Deductible), Tỷ lệ đồng chi trả (Co-insurance ví dụ 80/20), và kiểm tra Hạn mức tích lũy hàng năm/trọn đời (Claim Accumulator remaining limit)."
+      },
+      {
+        "term": "Death Claim Debt & Outstanding Premium Offsetting (P.286, 334)",
+        "def": "Quy tắc cấn trừ công nợ bồi thường tử vong: Net Payable = Sum Assured + Reversionary Bonus - (Policy Loan Principal + Accrued Loan Interest) - Outstanding Modal Premium (nếu tử vong trong 60 ngày gia hạn đóng phí). Chỉ áp dụng cấn trừ phí nợ cho quyền lợi Tử vong, không áp dụng cho các quyền lợi khác."
+      },
+      {
+        "term": "Payee Priority Hierarchy Engine (P.337-338)",
+        "def": "Động cơ phân bổ người nhận tiền giải ngân: 1) Nếu có Assignee (Bên nhận chuyển nhượng thế chấp/tuyệt đối): Assignee hưởng quyền ưu tiên số 1; 2) Nếu có Trustee: Trustee nhận tiền; 3) Nếu có Beneficiary: Chia đều theo tỷ lệ phần trăm (Tổng tỷ lệ bắt buộc = 100.00%); 4) Nếu không có ai: Mặc định chi trả cho Bên mua bảo hiểm (Policyholder) hoặc người thừa kế theo quy định pháp luật."
+      },
+      {
+        "term": "Waiver of Premium (WP) Activation (P.289-291, 340)",
+        "def": "Kích hoạt quyền lợi Miễn đóng phí: Khi chấp thuận quyền lợi WP, hệ thống cập nhật Premium Waive Flag = YES, thiết lập Waiver Start Date = Next Due Date, Waiver End Date = Ngày đáo hạn sản phẩm. Trạng thái đóng phí chuyển thành PREMIUM_WAIVED và PTD tự động được nâng định kỳ mà không sinh hóa đơn thu phí."
+      },
+      {
+        "term": "Denied & Rescind with Refund vs Repudiate (P.290, 340)",
+        "def": "Phân biệt các quyết định từ chối: 1) Repudiate: Từ chối bồi thường do sự kiện không thuộc phạm vi bảo hiểm hoặc rơi vào điều khoản loại trừ (Hợp đồng vẫn duy trì inforce bình thường); 2) Denied & Rescind: Từ chối bồi thường và HỦY hợp đồng do không trung thực khi kê khai y tế (Hoàn lại 100% phí bảo hiểm đã đóng đối với Traditional, hoặc hoàn lại Giá trị tài khoản TIV đối với ILP)."
       }
     ],
     "actuary_notes": [
-      "IBNR & Case Reserves: Upon FNOL registration, Gemini automatically sets an Initial Case Reserve. Claim assessors can adjust this reserve dynamically based on medical findings.",
-      "Endowment Maturity vs Death Benefit: In endowment products, death benefit equals Max(Sum Assured + Vested Reversionary Bonus, Total Premiums Paid). Maturity benefit equals Sum Assured + Vested Bonus + Terminal Bonus.",
-      "Rider Exhaustion Matrix: Critical Illness payouts may extinguish the CI rider, waive future premiums on the base policy (if CI Waiver is attached), or adjust remaining life cover."
+      "Định phí Dự phòng Bồi thường (Claim Reserving - IBNR & OCR): Ngay khi bấm Submit tại màn hình Case Acceptance, hệ thống chạy công thức Case Reserve tự động theo từng cấp quyền lợi. Đối với quyền lợi Tử vong, dự phòng tối thiểu = 100% Số tiền bảo hiểm + Bảo tức tích lũy. Đối với viện phí, dự phòng = Min(Claimed Amount, Annual Sub-limit).",
+      "Cơ chế Trừ Phí Bảo Hiểm Nợ (Outstanding Premium Offsetting - P.286): Tuân thủ nghiêm ngặt Điều 37 Luật KDBH 2022 và tài liệu eBao P.286: Chỉ khấu trừ phí nợ đối với quyền lợi Tử vong khi ngày xảy ra sự kiện nằm trong 60 ngày gia hạn đóng phí. Tuyệt đối không cấn trừ phí nợ đối với quyền lợi Nằm viện, Phẫu thuật hoặc Bệnh hiểm nghèo để đảm bảo nguyên tắc bảo toàn quyền lợi khách hàng.",
+      "Giải ngân Quyền lợi TPD theo Kỳ (TPD Installment Annuity - P.294, 332): Cho phép cấu hình chi trả TPD 1 lần (Lump Sum 100%) hoặc chi trả định kỳ phân kỳ (ví dụ 10 kỳ trong 10 năm, mỗi năm 10% STBH kèm lãi suất dồn tích theo quy định hợp đồng).",
+      "Xử lý Đơn vị Quỹ ILP khi Tử vong/TPD (Auto-Unit Redemption - P.334): Core PAS tự động gửi lệnh bán toàn bộ đơn vị quỹ (Total Units Liquidation) sang hệ thống Quản lý Quỹ (Fund Management) với giá đơn vị quỹ chốt tại Ngày hiệu lực giá (Admission Price Effective Date = Ngày thông báo hoặc Ngày thông báo + 1 ngày làm việc)."
     ],
     "op_notes": [
-      "Claims Watch List & Fraud Triggers: Automated alerts when claims are filed within 90 days of policy issuance, when claim causes involve high-fraud diagnosis codes, or when multiple claims are submitted simultaneously.",
-      "Claims Medical Assessment UI: Dedicated medical evaluation screens to document hospital admission dates, surgery codes (ICD-9/ICD-10), pathology reports, and attending physician reviews.",
-      "Multi-Tier Approval Matrix: Senior Claims Assessors, Claims Managers, and Claims Committees have structured financial sign-off limits before disbursement can proceed."
+      "SLA Tiếp nhận & Phê duyệt Bồi thường: SLA tiếp nhận FNOL trong vòng 24h kể từ khi nhận hồ sơ. SLA chi trả bồi thường chuẩn là 15 - 30 ngày theo quy định tại Điều 31 Luật Kinh doanh bảo hiểm 2022.",
+      "Kiểm soát Gian lận & Dấu hiệu Đỏ (Fraud / Red Flag Detection - P.330): Hệ thống tự động kích hoạt cảnh báo Red Flag khi: 1) Sự kiện xảy ra trong vòng 2 năm kể từ ngày phát hành (Contestable Period); 2) Khiếu nại bồi thường tần suất cao (Frequent Claims > 3 lần/năm); 3) Mã bệnh viện nằm trong Danh sách đen / Cần kiểm tra (Hospital Blacklist); 4) Sự kiện tử vong do tai nạn không rõ ràng.",
+      "Bảng Phân Quyền Phê Duyệt Bồi Thường (DOA Matrix - P.340): Thiết lập hạn mức phê duyệt theo chức danh: Cán bộ bồi thường Junior (Max 50M VND), Senior Specialist (Max 200M VND), Trưởng phòng Bồi thường (Max 500M VND), Giám đốc Khối Nghiệp vụ (Max 2 Tỷ VND), Hội đồng Bồi thường Claims Committee (Trên 2 Tỷ VND hoặc các ca Ex-gratia chi trả vì lý do thương mại)."
     ],
     "sections": [
       {
@@ -10988,510 +11005,634 @@ window.EBAO_MODULES = [
     "function_count": 73,
     "sops": [
       {
-        "code": "SOP-CLM-01",
-        "title": "Claim Registration & First Notice of Loss (FNOL) Intake",
-        "ui_path": "Main Menu > Claims > Registration > First Notice of Loss",
+        "id": "SOP-CLM-01",
+        "title": "First Notice of Loss (FNOL) Registration & Claim Case Creation",
+        "screen": "Claims > Work List > Register a Case (P.274)",
         "prerequisites": [
-          "Insured event notice received from beneficiary, agent, hospital, or customer portal",
-          "Target policy existed on date of event"
+          "Người được bảo hiểm (Life Assured) phải tồn tại trong cơ sở dữ liệu khách hàng (T_PARTY) và có ít nhất 1 hợp đồng đang ở trạng thái Inforce hoặc đang trong thời gian gia hạn 60 ngày.",
+          "Người nộp đơn bồi thường (Claimant) có đầy đủ giấy tờ định danh (CCCD/Hộ chiếu) hợp lệ.",
+          "Ngày xảy ra sự kiện tổn thất (Event Date) và Ngày thông báo (Notification Date) không được vượt quá Ngày kinh doanh hiện tại của hệ thống (System Business Date)."
         ],
         "steps": [
-          "1. Navigate to Main Menu > Claims > Registration > FNOL.",
-          "2. In the Search Policy area, enter Policy Number (e.g. 'POL-2026-0081723') or Life Assured ID and click Search.",
-          "3. System checks Policy Status on Event Date: Verifies policy was 'INFORCE' on the date loss occurred.",
-          "4. In Incident Information:\n   - Event Date: Date death, accident, or diagnosis occurred.\n   - Cause of Claim: Sickness, Accident, Natural Death, Suicide, Critical Illness.\n   - Primary Diagnosis: Search ICD-10 Code (e.g. 'I21.9' - Acute Myocardial Infarction).\n   - Place of Event / Hospital: Select hospital from master hospital list.",
-          "5. In Reporter Information: Record Reporter Full Name, Relationship to Insured, Phone, and Email.",
-          "6. Click 'Register Claim'. Step Result: Gemini creates unique Claim Case Number (e.g. 'CLM-2026-00412'), reserves Initial Case Reserve liability, and generates dynamic Document Requirement Checklist."
+          "Bước 1: Truy cập menu Claims > Work List, nhấn nút 'Register a Case' để mở màn hình Claims Registration Page (Figure 3, P.274).",
+          "Bước 2: Tại phần Claim Information: Nhập Ngày xảy ra sự kiện (Event Date), Ngày thông báo (Notification Date), Bản chất tổn thất (Claim Nature: Disease, Accident, Natural Death), và Kênh tiếp nhận (Manual, Customer Portal, Agency Mobile App).",
+          "Bước 3: Chọn Loại hình bồi thường (Claim Type): Death (DTH), Total & Permanent Disability (TPD), Critical Illness (CIC), Medical Reimbursement (MED), Hospital Cash, hoặc Waiver of Premium (PWC).",
+          "Bước 4: Tại phần Claimant Information: Tìm kiếm hoặc tạo mới hồ sơ Người nộp đơn bồi thường (Claimant Party), xác định mối quan hệ với Người được bảo hiểm (Self, Spouse, Child, Parent, Legal Heir, Corporate Representative).",
+          "Bước 5: Nhập ghi chú ban đầu tại ô General Comments nếu có thông tin đặc biệt từ hiện trường hoặc cơ quan giám định.",
+          "Bước 6: Nhấn nút 'Submit' để lưu hồ sơ. Hệ thống thực thi quy tắc kiểm tra toàn vẹn, tự sinh mã hồ sơ Claim Case No duy nhất theo định dạng CLM-YYYYMMDD-XXXXX, gắn trạng thái ban đầu là 'Waiting for Acceptance', và tạo liên kết Policy-Party role cho Claimant."
         ],
-        "fields_table": [
+        "validation_rules": [
+          {
+            "ruleId": "VAL-CLM-001",
+            "name": "Event Date & Notification Date Validation",
+            "severity": "HARD_STOP",
+            "errorCode": "ERR_CLM_FUTURE_DATE_INVALID",
+            "description": "Ngày xảy ra sự kiện và Ngày thông báo không được trễ hơn ngày hệ thống (Event Date <= System Date và Notification Date <= System Date - P.319, 335)."
+          },
+          {
+            "ruleId": "VAL-CLM-002",
+            "name": "Valid Life Assured Existence Check",
+            "severity": "HARD_STOP",
+            "errorCode": "ERR_CLM_INVALID_LIFE_ASSURED",
+            "description": "Hồ sơ bồi thường bắt buộc phải gắn với một Người được bảo hiểm đang tồn tại trong hệ thống, không được tạo hồ sơ rỗng (P.272, 320)."
+          }
+        ],
+        "ui_fields": [
+          {
+            "name": "Claim Case No",
+            "type": "Text (Read-only)",
+            "req": true,
+            "note": "Hệ thống tự động sinh khi submit thành công (CLM-YYYYMMDD-XXXXX)"
+          },
           {
             "name": "Event Date",
-            "type": "Date",
-            "required": "Yes",
-            "desc": "Date on which loss incident occurred"
+            "type": "Date Picker",
+            "req": true,
+            "note": "Ngày xảy ra sự kiện rủi ro (tai nạn, tử vong, chẩn đoán, nhập viện)"
           },
           {
-            "name": "Claim Cause",
-            "type": "Select",
-            "required": "Yes",
-            "desc": "Illness, Accidental, Natural, Self-inflicted"
+            "name": "Notification Date",
+            "type": "Date Picker",
+            "req": true,
+            "note": "Ngày công ty bảo hiểm nhận được thông báo tổn thất"
           },
           {
-            "name": "ICD-10 Diagnosis",
-            "type": "Search Code",
-            "required": "Yes",
-            "desc": "International medical diagnostic code"
+            "name": "Claim Type",
+            "type": "Dropdown List",
+            "req": true,
+            "note": "Death, TPD, Critical Illness, Medical, Hospitalization, Waiver"
           },
           {
-            "name": "Reporter Name",
+            "name": "Claim Nature",
+            "type": "Dropdown List",
+            "req": true,
+            "note": "Bản chất sự kiện: Tai nạn, Bệnh tật, Tự nhiên, Thai sản"
+          },
+          {
+            "name": "Claimant ID & Name",
+            "type": "Party Lookup",
+            "req": true,
+            "note": "Người đại diện nộp hồ sơ yêu cầu giải quyết bồi thường"
+          },
+          {
+            "name": "Relationship to LA",
+            "type": "Dropdown List",
+            "req": true,
+            "note": "Mối quan hệ với Người được bảo hiểm"
+          },
+          {
+            "name": "General Comments",
+            "type": "Textarea",
+            "req": false,
+            "note": "Ghi chú tóm tắt sơ bộ về diễn biến tổn thất"
+          }
+        ]
+      },
+      {
+        "id": "SOP-CLM-02",
+        "title": "Case Acceptance, Policy Freezing & Initial Reserve Provisioning",
+        "screen": "Claims > Case Acceptance > Decision Page (P.277-281)",
+        "prerequisites": [
+          "Hồ sơ bồi thường ở trạng thái 'Waiting for Acceptance' hoặc 'Acceptance in Progress'.",
+          "Cán bộ tiếp nhận có thẩm quyền phân quyền xử lý tiếp nhận hồ sơ bồi thường."
+        ],
+        "steps": [
+          "Bước 1: Từ Claims Worklist, tìm kiếm hồ sơ theo Claim Case No và nhấp chọn để mở màn hình Case Acceptance Entry Page (Figure 6, P.278).",
+          "Bước 2: Cập nhật thông tin y tế ban đầu: Tra cứu mã chẩn đoán bệnh theo chuẩn quốc tế ICD-10 (Diagnosis Code & Description) và chọn Bệnh viện điều trị (Hospital Code).",
+          "Bước 3: Nhấn 'Next' để chuyển sang màn hình Claims Acceptance Decision Page (Figure 7, P.279). Nhấp vào liên kết từng hợp đồng liên quan để mở trang Acceptance Policy Page.",
+          "Bước 4: Bật cờ chấp nhận sản phẩm 'Accept Product = Y' cho từng sản phẩm chính và sản phẩm bổ trợ có quyền lợi tương ứng với sự kiện rủi ro.",
+          "Bước 5: Kiểm tra cờ phong tỏa hợp đồng 'Freeze Policy Indicator': Hệ thống tự động thiết lập Freeze Policy = TRUE đối với quyền lợi Tử vong (bắt buộc, không được chỉnh sửa) để phong tỏa toàn bộ giao dịch CS và thu phí (P.323, 333).",
+          "Bước 6: Kiểm tra số tiền dự phòng ban đầu (Notified Amount / Initial Case Reserve): Hệ thống tự động tính toán theo công thức định phí sản phẩm.",
+          "Bước 7: Nhấn 'Submit'. Hệ thống thực thi tự động bán toàn bộ đơn vị quỹ (Auto-Unit Liquidation) nếu là hợp đồng liên kết đầu tư (ILP) đối với ca Death/TPD, cập nhật trạng thái hồ sơ thành 'Waiting for Evaluation' (P.281, 334)."
+        ],
+        "validation_rules": [
+          {
+            "ruleId": "VAL-CLM-003",
+            "name": "Mandatory ICD-10 Diagnosis Code",
+            "severity": "HARD_STOP",
+            "errorCode": "ERR_CLM_MISSING_DIAGNOSIS_CODE",
+            "description": "Bắt buộc phải nhập Mã chẩn đoán y tế (ICD-10) trước khi submit chấp nhận hồ sơ cho tất cả các loại hình bồi thường (P.333)."
+          },
+          {
+            "ruleId": "VAL-CLM-004",
+            "name": "Policy Eligibility & Active Coverage Validation",
+            "severity": "HARD_STOP",
+            "errorCode": "ERR_CLM_POLICY_INELIGIBLE",
+            "description": "Chặn tiếp nhận nếu: 1) Hợp đồng đang bị Freeze bởi giao dịch CS khác; 2) Ngày sự kiện nằm ngoài thời hạn bảo hiểm (Event Date < Commencement Date hoặc > Coverage End Date); 3) Hợp đồng đã Lapsed quá 60 ngày gia hạn (P.334)."
+          },
+          {
+            "ruleId": "VAL-CLM-005",
+            "name": "Mandatory Death Claim Policy Freezing",
+            "severity": "HARD_STOP",
+            "errorCode": "ERR_CLM_DEATH_FREEZE_MANDATORY",
+            "description": "Đối với yêu cầu bồi thường Tử vong, cờ Freeze Policy bắt buộc là YES và không được phép ghi đè (EditLockPolicy = N) nhằm bảo vệ an toàn tài sản (P.323, 333)."
+          }
+        ],
+        "ui_fields": [
+          {
+            "name": "Diagnosis Code (ICD-10)",
+            "type": "Fuzzy Search Lookup",
+            "req": true,
+            "note": "Mã bệnh án chuẩn quốc tế ICD-10 (ví dụ C34: Ung thư phổi, I21: Nhồi máu cơ tim)"
+          },
+          {
+            "name": "Hospital Code",
+            "type": "Dropdown List",
+            "req": true,
+            "note": "Bệnh viện hoặc cơ sở y tế nơi điều trị"
+          },
+          {
+            "name": "Accept Product Flag",
+            "type": "Toggle (Y/N)",
+            "req": true,
+            "note": "Đánh dấu chấp nhận đưa sản phẩm/quyền lợi vào thẩm định"
+          },
+          {
+            "name": "Freeze Policy Flag",
+            "type": "Checkbox (Locked)",
+            "req": true,
+            "note": "Tự động khóa hợp đồng đối với hồ sơ Tử vong"
+          },
+          {
+            "name": "Notified Amount",
+            "type": "Currency (Auto-calc)",
+            "req": true,
+            "note": "Dự phòng bồi thường tự động ghi nhận ban đầu"
+          },
+          {
+            "name": "Price Effective Date",
+            "type": "Date (ILP Only)",
+            "req": false,
+            "note": "Ngày chốt giá định giá bán đơn vị quỹ cho hợp đồng ILP"
+          }
+        ]
+      },
+      {
+        "id": "SOP-CLM-03",
+        "title": "Medical Bill Processing, Inpatient Days & Deductible/Co-pay Assessment",
+        "screen": "Claims > Medical Bill Entry (P.300-301, 327-328)",
+        "prerequisites": [
+          "Loại hồ sơ bồi thường là Medical Reimbursement (MED) hoặc Hospital Cash.",
+          "Đã thu thập đầy đủ hóa đơn tài chính VAT bệnh viện, bảng kê chi tiết viện phí và giấy ra viện."
+        ],
+        "steps": [
+          "Bước 1: Từ màn hình Case Acceptance hoặc Evaluation, nhấp chọn nút 'Medical Bill' để mở giao diện quản lý hóa đơn viện phí (P.300).",
+          "Bước 2: Nhấn 'Add Bill' và chọn Medical Bill Type: Inpatient Medical Bill (Nội trú), Outpatient Medical Bill (Ngoại trú), hoặc Dental Bill (Nha khoa).",
+          "Bước 3: Nhập thông tin hành chính viện phí: Số hóa đơn VAT, Ngày vào viện (Admission Date), Ngày ra viện (Discharge Date), Số ngày nằm viện thực tế (Inpatient Days), và Khoa phòng điều trị (ICU / Tiêu chuẩn).",
+          "Bước 4: Nhập chi tiết các khoản mục chi phí: Tiền phòng & ăn uống (Room & Board), Tiền phẫu thuật (Surgical Fees), Chi phí thuốc men (Prescription Drugs), Chi phí xét nghiệm/chẩn đoán hình ảnh, và Vật tư y tế.",
+          "Bước 5: Bấm 'Compute Bill'. Hệ thống tự động tính toán các khoản chi phí không thuộc phạm vi bảo hiểm (Non-covered / Excluded Items), chi phí vượt hạn mức ngày nằm viện (Room Limit Exceeded).",
+          "Bước 6: Hệ thống áp dụng Mức miễn thường (Deductible Amount) theo quy tắc khấu trừ trước, sau đó nhân với Tỷ lệ đồng chi trả (Co-insurance % ví dụ 80% công ty trả / 20% khách hàng chi trả), tính ra Số tiền chi trả bồi thường y tế hợp lý (Eligible Payable Amount) (P.328).",
+          "Bước 7: Nhấn 'Save' để liên kết viện phí đã thẩm định vào tổng quyền lợi bồi thường của hợp đồng."
+        ],
+        "validation_rules": [
+          {
+            "ruleId": "VAL-CLM-006",
+            "name": "Discharge Date Must Be Greater Than Admission Date",
+            "severity": "HARD_STOP",
+            "errorCode": "ERR_CLM_INVALID_HOSPITAL_DATES",
+            "description": "Ngày ra viện phải bằng hoặc sau ngày vào viện. Số ngày nằm viện không được vượt quá thời gian nằm viện thực tế giữa 2 mốc ngày (P.300)."
+          },
+          {
+            "ruleId": "VAL-CLM-007",
+            "name": "Medical Bill Deductible & Co-pay Calculation Integrity",
+            "severity": "HARD_STOP",
+            "errorCode": "ERR_CLM_BILL_MATH_MISMATCH",
+            "description": "Tổng chi trả viện phí = Min(Chi phí hợp lệ sau miễn thường * Tỷ lệ đồng chi trả, Hạn mức tối đa năm còn lại). Không được chi trả vượt quá hóa đơn thực tế (P.328)."
+          }
+        ],
+        "ui_fields": [
+          {
+            "name": "Medical Bill Type",
+            "type": "Dropdown List",
+            "req": true,
+            "note": "Inpatient, Outpatient, Day Surgery, Emergency Outpatient"
+          },
+          {
+            "name": "Bill / Invoice Number",
             "type": "Text",
-            "required": "Yes",
-            "desc": "Person notifying the insurer of the loss"
-          }
-        ],
-        "actuary_notes": "Registration instantly books an Initial Case Reserve in Actuarial Claims Ledger: Case Reserve = Main Sum Assured + Rider Limits.",
-        "op_notes": "If Event Date is prior to Policy Commencement Date, system issues instant hard block: 'Loss predates policy inception'.",
-        "pdf_page": 308,
-        "validation_rules": [
-          {
-            "ruleId": "VAL-CLM-001",
-            "module": "MOD_06",
-            "moduleName": "Claims Management (CLM APP)",
-            "lifecyclePhase": "10. Claims Management",
-            "stage": "Coverage Verification",
-            "targetEntity": "T_CLAIM",
-            "ruleName": "Inforce Status on Incident Date Rule",
-            "condition": "Policy must have been in status 'INFORCE' or 'INFORCE_APL' on the exact Claim Event Date (`CLAIM_EVENT_DATE`).",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CLM_POLICY_NOT_INFORCE_ON_EVENT",
-            "errorMessage": "Policy was lapsed, surrendered, or not yet commenced on the incident date. Claim must be declined.",
-            "systemAction": "Auto-flags claim as 'Decline Recommended' with contractual coverage failure reason.",
-            "actuarialBasis": "No insurance liability exists outside active premium-funded coverage windows.",
-            "pdfPage": 271
+            "req": true,
+            "note": "Số hóa đơn tài chính VAT hợp lệ của bệnh viện"
           },
           {
-            "ruleId": "VAL-CLM-002",
-            "module": "MOD_06",
-            "moduleName": "Claims Management (CLM APP)",
-            "lifecyclePhase": "10. Claims Management",
-            "stage": "Contestability Assessment",
-            "targetEntity": "T_CLAIM_ASSESSMENT",
-            "ruleName": "2-Year Contestability Period Investigation Trigger",
-            "condition": "If Event Date is within 2 years of Commencement Date or Reinstatement Date -> Trigger Mandatory Claim Investigation.",
-            "severity": "ROUTING",
-            "errorCode": "ROUTE_CLM_INVESTIGATION",
-            "errorMessage": "Claim occurred within 2-year contestable window. Mandatory investigation for non-disclosure / pre-existing conditions.",
-            "systemAction": "Routes claim to Special Investigation Unit (SIU) queue; blocks fast-track settlement.",
-            "actuarialBasis": "Article 28 Insurance Business Law: protects risk pool from fraudulent anti-selection and non-disclosure.",
-            "pdfPage": 296
+            "name": "Admission Date & Discharge Date",
+            "type": "Date Range",
+            "req": true,
+            "note": "Thời gian điều trị nội trú thực tế"
           },
           {
-            "ruleId": "VAL-CLM-003",
-            "module": "MOD_06",
-            "moduleName": "Claims Management (CLM APP)",
-            "lifecyclePhase": "10. Claims Management",
-            "stage": "Benefit Conflict Check",
-            "targetEntity": "T_CLAIM_ASSESSMENT",
-            "ruleName": "Critical Illness vs TPD Installment Conflict Check",
-            "condition": "When saving CI claim decision, system validates if there is an ongoing TPD installment claim on the same policy.",
-            "severity": "SOFT_WARNING",
-            "errorCode": "WARN_CLM_ONGOING_TPD_CONFLICT",
-            "errorMessage": "Ongoing TPD claim detected with remaining unpaid installments. Verify total benefit acceleration limits.",
-            "systemAction": "Prompts warning message to claim assessor and prompts confirmation to continue.",
-            "actuarialBasis": "Prevents double-paying accelerated benefits that share the same unified core life sum assured pool.",
-            "pdfPage": 337
+            "name": "Inpatient Days",
+            "type": "Integer (Auto)",
+            "req": true,
+            "note": "Số ngày nằm viện nội trú tính toán"
           },
           {
-            "ruleId": "VAL-CLM-004",
-            "module": "MOD_06",
-            "moduleName": "Claims Management (CLM APP)",
-            "lifecyclePhase": "10. Claims Management",
-            "stage": "Document Completeness",
-            "targetEntity": "T_CLAIM_DOCUMENT",
-            "ruleName": "Proof of Loss Document Completeness Verification",
-            "condition": "All required claim documents must have Completeness IND = 'Y' or Waived IND = 'Y' before decision sign-off.",
-            "severity": "SOFT_WARNING",
-            "errorCode": "WARN_CLM_UNCOMPLETED_DOCS",
-            "errorMessage": "There is uncompleted required document. Please confirm to continue?",
-            "systemAction": "Displays modal confirmation prompt; logs supervisor waiver in audit trail.",
-            "actuarialBasis": "Legal documentation integrity required to defend settlement against reinsurance audit.",
-            "pdfPage": 337
-          },
-          {
-            "ruleId": "VAL-CLM-005",
-            "module": "MOD_06",
-            "moduleName": "Claims Management (CLM APP)",
-            "lifecyclePhase": "10. Claims Management",
-            "stage": "Claim Payout Calculation",
-            "targetEntity": "T_CLAIM_PAYOUT",
-            "ruleName": "Indebtedness Deduction from Gross Claim Payout",
-            "condition": "Net Claim Payout = Approved Claim SA + Reversionary/Terminal Bonuses - Outstanding Loans - Accrued Interest - Overdue Premiums.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CLM_CALCULATION_DISCREPANCY",
-            "errorMessage": "Net payout must automatically deduct all outstanding policy debts before disbursement.",
-            "systemAction": "Calculates net disbursement voucher and sets policy loan status to `CLOSED_BY_CLAIM`.",
-            "actuarialBasis": "Senior creditor right: insurer possesses absolute statutory right of offset against claims proceeds for policy debts.",
-            "pdfPage": 318
-          }
-        ]
-      },
-      {
-        "code": "SOP-CLM-02",
-        "title": "Claim Investigation & 2-Year Statutory Contestability Verification",
-        "ui_path": "Claims > Claim Evaluation > Investigation & Verification Tab",
-        "prerequisites": [
-          "Claim case registered with verified document checklist"
-        ],
-        "steps": [
-          "1. From Claims Work List, open target Claim Case.",
-          "2. Click 'Evaluation & Investigation' tab.",
-          "3. System displays Contestability Analysis:\n   - Duration since Policy Inception: Displays exact elapsed months (e.g. '14 Months').\n   - If Duration < 24 Months: Red Flag 'CONTESTABLE CLAIM - INITIATE MEDICAL VERIFICATION'.",
-          "4. If contestable: Assign Claim Investigator to verify prior medical history at national health databases and primary care clinics.",
-          "5. Compare historical hospital admission records against original proposal Declaration Questionnaire (Module 02).",
-          "6. If material non-disclosure detected (e.g. undisclosed pre-existing cancer treatment prior to application signing):",
-          "   - Record evidence in Non-Disclosure Findings panel.",
-          "   - System prepares Claim Repudiation & Policy Rescission recommendation for Legal/Claims Committee review.",
-          "7. If no non-disclosure or claim is incontestable (>24 months): Check 'Claim Valid & Incontestable' to proceed to Benefit Calculation."
-        ],
-        "fields_table": [
-          {
-            "name": "Elapsed Inforce Months",
+            "name": "ICU Days",
             "type": "Integer",
-            "required": "Read-only",
-            "desc": "Months from inception/reinstatement to event date"
+            "req": false,
+            "note": "Số ngày nằm phòng chăm sóc đặc biệt (ICU)"
           },
           {
-            "name": "Contestability Flag",
-            "type": "Status (Contestable / Incontestable)",
-            "required": "Read-only",
-            "desc": "Under 24 months requires investigation"
-          },
-          {
-            "name": "Investigation Summary",
-            "type": "Rich Text",
-            "required": "Yes",
-            "desc": "Investigator's factual report"
-          }
-        ],
-        "actuary_notes": "2-year incontestability clause protects insurer from pre-existing anti-selection while providing legal certainty to bona fide policyholders.",
-        "op_notes": "Early claims (within first 90-180 days) automatically route to Senior Claims Manager queue.",
-        "pdf_page": 316,
-        "validation_rules": [
-          {
-            "ruleId": "VAL-CLM-001",
-            "module": "MOD_06",
-            "moduleName": "Claims Management (CLM APP)",
-            "lifecyclePhase": "10. Claims Management",
-            "stage": "Coverage Verification",
-            "targetEntity": "T_CLAIM",
-            "ruleName": "Inforce Status on Incident Date Rule",
-            "condition": "Policy must have been in status 'INFORCE' or 'INFORCE_APL' on the exact Claim Event Date (`CLAIM_EVENT_DATE`).",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CLM_POLICY_NOT_INFORCE_ON_EVENT",
-            "errorMessage": "Policy was lapsed, surrendered, or not yet commenced on the incident date. Claim must be declined.",
-            "systemAction": "Auto-flags claim as 'Decline Recommended' with contractual coverage failure reason.",
-            "actuarialBasis": "No insurance liability exists outside active premium-funded coverage windows.",
-            "pdfPage": 271
-          },
-          {
-            "ruleId": "VAL-CLM-002",
-            "module": "MOD_06",
-            "moduleName": "Claims Management (CLM APP)",
-            "lifecyclePhase": "10. Claims Management",
-            "stage": "Contestability Assessment",
-            "targetEntity": "T_CLAIM_ASSESSMENT",
-            "ruleName": "2-Year Contestability Period Investigation Trigger",
-            "condition": "If Event Date is within 2 years of Commencement Date or Reinstatement Date -> Trigger Mandatory Claim Investigation.",
-            "severity": "ROUTING",
-            "errorCode": "ROUTE_CLM_INVESTIGATION",
-            "errorMessage": "Claim occurred within 2-year contestable window. Mandatory investigation for non-disclosure / pre-existing conditions.",
-            "systemAction": "Routes claim to Special Investigation Unit (SIU) queue; blocks fast-track settlement.",
-            "actuarialBasis": "Article 28 Insurance Business Law: protects risk pool from fraudulent anti-selection and non-disclosure.",
-            "pdfPage": 296
-          },
-          {
-            "ruleId": "VAL-CLM-003",
-            "module": "MOD_06",
-            "moduleName": "Claims Management (CLM APP)",
-            "lifecyclePhase": "10. Claims Management",
-            "stage": "Benefit Conflict Check",
-            "targetEntity": "T_CLAIM_ASSESSMENT",
-            "ruleName": "Critical Illness vs TPD Installment Conflict Check",
-            "condition": "When saving CI claim decision, system validates if there is an ongoing TPD installment claim on the same policy.",
-            "severity": "SOFT_WARNING",
-            "errorCode": "WARN_CLM_ONGOING_TPD_CONFLICT",
-            "errorMessage": "Ongoing TPD claim detected with remaining unpaid installments. Verify total benefit acceleration limits.",
-            "systemAction": "Prompts warning message to claim assessor and prompts confirmation to continue.",
-            "actuarialBasis": "Prevents double-paying accelerated benefits that share the same unified core life sum assured pool.",
-            "pdfPage": 337
-          },
-          {
-            "ruleId": "VAL-CLM-004",
-            "module": "MOD_06",
-            "moduleName": "Claims Management (CLM APP)",
-            "lifecyclePhase": "10. Claims Management",
-            "stage": "Document Completeness",
-            "targetEntity": "T_CLAIM_DOCUMENT",
-            "ruleName": "Proof of Loss Document Completeness Verification",
-            "condition": "All required claim documents must have Completeness IND = 'Y' or Waived IND = 'Y' before decision sign-off.",
-            "severity": "SOFT_WARNING",
-            "errorCode": "WARN_CLM_UNCOMPLETED_DOCS",
-            "errorMessage": "There is uncompleted required document. Please confirm to continue?",
-            "systemAction": "Displays modal confirmation prompt; logs supervisor waiver in audit trail.",
-            "actuarialBasis": "Legal documentation integrity required to defend settlement against reinsurance audit.",
-            "pdfPage": 337
-          },
-          {
-            "ruleId": "VAL-CLM-005",
-            "module": "MOD_06",
-            "moduleName": "Claims Management (CLM APP)",
-            "lifecyclePhase": "10. Claims Management",
-            "stage": "Claim Payout Calculation",
-            "targetEntity": "T_CLAIM_PAYOUT",
-            "ruleName": "Indebtedness Deduction from Gross Claim Payout",
-            "condition": "Net Claim Payout = Approved Claim SA + Reversionary/Terminal Bonuses - Outstanding Loans - Accrued Interest - Overdue Premiums.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CLM_CALCULATION_DISCREPANCY",
-            "errorMessage": "Net payout must automatically deduct all outstanding policy debts before disbursement.",
-            "systemAction": "Calculates net disbursement voucher and sets policy loan status to `CLOSED_BY_CLAIM`.",
-            "actuarialBasis": "Senior creditor right: insurer possesses absolute statutory right of offset against claims proceeds for policy debts.",
-            "pdfPage": 318
-          }
-        ]
-      },
-      {
-        "code": "SOP-CLM-03",
-        "title": "Benefit Calculation Engine: Adjudicating Death Claims & Offsetting Outstanding Loans",
-        "ui_path": "Claims > Claim Evaluation > Benefit Calculation Tab",
-        "prerequisites": [
-          "Claim validated as compensable by claims assessor"
-        ],
-        "steps": [
-          "1. Click 'Benefit Calculation' tab in Claims Worksheet.",
-          "2. System automatically loads active policy coverage schedule and calculates Gross Benefit:\n   - Main Plan Sum Assured: $100,000 USD\n   - Accumulated Reversionary Bonus: $7,200 USD\n   - Terminal Bonus: $2,500 USD\n   - AD&D Benefit (if accident verified): $50,000 USD\n   - Total Gross Claim Benefit: $159,700 USD.",
-          "3. In Debt Offsetting Grid, system automatically retrieves and nets out liabilities:\n   - Outstanding Policy Loan Principal: -$5,000 USD\n   - Accrued Loan Interest: -$215 USD\n   - Unpaid Grace Period Premiums (if event occurred in grace): -$0.00\n   - Plus Unearned Premium Refund: +$140 USD.",
-          "4. Net Settlement Amount = $154,625 USD.",
-          "5. In Nominee Allocation panel, system divides net settlement according to registered beneficiary percentages (e.g. Nominee 1 50% = $77,312.50, Nominee 2 50% = $77,312.50).",
-          "6. Click 'Approve Benefit Calculation'. Step Result: Case advances to Multi-Tier Authorization queue."
-        ],
-        "fields_table": [
-          {
-            "name": "Gross Death Benefit",
+            "name": "Total Invoiced Amount",
             "type": "Currency",
-            "required": "Read-only",
-            "desc": "Sum Assured + Vested Bonuses + Accidental benefit"
+            "req": true,
+            "note": "Tổng số tiền ghi trên hóa đơn bệnh viện"
           },
           {
-            "name": "Outstanding Policy Debt",
+            "name": "Non-covered Amount",
             "type": "Currency",
-            "required": "Read-only",
-            "desc": "Principal plus interest deducted at source"
+            "req": false,
+            "note": "Chi phí ngoài phạm vi (thuốc bổ, dịch vụ tự chọn)"
           },
           {
-            "name": "Net Benefit Payout",
-            "type": "Currency",
-            "required": "Read-only",
-            "desc": "Final funds released to registered nominees"
-          }
-        ],
-        "actuary_notes": "Actuarial formula: Net Death Payout = Max(SA, Total Premiums) + Vested Bonuses - Policy Loan - Loan Interest + Unearned Premium.",
-        "op_notes": "Death claim settlement automatically updates Life Assured status to 'DECEASED' across all system modules.",
-        "pdf_page": 324,
-        "validation_rules": [
-          {
-            "ruleId": "VAL-CLM-003",
-            "module": "MOD_06",
-            "moduleName": "Claims Management (CLM APP)",
-            "lifecyclePhase": "10. Claims Management",
-            "stage": "Benefit Conflict Check",
-            "targetEntity": "T_CLAIM_ASSESSMENT",
-            "ruleName": "Critical Illness vs TPD Installment Conflict Check",
-            "condition": "When saving CI claim decision, system validates if there is an ongoing TPD installment claim on the same policy.",
-            "severity": "SOFT_WARNING",
-            "errorCode": "WARN_CLM_ONGOING_TPD_CONFLICT",
-            "errorMessage": "Ongoing TPD claim detected with remaining unpaid installments. Verify total benefit acceleration limits.",
-            "systemAction": "Prompts warning message to claim assessor and prompts confirmation to continue.",
-            "actuarialBasis": "Prevents double-paying accelerated benefits that share the same unified core life sum assured pool.",
-            "pdfPage": 337
-          },
-          {
-            "ruleId": "VAL-CLM-005",
-            "module": "MOD_06",
-            "moduleName": "Claims Management (CLM APP)",
-            "lifecyclePhase": "10. Claims Management",
-            "stage": "Claim Payout Calculation",
-            "targetEntity": "T_CLAIM_PAYOUT",
-            "ruleName": "Indebtedness Deduction from Gross Claim Payout",
-            "condition": "Net Claim Payout = Approved Claim SA + Reversionary/Terminal Bonuses - Outstanding Loans - Accrued Interest - Overdue Premiums.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CLM_CALCULATION_DISCREPANCY",
-            "errorMessage": "Net payout must automatically deduct all outstanding policy debts before disbursement.",
-            "systemAction": "Calculates net disbursement voucher and sets policy loan status to `CLOSED_BY_CLAIM`.",
-            "actuarialBasis": "Senior creditor right: insurer possesses absolute statutory right of offset against claims proceeds for policy debts.",
-            "pdfPage": 318
-          }
-        ]
-      },
-      {
-        "code": "SOP-CLM-04",
-        "title": "Executing Claim Settlement & Policy Lifecycle Termination Disposal",
-        "ui_path": "Claims > Claim Approval > Settlement Execution",
-        "prerequisites": [
-          "Benefit calculation approved by authorized Claims Manager / Committee"
-        ],
-        "steps": [
-          "1. Log in with Claims Approval authority level.",
-          "2. In Claims Approval Worklist, select target case and click 'Approve Settlement'.",
-          "3. System prompts for Final Disposal Action confirmation:\n   - For Total Death Claim: System initiates 'Contract Termination by Death'.\n   - For Accelerated Critical Illness Claim: Base Sum Assured is reduced by CI payout; remaining death benefit continues.\n   - For Hospital Cash Reimbursement: Policy remains fully inforce.",
-          "4. Click 'Confirm & Execute Settlement'. Step Result:\n   - System creates Disbursement Vouchers in Payment Module 07 for each beneficiary.\n   - Transitions Policy Status in SOR from 'INFORCE' to 'TERMINATED_CLAIM'.\n   - Reverses remaining case reserves and posts settled claim expense to financial ledger.\n   - Generates official Claim Settlement Voucher PDF."
-        ],
-        "fields_table": [
-          {
-            "name": "Approval Sign-Off",
-            "type": "Action",
-            "required": "Yes",
-            "desc": "Claims Manager electronic signature"
-          },
-          {
-            "name": "Policy Disposal State",
-            "type": "System Status",
-            "required": "Read-only",
-            "desc": "TERMINATED_CLAIM, INFORCE_REDUCED, INFORCE_ACTIVE"
-          }
-        ],
-        "actuary_notes": "Claim payment finalizes actual-to-expected mortality experience records for annual actuarial valuation studies.",
-        "op_notes": "Settlement notification is automatically transmitted to servicing agent to facilitate death certificate hand-over.",
-        "pdf_page": 336,
-        "validation_rules": [
-          {
-            "ruleId": "VAL-CLM-001",
-            "module": "MOD_06",
-            "moduleName": "Claims Management (CLM APP)",
-            "lifecyclePhase": "10. Claims Management",
-            "stage": "Coverage Verification",
-            "targetEntity": "T_CLAIM",
-            "ruleName": "Inforce Status on Incident Date Rule",
-            "condition": "Policy must have been in status 'INFORCE' or 'INFORCE_APL' on the exact Claim Event Date (`CLAIM_EVENT_DATE`).",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CLM_POLICY_NOT_INFORCE_ON_EVENT",
-            "errorMessage": "Policy was lapsed, surrendered, or not yet commenced on the incident date. Claim must be declined.",
-            "systemAction": "Auto-flags claim as 'Decline Recommended' with contractual coverage failure reason.",
-            "actuarialBasis": "No insurance liability exists outside active premium-funded coverage windows.",
-            "pdfPage": 271
-          },
-          {
-            "ruleId": "VAL-CLM-002",
-            "module": "MOD_06",
-            "moduleName": "Claims Management (CLM APP)",
-            "lifecyclePhase": "10. Claims Management",
-            "stage": "Contestability Assessment",
-            "targetEntity": "T_CLAIM_ASSESSMENT",
-            "ruleName": "2-Year Contestability Period Investigation Trigger",
-            "condition": "If Event Date is within 2 years of Commencement Date or Reinstatement Date -> Trigger Mandatory Claim Investigation.",
-            "severity": "ROUTING",
-            "errorCode": "ROUTE_CLM_INVESTIGATION",
-            "errorMessage": "Claim occurred within 2-year contestable window. Mandatory investigation for non-disclosure / pre-existing conditions.",
-            "systemAction": "Routes claim to Special Investigation Unit (SIU) queue; blocks fast-track settlement.",
-            "actuarialBasis": "Article 28 Insurance Business Law: protects risk pool from fraudulent anti-selection and non-disclosure.",
-            "pdfPage": 296
-          },
-          {
-            "ruleId": "VAL-CLM-003",
-            "module": "MOD_06",
-            "moduleName": "Claims Management (CLM APP)",
-            "lifecyclePhase": "10. Claims Management",
-            "stage": "Benefit Conflict Check",
-            "targetEntity": "T_CLAIM_ASSESSMENT",
-            "ruleName": "Critical Illness vs TPD Installment Conflict Check",
-            "condition": "When saving CI claim decision, system validates if there is an ongoing TPD installment claim on the same policy.",
-            "severity": "SOFT_WARNING",
-            "errorCode": "WARN_CLM_ONGOING_TPD_CONFLICT",
-            "errorMessage": "Ongoing TPD claim detected with remaining unpaid installments. Verify total benefit acceleration limits.",
-            "systemAction": "Prompts warning message to claim assessor and prompts confirmation to continue.",
-            "actuarialBasis": "Prevents double-paying accelerated benefits that share the same unified core life sum assured pool.",
-            "pdfPage": 337
-          },
-          {
-            "ruleId": "VAL-CLM-004",
-            "module": "MOD_06",
-            "moduleName": "Claims Management (CLM APP)",
-            "lifecyclePhase": "10. Claims Management",
-            "stage": "Document Completeness",
-            "targetEntity": "T_CLAIM_DOCUMENT",
-            "ruleName": "Proof of Loss Document Completeness Verification",
-            "condition": "All required claim documents must have Completeness IND = 'Y' or Waived IND = 'Y' before decision sign-off.",
-            "severity": "SOFT_WARNING",
-            "errorCode": "WARN_CLM_UNCOMPLETED_DOCS",
-            "errorMessage": "There is uncompleted required document. Please confirm to continue?",
-            "systemAction": "Displays modal confirmation prompt; logs supervisor waiver in audit trail.",
-            "actuarialBasis": "Legal documentation integrity required to defend settlement against reinsurance audit.",
-            "pdfPage": 337
-          },
-          {
-            "ruleId": "VAL-CLM-005",
-            "module": "MOD_06",
-            "moduleName": "Claims Management (CLM APP)",
-            "lifecyclePhase": "10. Claims Management",
-            "stage": "Claim Payout Calculation",
-            "targetEntity": "T_CLAIM_PAYOUT",
-            "ruleName": "Indebtedness Deduction from Gross Claim Payout",
-            "condition": "Net Claim Payout = Approved Claim SA + Reversionary/Terminal Bonuses - Outstanding Loans - Accrued Interest - Overdue Premiums.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_CLM_CALCULATION_DISCREPANCY",
-            "errorMessage": "Net payout must automatically deduct all outstanding policy debts before disbursement.",
-            "systemAction": "Calculates net disbursement voucher and sets policy loan status to `CLOSED_BY_CLAIM`.",
-            "actuarialBasis": "Senior creditor right: insurer possesses absolute statutory right of offset against claims proceeds for policy debts.",
-            "pdfPage": 318
-          }
-        ]
-      },
-      {
-        "code": "SOP-CLM-05",
-        "title": "Adjudicating Living Benefit Claims: Critical Illness (CI) & Cashless Hospital Income Settlement",
-        "ui_path": "Main Menu > Claims Management > Living Benefits Workbench > Adjudicate Claim",
-        "prerequisites": [
-          "Supplementary Rider is in 'INFORCE_RIDER' status at time of event occurrence",
-          "Medical records, pathology reports, hospital discharge summary, and attending physician statement submitted"
-        ],
-        "steps": [
-          "1. Open Claims Management > Living Benefits Workbench > Search Policy Number.",
-          "2. Select Claim Benefit Type: 'Critical Illness (Major/Minor)' or 'Hospital Income Daily Cash Benefit'.",
-          "3. Verify Contractual Waiting Period & Survival Period:\n   - Critical Illness: System validates that Date of Diagnosis >= Policy Commence Date + 90 Days Waiting Period.\n   - Check Survival Period condition: Insured must survive at least 14 days post-diagnosis for specific CI definitions.",
-          "4. In the Diagnosis & Medical Adjudication Panel:\n   - Select ICD-10 Diagnosis Code (e.g. 'C34 Malignant neoplasm of bronchus and lung' or 'I21 Acute myocardial infarction').\n   - Cross-reference with standard 50 CI contractual definitions in eBao Medical Ontology.",
-          "5. Benefit Calculation Engine:\n   - For Critical Illness: Benefit Amount = 100% of Rider Sum Assured (Accelerated reduces Base Plan SA; Additional pays on top without reducing Base SA).\n   - For Hospital Income: Days of Confinement (Deductible 0-1 day) * Daily Benefit Limit + ICU Intensive Care 200% Loading.",
-          "6. Offset Outstanding Debt:\n   - System checks open policy loans or unpaid premiums during grace period, auto-netting debt from gross benefit payout.",
-          "7. Approve Settlement Voucher:\n   - Click 'Authorize Payout'. System generates T_CLAIM_DISBURSEMENT, triggers bank EFT transfer, and updates rider status to 'TERMINATED_CLAIMED'."
-        ],
-        "fields_table": [
-          {
-            "name": "Claim Benefit Type",
-            "type": "Select",
-            "required": "Yes",
-            "desc": "CI Major, CI Minor, Hospital Cash, TPD"
-          },
-          {
-            "name": "ICD-10 Code",
-            "type": "Search / Select",
-            "required": "Yes",
-            "desc": "Standard medical diagnosis code"
-          },
-          {
-            "name": "Date of Diagnosis",
-            "type": "Date",
-            "required": "Yes",
-            "desc": "Must satisfy 90-day waiting period"
-          },
-          {
-            "name": "Net Benefit Payable",
+            "name": "Deductible Applied",
             "type": "Currency (Auto)",
-            "required": "Auto",
-            "desc": "Gross claim minus unpaid premiums and debt"
+            "req": true,
+            "note": "Mức miễn thường khấu trừ theo quy tắc sản phẩm"
+          },
+          {
+            "name": "Co-insurance Ratio",
+            "type": "Percentage",
+            "req": true,
+            "note": "Tỷ lệ đồng chi trả của công ty bảo hiểm (80%, 90%, 100%)"
           }
+        ]
+      },
+      {
+        "id": "SOP-CLM-04",
+        "title": "Benefit Liability Evaluation & Claim Accumulator Tracking",
+        "screen": "Claims > Policy Evaluation > Liability Evaluation (P.283-288)",
+        "prerequisites": [
+          "Hồ sơ bồi thường ở trạng thái 'Waiting for Evaluation'.",
+          "Các hóa đơn y tế (nếu có) đã được hoàn tất nhập liệu và kiểm tra tính hợp lệ."
         ],
-        "actuary_notes": "Accelerated CI claims immediately reduce base sum assured and future gross premium reserve liabilities. Additional CI leaves base policy intact.",
-        "op_notes": "Electronic integration with hospital billing systems allows direct cashless guarantee of payment (GOP) issuance.",
-        "pdf_page": 260,
+        "steps": [
+          "Bước 1: Từ Claims Worklist, nhấp mở hồ sơ đang chờ thẩm định để hiển thị màn hình Case Summary of Evaluation (Figure 9, P.281).",
+          "Bước 2: Nhấp vào từng sản phẩm được chấp thuận để mở trang Claims Policy Evaluation Page (Figure 10, P.283).",
+          "Bước 3: Tại vùng Liability Evaluation, tích chọn quyền lợi bảo hiểm tương ứng cần giải quyết (Tử vong, Thương tật, Bệnh hiểm nghèo, Viện phí, Phẫu thuật).",
+          "Bước 4: Nhấn nút 'Compute' để hệ thống tự động chạy công thức định phí: Tính toán Evaluation Payment Amount (Số tiền theo công thức lý thuyết) và Claimed Payment Amount (Số tiền sau khi trừ các giới hạn tích lũy Accumulator) (P.287).",
+          "Bước 5: Nhấp liên kết Accumulator Information để kiểm tra lịch sử chi trả lũy kế: Đối chiếu Hạn mức trọn đời (Lifetime Limit), Hạn mức theo năm hợp đồng (Annual Limit), và Hạn mức theo đợt điều trị (Per Event Limit).",
+          "Bước 6: Trường hợp cần điều chỉnh: Nhập số tiền điều chỉnh tại ô Payment Amount trong mục Product Adjustment và ghi rõ lý do chuyên môn (P.284).",
+          "Bước 7: Chọn Quyết định bồi thường tại mục Claim Decision: Admit (Chấp thuận chi trả 100%), Ex-gratia-Full (Chi trả nhân đạo 100%), Ex-gratia-Partial (Chi trả nhân đạo một phần), Repudiate (Từ chối bồi thường), hoặc Denied & Rescind (Từ chối và hủy hợp đồng) (P.285, 290).",
+          "Bước 8: Nhấn 'Save' để cập nhật kết quả thẩm định quyền lợi của từng sản phẩm."
+        ],
         "validation_rules": [
           {
-            "ruleId": "VAL-CLM-003",
-            "module": "MOD_06",
-            "moduleName": "Claims Management (CLM APP)",
-            "lifecyclePhase": "10. Claims Management",
-            "stage": "Benefit Conflict Check",
-            "targetEntity": "T_CLAIM_ASSESSMENT",
-            "ruleName": "Critical Illness vs TPD Installment Conflict Check",
-            "condition": "When saving CI claim decision, system validates if there is an ongoing TPD installment claim on the same policy.",
-            "severity": "SOFT_WARNING",
-            "errorCode": "WARN_CLM_ONGOING_TPD_CONFLICT",
-            "errorMessage": "Ongoing TPD claim detected with remaining unpaid installments. Verify total benefit acceleration limits.",
-            "systemAction": "Prompts warning message to claim assessor and prompts confirmation to continue.",
-            "actuarialBasis": "Prevents double-paying accelerated benefits that share the same unified core life sum assured pool.",
-            "pdfPage": 337
+            "ruleId": "VAL-CLM-008",
+            "name": "Accumulator Remaining Limit Hard Stop",
+            "severity": "HARD_STOP",
+            "errorCode": "ERR_CLM_ACCUMULATOR_EXCEEDED",
+            "description": "Số tiền chi trả thẩm định không được vượt quá Hạn mức bồi thường lũy kế còn lại (Remaining Accumulator Limit) của quyền lợi đó (P.284, 287)."
+          },
+          {
+            "ruleId": "VAL-CLM-009",
+            "name": "Mandatory Repudiation Reason Justification",
+            "severity": "HARD_STOP",
+            "errorCode": "ERR_CLM_REPUDIATE_REASON_REQ",
+            "description": "Nếu quyết định là Repudiate hoặc Denied & Rescind, bắt buộc phải chọn Mã lý do từ chối chuẩn và nhập thuyết minh căn cứ pháp lý/y khoa chi tiết (P.285, 290)."
+          }
+        ],
+        "ui_fields": [
+          {
+            "name": "Liability Name",
+            "type": "Text (Read-only)",
+            "req": true,
+            "note": "Tên quyền lợi bảo hiểm cụ thể đang thẩm định"
+          },
+          {
+            "name": "Sum Assured @ Event Date",
+            "type": "Currency",
+            "req": true,
+            "note": "Số tiền bảo hiểm có hiệu lực tại ngày xảy ra sự kiện"
+          },
+          {
+            "name": "Evaluation Payment Amount",
+            "type": "Currency (Auto-calc)",
+            "req": true,
+            "note": "Số tiền tính toán lý thuyết theo công thức sản phẩm"
+          },
+          {
+            "name": "Remaining Accumulator Limit",
+            "type": "Currency (Read-only)",
+            "req": true,
+            "note": "Hạn mức tích lũy còn lại trong năm hoặc trọn đời"
+          },
+          {
+            "name": "Actual Payment Amount",
+            "type": "Currency",
+            "req": true,
+            "note": "Số tiền thực tế quyết định chi trả (sau điều chỉnh)"
+          },
+          {
+            "name": "Claim Decision",
+            "type": "Dropdown List",
+            "req": true,
+            "note": "Admit, Ex-gratia-Full, Ex-gratia-Partial, Repudiate, Rescind"
+          },
+          {
+            "name": "Adjustment Reason",
+            "type": "Dropdown List & Textarea",
+            "req": false,
+            "note": "Lý do điều chỉnh số tiền chi trả"
+          }
+        ]
+      },
+      {
+        "id": "SOP-CLM-05",
+        "title": "Waiver of Premium (WP) Evaluation & Policy Premium Waiver Activation",
+        "screen": "Claims > Case Evaluation > Waive Claims Evaluation (P.289-291)",
+        "prerequisites": [
+          "Hợp đồng có đính kèm sản phẩm bổ trợ Miễn đóng phí (Waiver of Premium Rider) hoặc có điều khoản miễn đóng phí trong sản phẩm chính.",
+          "Người được bảo hiểm của quyền lợi miễn phí đã thỏa mãn định nghĩa tổn thất (Bệnh hiểm nghèo giai đoạn cuối, TPD, hoặc tử vong đối với gói bảo hiểm cho con)."
+        ],
+        "steps": [
+          "Bước 1: Trên trang Case Evaluation - Policy, nhấp chọn sản phẩm bổ trợ Miễn đóng phí đã được chấp thuận (P.289).",
+          "Bước 2: Trong mục Liability Evaluation, tích chọn quyền lợi Waiver Liability và nhấn 'Compute'.",
+          "Bước 3: Tại phần Evaluated Product Options: Đánh dấu thiết lập cờ 'Premium Waive = YES' (P.290).",
+          "Bước 4: Thiết lập Ngày bắt đầu miễn phí (Waiver Start Date): Mặc định là Ngày đến hạn đóng phí tiếp theo (Next Due Date - NDD) ngay sau ngày xảy ra sự kiện tổn thất.",
+          "Bước 5: Thiết lập Ngày kết thúc miễn phí (Waiver End Date): Mặc định bằng Ngày đáo hạn của sản phẩm được miễn phí (Product Expiry Date) hoặc khi Người được bảo hiểm đạt độ tuổi tối đa theo quy tắc sản phẩm.",
+          "Bước 6: Kiểm tra số tiền bảo hiểm được miễn: Sum Assured Waived = 100% Phí bảo hiểm định kỳ của các sản phẩm được bảo hộ (P.291, 340).",
+          "Bước 7: Nhấn 'Save'. Hệ thống tự động cập nhật Policy Payment Summary: Đổi trạng thái phí của các sản phẩm liên quan thành 'Premium Waived', ngăn chặn việc kết xuất hóa đơn thu phí định kỳ trong tương lai nhưng duy trì hợp đồng Inforce đầy đủ."
+        ],
+        "validation_rules": [
+          {
+            "ruleId": "VAL-CLM-010",
+            "name": "Waiver Start Date Alignment Rule",
+            "severity": "HARD_STOP",
+            "errorCode": "ERR_CLM_INVALID_WAIVER_START_DATE",
+            "description": "Ngày bắt đầu miễn phí phải là Ngày đến hạn đóng phí kế tiếp (NDD) sau ngày tổn thất. Không được miễn phí hồi tố cho kỳ phí đã thanh toán trước ngày tổn thất (P.290, 340)."
+          },
+          {
+            "ruleId": "VAL-CLM-011",
+            "name": "Waiver End Date Cannot Exceed Product Expiry",
+            "severity": "HARD_STOP",
+            "errorCode": "ERR_CLM_WAIVER_END_EXCEEDS_EXPIRY",
+            "description": "Ngày kết thúc miễn phí không được vượt quá ngày kết thúc thời hạn đóng phí hoặc ngày đáo hạn của hợp đồng chính (P.290)."
+          }
+        ],
+        "ui_fields": [
+          {
+            "name": "Premium Waive Flag",
+            "type": "Toggle (Y/N)",
+            "req": true,
+            "note": "Kích hoạt trạng thái miễn đóng phí cho hợp đồng"
+          },
+          {
+            "name": "Waiver Effective Start Date",
+            "type": "Date Picker",
+            "req": true,
+            "note": "Ngày bắt đầu có hiệu lực miễn nộp phí (Next Due Date)"
+          },
+          {
+            "name": "Waiver Effective End Date",
+            "type": "Date Picker",
+            "req": true,
+            "note": "Ngày kết thúc thời gian miễn nộp phí"
+          },
+          {
+            "name": "Annual Waived Premium Amount",
+            "type": "Currency (Auto)",
+            "req": true,
+            "note": "Tổng số phí bảo hiểm hàng năm được miễn trừ"
+          },
+          {
+            "name": "Waived Products Covered",
+            "type": "Multi-select List",
+            "req": true,
+            "note": "Danh sách các sản phẩm/rider được hưởng cơ chế miễn phí"
+          }
+        ]
+      },
+      {
+        "id": "SOP-CLM-06",
+        "title": "Disbursement Planning, Debt Offsetting & Payee Priority Engine",
+        "screen": "Claims > Case Summary > Disbursement Plan (P.292-295, 337-339)",
+        "prerequisites": [
+          "Tất cả các sản phẩm và quyền lợi trong hồ sơ bồi thường đã được hoàn tất thẩm định (All products evaluated - P.336).",
+          "Tổng số tiền chi trả ròng (Net Benefit Amount) đã được chốt và cân bằng."
+        ],
+        "steps": [
+          "Bước 1: Tại màn hình Case Summary, nhấp chọn mục 'Benefit Amount Allocation / Disbursement Plan' để mở giao diện lập kế hoạch chi trả (Figure 13, P.293).",
+          "Bước 2: Thực hiện cấn trừ công nợ tự động (Automatic Debt Offsetting): Đối với ca bồi thường Tử vong, hệ thống tự động cấn trừ Dư nợ gốc vay hợp đồng + Lãi vay dồn tích (từ T_POL_LOAN) và Phí bảo hiểm định kỳ còn nợ nếu tử vong trong 60 ngày gia hạn (từ T_BCP_INVOICE) (P.286).",
+          "Bước 3: Xác định Phương thức chi trả (Disbursement Plan Type): Chọn 'Lump Sum' (Chi trả 1 lần) hoặc 'Installment' (Chi trả phân kỳ niên kim đối với TPD - P.294).",
+          "Bước 4: Chạy Động cơ Phân bổ Người thụ hưởng (Payee Hierarchy Engine): Hệ thống tự động thiết lập danh sách người nhận tiền (Payee List) theo thứ tự ưu tiên: 1) Assignee (nếu có chuyển nhượng); 2) Trustee (nếu có ủy thác); 3) Beneficiary Nominees (theo tỷ lệ % chỉ định); 4) Policyholder (P.337-338).",
+          "Bước 5: Kiểm tra tính cân bằng phân bổ: Tổng Allocated Disbursement Amount phải bằng chính xác 100% số tiền chi trả sau cấn trừ (Disbursement Balance = 0 VND).",
+          "Bước 6: Chọn Kênh thanh toán cho từng Payee: Direct Credit (Chuyển khoản ngân hàng - nhập Tên ngân hàng, Chi nhánh, Số tài khoản, Tên chủ TK), Nhận tiền mặt tại quầy (Cheque / Cashier), hoặc Chuyển nộp phí cho hợp đồng khác (Transfer to Policy) (P.338).",
+          "Bước 7: Nhấn 'Save' để hoàn tất kế hoạch giải ngân."
+        ],
+        "validation_rules": [
+          {
+            "ruleId": "VAL-CLM-012",
+            "name": "Allocated Amount Must Exactly Match Payable Balance",
+            "severity": "HARD_STOP",
+            "errorCode": "ERR_CLM_DISBURSEMENT_SUM_MISMATCH",
+            "description": "Tổng số tiền phân bổ cho tất cả người thụ hưởng phải bằng 100% số tiền bồi thường ròng sau khi cấn trừ nợ (P.336)."
+          },
+          {
+            "ruleId": "VAL-CLM-013",
+            "name": "Death Claim Outstanding Premium & Loan Offsetting",
+            "severity": "HARD_STOP",
+            "errorCode": "ERR_CLM_MANDATORY_DEBT_OFFSET",
+            "description": "Đối với quyền lợi Tử vong, bắt buộc phải cấn trừ toàn bộ dư nợ vay hợp đồng và phí nợ gia hạn trước khi giải ngân cho người thụ hưởng (P.286, 334)."
+          },
+          {
+            "ruleId": "VAL-CLM-014",
+            "name": "Beneficiary Allocation Percentage Sum Must Equal 100%",
+            "severity": "HARD_STOP",
+            "errorCode": "ERR_CLM_BENEFICIARY_SHARE_SUM_INVALID",
+            "description": "Tổng tỷ lệ phần trăm phân bổ cho các Người thụ hưởng chỉ định bắt buộc phải bằng chính xác 100.00% (P.338)."
+          }
+        ],
+        "ui_fields": [
+          {
+            "name": "Gross Claim Payable",
+            "type": "Currency (Auto)",
+            "req": true,
+            "note": "Tổng quyền lợi bồi thường gộp được duyệt"
+          },
+          {
+            "name": "Offset: Policy Loan Principal & Interest",
+            "type": "Currency (Auto)",
+            "req": true,
+            "note": "Dư nợ gốc vay hợp đồng và lãi vay lũy kế tự động cấn trừ"
+          },
+          {
+            "name": "Offset: Unpaid Grace Premium",
+            "type": "Currency (Auto)",
+            "req": true,
+            "note": "Phí bảo hiểm nợ trong 60 ngày gia hạn tự động cấn trừ"
+          },
+          {
+            "name": "Net Disbursement Amount",
+            "type": "Currency (Auto)",
+            "req": true,
+            "note": "Số tiền bồi thường ròng thực nhận của khách hàng"
+          },
+          {
+            "name": "Disbursement Method",
+            "type": "Dropdown List",
+            "req": true,
+            "note": "Lump Sum (1 lần), Installment Annuity (Phân kỳ hàng năm)"
+          },
+          {
+            "name": "Payee Name & ID",
+            "type": "Party Lookup",
+            "req": true,
+            "note": "Người nhận quyền lợi theo thứ tự ưu tiên pháp lý"
+          },
+          {
+            "name": "Allocation Share %",
+            "type": "Percentage",
+            "req": true,
+            "note": "Tỷ lệ phân chia quyền lợi (Tổng = 100%)"
+          },
+          {
+            "name": "Payment Method",
+            "type": "Dropdown List",
+            "req": true,
+            "note": "Direct Credit (Ngân hàng), Cheque, Transfer to Policy"
+          },
+          {
+            "name": "Bank Name & Account No",
+            "type": "Bank Lookup & Text",
+            "req": true,
+            "note": "Thông tin tài khoản ngân hàng thụ hưởng chính chủ"
+          }
+        ]
+      },
+      {
+        "id": "SOP-CLM-07",
+        "title": "Fraud Investigation, Medical Report Fee & Claims UW Referral",
+        "screen": "Claims > Investigation / Claim UW (P.302-304, 316, 330)",
+        "prerequisites": [
+          "Hồ sơ bồi thường xuất hiện dấu hiệu nghi ngờ gian lận (Red Flag), hoặc tử vong trong vòng 2 năm thử thách (Contestable Period), hoặc hồ sơ phức tạp cần ý kiến chuyên gia Underwriting."
+        ],
+        "steps": [
+          "Bước 1: Từ màn hình Case Acceptance hoặc Evaluation, nhấp chọn nút 'Escalation' hoặc 'Underwriting' (P.280, 303).",
+          "Bước 2: Trường hợp Điều tra trục lợi (Investigation Referral): Chọn Escalation Type = 'Claim Investigator', chọn Lý do Red Flag: Suspicious Claim, Frequent Claims, hoặc Unclear Death Circumstances (P.330). Nhập yêu cầu điều tra chi tiết và gửi hồ sơ.",
+          "Bước 3: Điều tra viên (Claim Investigator) nhận hồ sơ tại Worklist, tiến hành xác minh thực địa tại bệnh viện, hiện trường tai nạn, công an địa phương, và tải lên Báo cáo điều tra (Investigation Report) tại mục Document List (P.298, 302).",
+          "Bước 4: Trường hợp Thẩm định lại rủi ro (Claim UW Referral): Nhấp chọn nút 'Underwriting' để mở giao diện Claim UW Main UI (Figure 23, P.304). Bác sĩ thẩm định rà soát lịch sử kê khai sức khỏe ban đầu so với bệnh án thực tế, đưa ra ý kiến thẩm định chuyên môn (UW Opinion: Admit, Rescind do không kê khai trung thực, hoặc Exclude).",
+          "Bước 5: Trường hợp cần thanh toán phí trích sao bệnh án: Truy cập menu Claims > Medical Report Fee, tạo phiếu chi trả chi phí thu thập bệnh án cho Bệnh viện/Phòng khám với số tiền quy định (P.316).",
+          "Bước 6: Trưởng ban điều tra hoặc Bác sĩ UW gửi phản hồi chính thức (Respond Escalation). Trạng thái hồ sơ được cập nhật và quay trở lại bàn làm việc của Cán bộ bồi thường để tiếp tục quy trình."
+        ],
+        "validation_rules": [
+          {
+            "ruleId": "VAL-CLM-015",
+            "name": "Pending Investigation / UW Referral Must Be Responded Before Approval",
+            "severity": "HARD_STOP",
+            "errorCode": "ERR_CLM_PENDING_ESCALATION_BLOCK",
+            "description": "Không thể nộp hồ sơ phê duyệt nếu yêu cầu điều tra hoặc trưng cầu ý kiến Underwriting chưa được gửi phản hồi chính thức (P.336)."
+          }
+        ],
+        "ui_fields": [
+          {
+            "name": "Escalation Type",
+            "type": "Dropdown List",
+            "req": true,
+            "note": "Claim Investigator, Senior Claim Specialist, Claims Underwriter"
+          },
+          {
+            "name": "Reason for Fraud / Red Flag",
+            "type": "Dropdown List",
+            "req": true,
+            "note": "Suspicious Claim, Frequent Claims, Contestable Period, Early Claim"
+          },
+          {
+            "name": "Investigation Instructions",
+            "type": "Textarea",
+            "req": true,
+            "note": "Nội dung chỉ đạo xác minh thực địa và đối chiếu hồ sơ"
+          },
+          {
+            "name": "Investigator Report Findings",
+            "type": "Textarea & Attachment",
+            "req": false,
+            "note": "Kết luận điều tra thực tế kèm tài liệu bằng chứng"
+          },
+          {
+            "name": "UW Clinical Recommendation",
+            "type": "Dropdown & Textarea",
+            "req": false,
+            "note": "Ý kiến kết luận của Bác sĩ thẩm định y khoa"
+          }
+        ]
+      },
+      {
+        "id": "SOP-CLM-08",
+        "title": "Claims Multi-Level DOA Approval, Settlement Execution & Case Reversal",
+        "screen": "Claims > Case Approval & Reversal (P.296-297, 310-311, 340-341)",
+        "prerequisites": [
+          "Kế hoạch chi trả (Disbursement Plan) đã được cân bằng chính xác.",
+          "Tất cả các yêu cầu điều tra, bổ sung tài liệu và query letter đã được phản hồi hoàn tất.",
+          "Cấp duyệt đăng nhập có hạn mức phân quyền tài chính (DOA Level) lớn hơn hoặc bằng tổng số tiền bồi thường cần duyệt."
+        ],
+        "steps": [
+          "Bước 1: Trình duyệt hồ sơ: Từ Case Evaluation, nhấn 'Submit for Approval'. Hồ sơ chuyển sang trạng thái 'Waiting for Approval' (P.296).",
+          "Bước 2: Cán bộ phê duyệt có thẩm quyền mở Claims Approval Worklist, chọn hồ sơ thuộc hạn mức DOA của mình (Figure 16, P.297).",
+          "Bước 3: Rà soát toàn diện: Kiểm tra lại diễn biến tổn thất, mã ICD-10, bảng tính cấn trừ nợ vay/phí nợ, và danh sách người thụ hưởng.",
+          "Bước 4: Nhập quyết định phê duyệt: Nhấp 'Approve' (Đồng thuận chi trả), hoặc 'Reject' (Từ chối duyệt), hoặc 'Escalate' (Trình lên cấp thẩm quyền cao hơn nếu vượt hạn mức) (P.340).",
+          "Bước 5: Thực thi giải ngân & Cập nhật vòng đời hợp đồng tự động (Post-Claim Life Cycle Updates - P.340-341):",
+          "  a. Sinh chứng từ công nợ phải trả bồi thường sang hệ thống Tài chính kế toán (Accounts Payable voucher): Hạch toán Nợ TK 6211 / Có TK 3318 và Nợ TK 3318 / Có TK 1113.",
+          "  b. Thu hồi nợ vay: Hạch toán Có TK 1288 (Tạm ứng đóng phí/Vay HĐ) và Có TK 4111 (Doanh thu phí bảo hiểm nợ).",
+          "  c. Cập nhật trạng thái hợp đồng: Nếu là bồi thường Tử vong Hợp đồng chính -> Chuyển trạng thái Policy Status thành 'TERMINATED_CLAIM', đồng thời chấm dứt toàn bộ Riders.",
+          "  d. Cập nhật trạng thái khách hàng: Đối với ca Tử vong, chuyển trạng thái Party Status của Người được bảo hiểm thành 'DECEASED' (P.341).",
+          "Bước 6: Nghiệp vụ Hủy bồi thường / Thu hồi (Claims Reversal - P.310-311): Trường hợp phát hiện sai sót sau khi đã duyệt, cấp quản lý truy cập menu Claims > Reverse Case, nhập mã hồ sơ và lý do thu hồi, kích hoạt giao dịch đảo bút toán kế toán, khôi phục trạng thái hợp đồng Inforce và gửi thông báo thu hồi tiền bồi thường."
+        ],
+        "validation_rules": [
+          {
+            "ruleId": "VAL-CLM-016",
+            "name": "DOA Financial Authority Limit Enforcement",
+            "severity": "HARD_STOP",
+            "errorCode": "ERR_CLM_APPROVAL_LIMIT_EXCEEDED",
+            "description": "Người phê duyệt chỉ được duyệt các hồ sơ có tổng giá trị bồi thường và giá trị miễn phí nằm trong hạn mức ủy quyền tài chính được cấp. Vượt hạn mức bắt buộc phải trình Escalation lên cấp cao hơn (P.340)."
+          }
+        ],
+        "ui_fields": [
+          {
+            "name": "Approval Officer ID & Role",
+            "type": "Text (Read-only)",
+            "req": true,
+            "note": "Mã và chức danh người đang thực hiện phê duyệt"
+          },
+          {
+            "name": "Officer Financial Authority Cap",
+            "type": "Currency (Read-only)",
+            "req": true,
+            "note": "Hạn mức tiền tối đa người duyệt được quyền quyết định"
+          },
+          {
+            "name": "Total Claim Payable to Approve",
+            "type": "Currency (Read-only)",
+            "req": true,
+            "note": "Tổng số tiền bồi thường cần phê duyệt của hồ sơ"
+          },
+          {
+            "name": "Approval Decision",
+            "type": "Dropdown List",
+            "req": true,
+            "note": "Approve (Duyệt), Reject (Bác bỏ), Escalate (Trình lên cấp trên)"
+          },
+          {
+            "name": "Approval Comments",
+            "type": "Textarea",
+            "req": true,
+            "note": "Ý kiến phê duyệt hoặc lý do yêu cầu điều chỉnh"
+          },
+          {
+            "name": "Post-Approval Policy Status",
+            "type": "Badge (Auto)",
+            "req": true,
+            "note": "Trạng thái hợp đồng sau khi duyệt: TERMINATED, WAIVED, INFORCE_PAID"
+          },
+          {
+            "name": "Party Status Updated",
+            "type": "Badge (Auto)",
+            "req": true,
+            "note": "Trạng thái khách hàng cập nhật: DECEASED"
           }
         ]
       }
     ],
-    "sop_count": 5,
+    "sop_count": 8,
     "interconnections": {
       "module_code": "CLM_APP",
       "upstream_sources": [
@@ -11540,83 +11681,115 @@ window.EBAO_MODULES = [
     "validation_rules": [
       {
         "ruleId": "VAL-CLM-001",
-        "module": "MOD_06",
-        "moduleName": "Claims Management (CLM APP)",
-        "lifecyclePhase": "10. Claims Management",
-        "stage": "Coverage Verification",
-        "targetEntity": "T_CLAIM",
-        "ruleName": "Inforce Status on Incident Date Rule",
-        "condition": "Policy must have been in status 'INFORCE' or 'INFORCE_APL' on the exact Claim Event Date (`CLAIM_EVENT_DATE`).",
+        "name": "Event Date & Notification Date Future Check",
         "severity": "HARD_STOP",
-        "errorCode": "ERR_CLM_POLICY_NOT_INFORCE_ON_EVENT",
-        "errorMessage": "Policy was lapsed, surrendered, or not yet commenced on the incident date. Claim must be declined.",
-        "systemAction": "Auto-flags claim as 'Decline Recommended' with contractual coverage failure reason.",
-        "actuarialBasis": "No insurance liability exists outside active premium-funded coverage windows.",
-        "pdfPage": 271
+        "errorCode": "ERR_CLM_FUTURE_DATE_INVALID",
+        "description": "Ngày xảy ra sự kiện và Ngày thông báo bồi thường không được trễ hơn Ngày kinh doanh hiện tại của hệ thống Core PAS (Event Date <= System Date && Notification Date <= System Date)."
       },
       {
         "ruleId": "VAL-CLM-002",
-        "module": "MOD_06",
-        "moduleName": "Claims Management (CLM APP)",
-        "lifecyclePhase": "10. Claims Management",
-        "stage": "Contestability Assessment",
-        "targetEntity": "T_CLAIM_ASSESSMENT",
-        "ruleName": "2-Year Contestability Period Investigation Trigger",
-        "condition": "If Event Date is within 2 years of Commencement Date or Reinstatement Date -> Trigger Mandatory Claim Investigation.",
-        "severity": "ROUTING",
-        "errorCode": "ROUTE_CLM_INVESTIGATION",
-        "errorMessage": "Claim occurred within 2-year contestable window. Mandatory investigation for non-disclosure / pre-existing conditions.",
-        "systemAction": "Routes claim to Special Investigation Unit (SIU) queue; blocks fast-track settlement.",
-        "actuarialBasis": "Article 28 Insurance Business Law: protects risk pool from fraudulent anti-selection and non-disclosure.",
-        "pdfPage": 296
+        "name": "Life Assured Existence & Contract Binding",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_CLM_INVALID_LIFE_ASSURED",
+        "description": "Bắt buộc hồ sơ bồi thường phải gắn với Người được bảo hiểm hợp lệ và có hợp đồng bảo hiểm hiệu lực tương ứng trong hệ thống."
       },
       {
         "ruleId": "VAL-CLM-003",
-        "module": "MOD_06",
-        "moduleName": "Claims Management (CLM APP)",
-        "lifecyclePhase": "10. Claims Management",
-        "stage": "Benefit Conflict Check",
-        "targetEntity": "T_CLAIM_ASSESSMENT",
-        "ruleName": "Critical Illness vs TPD Installment Conflict Check",
-        "condition": "When saving CI claim decision, system validates if there is an ongoing TPD installment claim on the same policy.",
-        "severity": "SOFT_WARNING",
-        "errorCode": "WARN_CLM_ONGOING_TPD_CONFLICT",
-        "errorMessage": "Ongoing TPD claim detected with remaining unpaid installments. Verify total benefit acceleration limits.",
-        "systemAction": "Prompts warning message to claim assessor and prompts confirmation to continue.",
-        "actuarialBasis": "Prevents double-paying accelerated benefits that share the same unified core life sum assured pool.",
-        "pdfPage": 337
+        "name": "Mandatory International ICD-10 Diagnosis Code",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_CLM_MISSING_DIAGNOSIS_CODE",
+        "description": "Bắt buộc phải nhập Mã chẩn đoán y tế ICD-10 trước khi gửi chấp nhận hồ sơ (Case Acceptance Submit) cho tất cả các loại hình bồi thường."
       },
       {
         "ruleId": "VAL-CLM-004",
-        "module": "MOD_06",
-        "moduleName": "Claims Management (CLM APP)",
-        "lifecyclePhase": "10. Claims Management",
-        "stage": "Document Completeness",
-        "targetEntity": "T_CLAIM_DOCUMENT",
-        "ruleName": "Proof of Loss Document Completeness Verification",
-        "condition": "All required claim documents must have Completeness IND = 'Y' or Waived IND = 'Y' before decision sign-off.",
-        "severity": "SOFT_WARNING",
-        "errorCode": "WARN_CLM_UNCOMPLETED_DOCS",
-        "errorMessage": "There is uncompleted required document. Please confirm to continue?",
-        "systemAction": "Displays modal confirmation prompt; logs supervisor waiver in audit trail.",
-        "actuarialBasis": "Legal documentation integrity required to defend settlement against reinsurance audit.",
-        "pdfPage": 337
+        "name": "Active Coverage Date Range Enforcement",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_CLM_POLICY_INELIGIBLE",
+        "description": "Chặn tiếp nhận nếu Ngày xảy ra sự kiện rủi ro nằm ngoài thời hạn bảo hiểm (Event Date < Risk Commencement Date hoặc Event Date > Coverage End Date)."
       },
       {
         "ruleId": "VAL-CLM-005",
-        "module": "MOD_06",
-        "moduleName": "Claims Management (CLM APP)",
-        "lifecyclePhase": "10. Claims Management",
-        "stage": "Claim Payout Calculation",
-        "targetEntity": "T_CLAIM_PAYOUT",
-        "ruleName": "Indebtedness Deduction from Gross Claim Payout",
-        "condition": "Net Claim Payout = Approved Claim SA + Reversionary/Terminal Bonuses - Outstanding Loans - Accrued Interest - Overdue Premiums.",
+        "name": "Automatic Mandatory Policy Freezing on Death",
         "severity": "HARD_STOP",
-        "errorCode": "ERR_CLM_CALCULATION_DISCREPANCY",
-        "errorMessage": "Net payout must automatically deduct all outstanding policy debts before disbursement.",
-        "systemAction": "Calculates net disbursement voucher and sets policy loan status to `CLOSED_BY_CLAIM`.",
-        "actuarialBasis": "Senior creditor right: insurer possesses absolute statutory right of offset against claims proceeds for policy debts.",
-        "pdfPage": 318
+        "errorCode": "ERR_CLM_DEATH_FREEZE_MANDATORY",
+        "description": "Đối với yêu cầu bồi thường Tử vong (Death Claim), hệ thống bắt buộc kích hoạt cờ Freeze Policy = TRUE và không cho phép người dùng bỏ chọn để phong tỏa toàn bộ giao dịch hợp đồng."
+      },
+      {
+        "ruleId": "VAL-CLM-006",
+        "name": "Medical Bill Inpatient Date Sequence Check",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_CLM_INVALID_HOSPITAL_DATES",
+        "description": "Ngày ra viện (Discharge Date) phải lớn hơn hoặc bằng Ngày vào viện (Admission Date). Số ngày nằm viện không được vượt quá khoảng cách thực tế giữa hai ngày."
+      },
+      {
+        "ruleId": "VAL-CLM-007",
+        "name": "Medical Deductible & Co-insurance Math Validation",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_CLM_BILL_MATH_MISMATCH",
+        "description": "Số tiền bồi thường viện phí hợp lệ được tính chính xác: Eligible Amount = Min(Invoiced Amount - Excluded Items - Deductible, Annual Cap) * Co-insurance %."
+      },
+      {
+        "ruleId": "VAL-CLM-008",
+        "name": "Accumulator Remaining Limit Hard Stop",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_CLM_ACCUMULATOR_EXCEEDED",
+        "description": "Số tiền thẩm định bồi thường không được vượt quá Hạn mức bồi thường lũy kế còn lại (Remaining Accumulator Limit) của quyền lợi đó trong năm hoặc trọn đời."
+      },
+      {
+        "ruleId": "VAL-CLM-009",
+        "name": "Mandatory Reason Code for Claim Repudiation / Rescission",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_CLM_REPUDIATE_REASON_REQ",
+        "description": "Khi quyết định bồi thường là Repudiate (Từ chối) hoặc Denied & Rescind (Hủy HĐ), bắt buộc phải chọn Mã lý do từ chối chuẩn và nhập đầy đủ thuyết minh căn cứ pháp lý/y khoa."
+      },
+      {
+        "ruleId": "VAL-CLM-010",
+        "name": "Waiver of Premium Start Date Alignment",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_CLM_INVALID_WAIVER_START_DATE",
+        "description": "Ngày bắt đầu có hiệu lực miễn nộp phí bảo hiểm (Waiver Start Date) phải trùng khớp với Ngày đến hạn đóng phí định kỳ kế tiếp (Next Due Date) sau ngày sự kiện tổn thất."
+      },
+      {
+        "ruleId": "VAL-CLM-011",
+        "name": "Waiver End Date Expiry Boundary Check",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_CLM_WAIVER_END_EXCEEDS_EXPIRY",
+        "description": "Ngày kết thúc thời hạn miễn đóng phí không được vượt quá Ngày kết thúc thời hạn đóng phí hoặc Ngày đáo hạn của sản phẩm được bảo vệ."
+      },
+      {
+        "ruleId": "VAL-CLM-012",
+        "name": "Disbursement Allocation Mathematical Balance (100% Match)",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_CLM_DISBURSEMENT_SUM_MISMATCH",
+        "description": "Tổng số tiền phân bổ trong Kế hoạch chi trả (Allocated Disbursement Amount) phải bằng chính xác 100% Số tiền bồi thường ròng phải chi trả (Balance Amount = 0 VND)."
+      },
+      {
+        "ruleId": "VAL-CLM-013",
+        "name": "Death Claim Automatic Debt & Outstanding Premium Offsetting",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_CLM_MANDATORY_DEBT_OFFSET",
+        "description": "Đối với quyền lợi Tử vong, hệ thống bắt buộc tự động khấu trừ toàn bộ Dư nợ vay hợp đồng gốc + Lãi vay gộp và Phí bảo hiểm định kỳ còn nợ (trong 60 ngày gia hạn) trước khi giải ngân."
+      },
+      {
+        "ruleId": "VAL-CLM-014",
+        "name": "Beneficiary Nominee Share Percentage Sum = 100%",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_CLM_BENEFICIARY_SHARE_SUM_INVALID",
+        "description": "Tổng tỷ lệ phần trăm phân bổ cho các Người thụ hưởng chỉ định trong danh sách chi trả bắt buộc phải bằng chính xác 100.00%."
+      },
+      {
+        "ruleId": "VAL-CLM-015",
+        "name": "Pending Investigation & Claims UW Blocking Rule",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_CLM_PENDING_ESCALATION_BLOCK",
+        "description": "Chặn nộp phê duyệt hồ sơ nếu có yêu cầu Điều tra xác minh gian lận hoặc yêu cầu Thẩm định rủi ro y khoa đang ở trạng thái Pending chưa có ý kiến phản hồi."
+      },
+      {
+        "ruleId": "VAL-CLM-016",
+        "name": "DOA Multi-Level Financial Authority Limit Enforcement",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_CLM_APPROVAL_LIMIT_EXCEEDED",
+        "description": "Cán bộ phê duyệt chỉ được duyệt hồ sơ có tổng số tiền bồi thường và số tiền miễn phí nằm trong hạn mức ủy quyền tài chính DOA được phân quyền. Vượt hạn mức bắt buộc trình Escalation lên cấp cao hơn."
       }
     ],
     "validation_rules_count": 5

@@ -575,7 +575,7 @@ function renderModuleDossier(moduleId) {
   `).join('');
 
   // 5. Summary split into clean bullets
-  const summarySentences = mod.summary.split(/(?<=\.)\s+/).filter(s => s.trim().length > 0);
+  const summarySentences = Array.isArray(mod.summary) ? mod.summary : (typeof mod.summary === 'string' ? mod.summary.split(/(?<=\.)\s+/).filter(s => s.trim().length > 0) : []);
   const summaryHtml = summarySentences.map(s => `
     <li class="flex items-start gap-2.5 text-xs text-slate-700 leading-relaxed">
       <span class="w-1.5 h-1.5 rounded-full bg-blue-600 mt-1.5 flex-shrink-0"></span>
@@ -676,7 +676,25 @@ function renderModuleDossier(moduleId) {
         </button>
       </div>
     `;
-  }
+
+  } else if (mod.id === 'MOD_06') {
+    milestoneBannerHtml = `
+      <div class="mb-6 p-4 rounded-xl bg-purple-50 border border-purple-200 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-2xs">
+        <div class="flex items-center gap-3">
+          <span class="p-2 bg-purple-100 text-purple-800 rounded-lg">${window.getLineIcon ? window.getLineIcon('heart', 'w-5 h-5') : ''}</span>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-purple-900 uppercase font-mono">Quy Tắc Trọng Yếu Bồi Thường & Cấn Trừ Nợ</span>
+              <span class="text-[10px] bg-purple-200 text-purple-900 font-bold px-1.5 py-0.5 rounded">Tự Động Khóa Hợp Đồng & Cấn Trừ Phí Nợ / Vay HĐ</span>
+            </div>
+            <p class="text-xs text-purple-800 mt-0.5">Tiếp nhận hồ sơ Tử vong kích hoạt <b>Freeze Policy = TRUE</b> toàn diện. Hệ thống tự động cấn trừ Dư nợ vay gốc + Lãi vay dồn tích (TK 1288) và Phí bảo hiểm định kỳ chưa đóng trong 60 ngày gia hạn (TK 4111) trước khi giải ngân theo thứ tự ưu tiên <b>Assignee > Trustee > Beneficiary Nominees (%) > Policyholder</b>.</p>
+          </div>
+        </div>
+        <button onclick="document.getElementById('sec-clm-interactive-engine')?.scrollIntoView({behavior: 'smooth'})" class="px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-lg whitespace-nowrap shadow-sm transition-all">
+          Mở Bàn Làm Việc Claims & Bộ Tính Bồi Thường Net →
+        </button>
+      </div>
+    `;  }
 
   // 6. Database Tables
   const modTables = (window.EBAO_TABLES || []).filter(t => t.module === mod.id);
@@ -932,6 +950,37 @@ function renderModuleDossier(moduleId) {
       </div>
     ` : ''}
 
+    <!-- SPECIALIZED CLAIMS ASSESSMENT & SETTLEMENT WORKBENCH (Only for MOD_06) -->
+    ${mod.id === 'MOD_06' ? `
+      <div id="sec-clm-interactive-engine" class="mb-6 p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-5">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200 pb-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="p-1.5 bg-purple-100 text-purple-700 rounded-lg">${window.getLineIcon ? window.getLineIcon('heart', 'w-4 h-4') : ''}</span>
+              <h3 class="font-extrabold text-sm text-slate-900 uppercase tracking-wider">
+                Interactive Claims Assessment, Debt Offsetting & Settlement Engine Simulator
+              </h3>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Mô phỏng toàn diện quy trình thẩm định quyền lợi bồi thường (Tử vong, Thương tật, Bệnh hiểm nghèo, Viện phí), cơ chế phong tỏa hợp đồng Freeze Policy, tự động cấn trừ Dư nợ vay + Phí nợ gia hạn, và phân bổ chi trả đa cấp.</p>
+          </div>
+          <!-- Sub-mode Tabs -->
+          <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
+            <button id="btn-clm-tab-liability" onclick="renderClmSimulator('liability')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-purple-900 shadow-2xs">
+              Benefit Liability & Debt Offsetting
+            </button>
+            <button id="btn-clm-tab-medical" onclick="renderClmSimulator('medical')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
+              Medical Bills, Co-pay & Deductibles
+            </button>
+          </div>
+        </div>
+
+        <!-- Dynamic Container for Active Sub-mode -->
+        <div id="clm-simulator-content" class="space-y-4">
+          <!-- Populated dynamically by renderClmSimulator() -->
+        </div>
+      </div>
+    ` : ''}
+
     ${mod.id === 'MOD_07' ? `
       <div id="sec-gl-interactive-engine" class="mb-6 p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-5">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200 pb-3">
@@ -1089,6 +1138,10 @@ function renderModuleDossier(moduleId) {
   } else if (mod.id === 'MOD_05') {
     setTimeout(() => {
       if (window.renderBcpSimulator) renderBcpSimulator('grace');
+    }, 50);
+  } else if (mod.id === 'MOD_06') {
+    setTimeout(() => {
+      if (window.renderClmSimulator) renderClmSimulator('liability');
     }, 50);
   }
 }
@@ -4971,3 +5024,494 @@ window.onBcpColChannelChange = onBcpColChannelChange;
 window.onBcpColAmtChange = onBcpColAmtChange;
 window.onBcpColMatchScenario = onBcpColMatchScenario;
 window.calculateBcpCollection = calculateBcpCollection;
+
+
+// ============================================================================
+// 10. MOD_06 INTERACTIVE CLAIMS SIMULATOR (LIABILITY & MEDICAL BILLS)
+// ============================================================================
+window.CLM_SIM_STATE = {
+  currentTab: 'liability',
+  claimType: 'DEATH', // DEATH, TPD, CI, MEDICAL, WAIVER
+  sumAssured: 1000000000,
+  terminalBonus: 120000000,
+  policyLoanPrincipal: 80000000,
+  loanAccruedInterest: 5200000,
+  unpaidGracePremium: 24000000,
+  hasAssignee: true,
+  assigneeSharePct: 30, // 30% to Bank Assignee
+  beneficiary1SharePct: 50,
+  beneficiary2SharePct: 20,
+  tpdMethod: 'LUMP_SUM', // LUMP_SUM, INSTALLMENT_10YR
+  // Medical Bill inputs
+  inpatientDays: 7,
+  roomDailyRate: 1500000,
+  roomPolicyLimit: 1000000,
+  surgeryAmount: 45000000,
+  prescriptionAmount: 18000000,
+  excludedExpenses: 3500000,
+  deductiblePerEvent: 2000000,
+  coinsurancePct: 80, // 80% Insurer / 20% Insured
+  annualRemainingCap: 150000000,
+  diagnosisCode: 'I21.9' // Acute Myocardial Infarction
+};
+
+function renderClmSimulator(mode) {
+  if (mode) window.CLM_SIM_STATE.currentTab = mode;
+  const tab = window.CLM_SIM_STATE.currentTab;
+
+  const btnLiab = document.getElementById('btn-clm-tab-liability');
+  const btnMed = document.getElementById('btn-clm-tab-medical');
+  const container = document.getElementById('clm-simulator-content');
+  if (!container) return;
+
+  if (tab === 'liability') {
+    if (btnLiab) btnLiab.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-purple-900 shadow-2xs';
+    if (btnMed) btnMed.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900';
+    renderClmLiabilityView(container);
+  } else {
+    if (btnLiab) btnLiab.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900';
+    if (btnMed) btnMed.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-purple-900 shadow-2xs';
+    renderClmMedicalView(container);
+  }
+}
+
+function renderClmLiabilityView(container) {
+  const state = window.CLM_SIM_STATE;
+
+  container.innerHTML = `
+    <!-- Top Regulations Banner -->
+    <div class="p-3 bg-purple-50 rounded-xl border border-purple-200 text-xs text-purple-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span class="p-1 bg-purple-200 text-purple-900 rounded font-bold font-mono text-[10px]">ĐIỀU 31 & 37 LUẬT KDBH 2022</span>
+        <span><b>Quy tắc Quyết toán Bồi thường & Cấn trừ Nợ (P.286 Gemini User Guide):</b> Hợp đồng tự động gắn <code>FREEZE_POLICY = TRUE</code>. Khấu trừ 100% dư nợ gốc vay HĐ, lãi dồn tích và phí định kỳ chưa đóng trong 60 ngày gia hạn trước khi giải ngân theo thứ tự ưu tiên pháp lý.</span>
+      </div>
+      <span class="text-[10px] font-mono font-bold bg-white px-2 py-0.5 rounded border border-purple-300 text-purple-800">Core PAS: CLM-SETTLE-01</span>
+    </div>
+
+    <!-- Interactive Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <!-- Left: Inputs (5 cols) -->
+      <div class="lg:col-span-5 p-4 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+          <span class="font-bold text-xs text-slate-900 uppercase">Thông Số Hồ Sơ Bồi Thường & Công Nợ</span>
+          <span class="text-[10px] font-mono text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200 font-bold">T_CLM_CASE</span>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-medium text-slate-600 mb-1">Loại hình bồi thường (Claim Type):</label>
+          <div class="grid grid-cols-4 gap-1.5">
+            <button onclick="onClmTypeChange('DEATH')" class="py-1.5 text-center text-xs font-bold rounded-lg border transition-all ${state.claimType === 'DEATH' ? 'bg-purple-600 text-white border-purple-600 shadow-2xs' : 'bg-slate-50 text-slate-700 border-slate-200'}">
+              Tử Vong<br/><span class="text-[9px] font-normal opacity-90">(Death)</span>
+            </button>
+            <button onclick="onClmTypeChange('TPD')" class="py-1.5 text-center text-xs font-bold rounded-lg border transition-all ${state.claimType === 'TPD' ? 'bg-purple-600 text-white border-purple-600 shadow-2xs' : 'bg-slate-50 text-slate-700 border-slate-200'}">
+              Thương Tật<br/><span class="text-[9px] font-normal opacity-90">(TPD)</span>
+            </button>
+            <button onclick="onClmTypeChange('CI')" class="py-1.5 text-center text-xs font-bold rounded-lg border transition-all ${state.claimType === 'CI' ? 'bg-purple-600 text-white border-purple-600 shadow-2xs' : 'bg-slate-50 text-slate-700 border-slate-200'}">
+              Bệnh Hiểm Nghèo<br/><span class="text-[9px] font-normal opacity-90">(CI)</span>
+            </button>
+            <button onclick="onClmTypeChange('WAIVER')" class="py-1.5 text-center text-xs font-bold rounded-lg border transition-all ${state.claimType === 'WAIVER' ? 'bg-purple-600 text-white border-purple-600 shadow-2xs' : 'bg-slate-50 text-slate-700 border-slate-200'}">
+              Miễn Đóng Phí<br/><span class="text-[9px] font-normal opacity-90">(WP)</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Số tiền bảo hiểm (SA):</label>
+            <input type="number" step="50000000" value="${state.sumAssured}" id="inp-clm-sa" onchange="onClmLiabInputChange('sumAssured', this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono font-bold text-slate-900">
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Bảo tức tích lũy / TIV:</label>
+            <input type="number" step="10000000" value="${state.terminalBonus}" id="inp-clm-bonus" onchange="onClmLiabInputChange('terminalBonus', this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono font-bold text-purple-700">
+          </div>
+        </div>
+
+        <!-- Debt Offsetting Inputs (Only for DEATH) -->
+        <div class="p-2.5 rounded-lg border ${state.claimType === 'DEATH' ? 'bg-rose-50/60 border-rose-200' : 'bg-slate-50 border-slate-200 opacity-60'} space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold ${state.claimType === 'DEATH' ? 'text-rose-900' : 'text-slate-500'} uppercase">Công Nợ Phải Cấn Trừ (Chỉ Áp Dụng Cho Tử Vong)</span>
+            <span class="text-[10px] font-mono text-slate-400">P.286 eBao</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-1.5 text-xs">
+            <div>
+              <label class="block text-[10px] text-slate-600 mb-0.5">Nợ gốc vay HĐ:</label>
+              <input type="number" step="5000000" value="${state.policyLoanPrincipal}" ${state.claimType !== 'DEATH' ? 'disabled' : ''} onchange="onClmLiabInputChange('policyLoanPrincipal', this.value)" class="w-full bg-white border border-slate-300 rounded p-1 font-mono text-[11px] text-rose-800 font-bold">
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-600 mb-0.5">Lãi vay dồn tích:</label>
+              <input type="number" step="500000" value="${state.loanAccruedInterest}" ${state.claimType !== 'DEATH' ? 'disabled' : ''} onchange="onClmLiabInputChange('loanAccruedInterest', this.value)" class="w-full bg-white border border-slate-300 rounded p-1 font-mono text-[11px] text-rose-800">
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-600 mb-0.5">Phí nợ 60 ngày gia hạn:</label>
+              <input type="number" step="2000000" value="${state.unpaidGracePremium}" ${state.claimType !== 'DEATH' ? 'disabled' : ''} onchange="onClmLiabInputChange('unpaidGracePremium', this.value)" class="w-full bg-white border border-slate-300 rounded p-1 font-mono text-[11px] text-amber-800 font-bold">
+            </div>
+          </div>
+        </div>
+
+        <!-- Payee Priority Structure -->
+        <div class="space-y-1.5 text-xs">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-[11px] text-slate-800 uppercase">Cơ Cấu Người Thụ Hưởng (Payee Hierarchy)</span>
+            <span class="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200 font-bold">Total: 100%</span>
+          </div>
+
+          <div class="grid grid-cols-1 gap-1.5">
+            <div class="p-2 bg-slate-50 rounded border border-slate-200 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-slate-900 block text-[11px]">1. Assignee Bank (Thế chấp tín dụng)</span>
+                <span class="text-[10px] text-slate-500">Ưu tiên số 1 nhận tiền chi trả</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <input type="number" min="0" max="100" value="${state.assigneeSharePct}" onchange="onClmLiabInputChange('assigneeSharePct', this.value)" class="w-16 bg-white border border-slate-300 rounded p-1 font-mono font-bold text-right text-xs">
+                <span class="text-xs font-bold text-slate-600">%</span>
+              </div>
+            </div>
+
+            <div class="p-2 bg-slate-50 rounded border border-slate-200 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-slate-900 block text-[11px]">2. Người thụ hưởng 1 (Vợ / Chồng)</span>
+                <span class="text-[10px] text-slate-500">Beneficiary Nominee 1</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <input type="number" min="0" max="100" value="${state.beneficiary1SharePct}" onchange="onClmLiabInputChange('beneficiary1SharePct', this.value)" class="w-16 bg-white border border-slate-300 rounded p-1 font-mono font-bold text-right text-xs">
+                <span class="text-xs font-bold text-slate-600">%</span>
+              </div>
+            </div>
+
+            <div class="p-2 bg-slate-50 rounded border border-slate-200 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-slate-900 block text-[11px]">3. Người thụ hưởng 2 (Con cái)</span>
+                <span class="text-[10px] text-slate-500">Beneficiary Nominee 2</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <input type="number" min="0" max="100" value="${state.beneficiary2SharePct}" onchange="onClmLiabInputChange('beneficiary2SharePct', this.value)" class="w-16 bg-white border border-slate-300 rounded p-1 font-mono font-bold text-right text-xs">
+                <span class="text-xs font-bold text-slate-600">%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button onclick="calculateClmLiability()" class="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-lg transition-all shadow-sm">
+          Thực Thi Thẩm Định & Quyết Toán Bồi Thường →
+        </button>
+      </div>
+
+      <!-- Right: Realtime Assessment & Accounting Output (7 cols) -->
+      <div class="lg:col-span-7 space-y-3">
+        <!-- Results Card -->
+        <div id="clm-liab-result-card" class="p-4 bg-slate-50 rounded-xl border border-slate-200 shadow-2xs space-y-3">
+          <!-- Dynamically populated by calculateClmLiability() -->
+        </div>
+      </div>
+    </div>
+  `;
+
+  calculateClmLiability();
+}
+
+function calculateClmLiability() {
+  const state = window.CLM_SIM_STATE;
+  const resultCard = document.getElementById('clm-liab-result-card');
+  if (!resultCard) return;
+
+  const grossPayable = state.sumAssured + state.terminalBonus;
+  let totalLoanDebt = 0;
+  let unpaidPrem = 0;
+
+  if (state.claimType === 'DEATH') {
+    totalLoanDebt = state.policyLoanPrincipal + state.loanAccruedInterest;
+    unpaidPrem = state.unpaidGracePremium;
+  }
+
+  const netPayable = Math.max(0, grossPayable - totalLoanDebt - unpaidPrem);
+
+  // Payee distribution
+  const totalSharePct = Number(state.assigneeSharePct) + Number(state.beneficiary1SharePct) + Number(state.beneficiary2SharePct);
+  const shareValid = Math.abs(totalSharePct - 100) < 0.01;
+
+  const assigneeAmt = (netPayable * state.assigneeSharePct) / 100;
+  const bene1Amt = (netPayable * state.beneficiary1SharePct) / 100;
+  const bene2Amt = (netPayable * state.beneficiary2SharePct) / 100;
+
+  // Formatting
+  const fmt = (v) => Number(v).toLocaleString('vi-VN') + ' VND';
+
+  resultCard.innerHTML = `
+    <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+      <div>
+        <span class="text-[10px] font-mono uppercase text-slate-500 font-bold block">KẾT QUẢ QUYẾT TOÁN THẨM ĐỊNH QUYỀN LỢI</span>
+        <h4 class="font-extrabold text-sm text-slate-900">${state.claimType === 'DEATH' ? 'TỬ VONG (DEATH CLAIM)' : (state.claimType === 'TPD' ? 'THƯƠNG TẬT TOÀN BỘ VĨNH VIỄN' : (state.claimType === 'CI' ? 'BỆNH HIỂM NGHÈO (CRITICAL ILLNESS)' : 'MIỄN ĐÓNG PHÍ (WAIVER OF PREMIUM)'))}</h4>
+      </div>
+      <span id="clm-liab-status-badge" class="px-2.5 py-1 rounded-full text-xs font-bold font-mono ${state.claimType === 'DEATH' ? 'bg-purple-100 text-purple-900 border border-purple-300' : 'bg-emerald-100 text-emerald-900 border border-emerald-300'}">
+        ${state.claimType === 'DEATH' ? 'SETTLED & TERMINATED' : 'SETTLED & INFORCE'}
+      </span>
+    </div>
+
+    <!-- Settlement Waterfall Breakdown -->
+    <div class="p-3 bg-white rounded-xl border border-slate-200 space-y-2 text-xs">
+      <div class="flex justify-between items-center text-slate-700">
+        <span>Quyền lợi bồi thường gộp (Gross Benefit = SA + Bonus):</span>
+        <span class="font-mono font-bold text-slate-900">${fmt(grossPayable)}</span>
+      </div>
+      ${state.claimType === 'DEATH' ? `
+        <div class="flex justify-between items-center text-rose-700 pl-3 border-l-2 border-rose-300">
+          <span>(-) Cấn trừ nợ gốc & lãi vay hợp đồng (Policy Loan Offset):</span>
+          <span class="font-mono font-bold">-${fmt(totalLoanDebt)}</span>
+        </div>
+        <div class="flex justify-between items-center text-amber-700 pl-3 border-l-2 border-amber-300">
+          <span>(-) Cấn trừ phí định kỳ nợ trong 60 ngày gia hạn (Grace Premium):</span>
+          <span class="font-mono font-bold">-${fmt(unpaidPrem)}</span>
+        </div>
+      ` : `
+        <div class="text-[11px] text-slate-500 italic pl-3 border-l-2 border-slate-200">
+          (Theo quy tắc Core PAS P.286: Quyền lợi sống TPD/CI không cấn trừ nợ phí bảo hiểm)
+        </div>
+      `}
+      <div class="border-t border-slate-200 pt-2 flex justify-between items-center text-sm font-extrabold text-purple-900 bg-purple-50/50 p-2 rounded-lg">
+        <span>SỐ TIỀN BỒI THƯỜNG RÒNG THỰC NHẬN (NET CLAIM PAYABLE):</span>
+        <span class="font-mono text-base text-purple-950">${fmt(netPayable)}</span>
+      </div>
+    </div>
+
+    <!-- Payee Allocation Table -->
+    <div class="space-y-1.5 text-xs">
+      <div class="flex justify-between items-center">
+        <span class="font-bold text-[11px] text-slate-800 uppercase">Kế Hoạch Giải Ngân Người Thụ Hưởng (Disbursement Schedule)</span>
+        ${!shareValid ? '<span class="text-red-600 font-bold text-[10px]">LỖI: Tổng tỷ lệ phải đúng 100%!</span>' : '<span class="text-emerald-700 font-bold text-[10px]">Tỷ lệ hợp lệ 100%</span>'}
+      </div>
+      <div class="p-2.5 bg-white rounded-xl border border-slate-200 space-y-1.5 font-mono text-[11px]">
+        <div class="flex justify-between items-center text-slate-700 border-b border-slate-100 pb-1">
+          <span>1. Assignee Bank (${state.assigneeSharePct}%):</span>
+          <span class="font-bold text-slate-900">${fmt(assigneeAmt)}</span>
+        </div>
+        <div class="flex justify-between items-center text-slate-700 border-b border-slate-100 pb-1">
+          <span>2. Beneficiary 1 (${state.beneficiary1SharePct}%):</span>
+          <span class="font-bold text-slate-900">${fmt(bene1Amt)}</span>
+        </div>
+        <div class="flex justify-between items-center text-slate-700">
+          <span>3. Beneficiary 2 (${state.beneficiary2SharePct}%):</span>
+          <span class="font-bold text-slate-900">${fmt(bene2Amt)}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Core PAS Life Cycle & GL Subledger Synchronization -->
+    <div class="grid grid-cols-2 gap-2 text-xs">
+      <div class="p-2.5 bg-slate-100 rounded-xl border border-slate-200 space-y-1">
+        <span class="font-bold text-slate-800 text-[11px] block">Trạng Thái Hệ Thống Core PAS</span>
+        <div class="text-[10px] space-y-0.5">
+          <div>Policy Freezing: <b class="text-rose-700">${state.claimType === 'DEATH' ? 'LOCKED (TRUE)' : 'UNLOCKED'}</b></div>
+          <div>Policy Status: <b class="text-purple-800">${state.claimType === 'DEATH' ? 'TERMINATED_CLAIM' : (state.claimType === 'WAIVER' ? 'INFORCE (PREM_WAIVED)' : 'INFORCE_PAID')}</b></div>
+          <div>Life Assured Status: <b class="${state.claimType === 'DEATH' ? 'text-red-700' : 'text-emerald-700'}">${state.claimType === 'DEATH' ? 'DECEASED' : 'ACTIVE'}</b></div>
+          <div>DOA Approval Level: <b class="text-blue-700">D_CLM_AUTH_L100 (CFO / Board)</b></div>
+        </div>
+      </div>
+
+      <div class="p-2.5 bg-slate-900 text-white rounded-xl space-y-1 font-mono text-[10px]">
+        <span class="font-bold text-amber-400 text-[11px] block font-sans">Bút Toán Sổ Phụ GL (Auto-Journal)</span>
+        <div class="space-y-0.5 text-slate-300">
+          <div class="text-emerald-400">Nợ TK 6211: ${fmt(grossPayable)}</div>
+          ${totalLoanDebt > 0 ? `<div class="text-rose-300 pl-2">Có TK 1288 (Thu hồi vay): ${fmt(totalLoanDebt)}</div>` : ''}
+          ${unpaidPrem > 0 ? `<div class="text-amber-300 pl-2">Có TK 4111 (Thu phí nợ): ${fmt(unpaidPrem)}</div>` : ''}
+          <div class="text-purple-300 pl-2">Có TK 3318 (Phải trả bồi thường): ${fmt(netPayable)}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function onClmTypeChange(type) {
+  window.CLM_SIM_STATE.claimType = type;
+  renderClmLiabilityView(document.getElementById('clm-simulator-content'));
+}
+
+function onClmLiabInputChange(field, val) {
+  window.CLM_SIM_STATE[field] = Number(val);
+  calculateClmLiability();
+}
+
+function renderClmMedicalView(container) {
+  const state = window.CLM_SIM_STATE;
+
+  container.innerHTML = `
+    <!-- Top Regulations Banner -->
+    <div class="p-3 bg-blue-50 rounded-xl border border-blue-200 text-xs text-blue-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span class="p-1 bg-blue-200 text-blue-900 rounded font-bold font-mono text-[10px]">MEDICAL BILL ASSESSMENT</span>
+        <span><b>Quy tắc Thẩm định Viện phí & Đồng chi trả (P.300-301, 328 Gemini User Guide):</b> Khấu trừ chi phí không hợp lệ và mức miễn thường (Deductible), áp dụng tỷ lệ đồng chi trả Co-pay (80/20 hoặc 90/10) và khống chế hạn mức năm tích lũy.</span>
+      </div>
+      <span class="text-[10px] font-mono font-bold bg-white px-2 py-0.5 rounded border border-blue-300 text-blue-800">T_CLM_MED_BILL</span>
+    </div>
+
+    <!-- Medical Bill Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <!-- Input Controls (5 cols) -->
+      <div class="lg:col-span-5 p-4 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+          <span class="font-bold text-xs text-slate-900 uppercase">Hóa Đơn Viện Phí & Điều Trị Nội Trú</span>
+          <span class="text-[10px] font-mono text-slate-400">ICD-10: ${state.diagnosisCode}</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Số ngày nằm viện thực tế:</label>
+            <input type="number" min="1" max="90" value="${state.inpatientDays}" onchange="onClmMedInputChange('inpatientDays', this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono font-bold text-slate-900">
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Giá phòng thực tế / ngày:</label>
+            <input type="number" step="100000" value="${state.roomDailyRate}" onchange="onClmMedInputChange('roomDailyRate', this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono font-bold text-slate-900">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Hạn mức tiền phòng hợp đồng:</label>
+            <input type="number" step="100000" value="${state.roomPolicyLimit}" onchange="onClmMedInputChange('roomPolicyLimit', this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono text-purple-700 font-bold">
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Chi phí phẫu thuật:</label>
+            <input type="number" step="5000000" value="${state.surgeryAmount}" onchange="onClmMedInputChange('surgeryAmount', this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono text-slate-900">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Thuốc men & xét nghiệm:</label>
+            <input type="number" step="2000000" value="${state.prescriptionAmount}" onchange="onClmMedInputChange('prescriptionAmount', this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono text-slate-900">
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Chi phí ngoài phạm vi (Loại trừ):</label>
+            <input type="number" step="500000" value="${state.excludedExpenses}" onchange="onClmMedInputChange('excludedExpenses', this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono text-rose-700">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Mức miễn thường (Deductible):</label>
+            <input type="number" step="500000" value="${state.deductiblePerEvent}" onchange="onClmMedInputChange('deductiblePerEvent', this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono text-amber-800">
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Tỷ lệ đồng chi trả công ty:</label>
+            <select onchange="onClmMedInputChange('coinsurancePct', this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-bold text-slate-800">
+              <option value="80" ${state.coinsurancePct === 80 ? 'selected' : ''}>80% Công ty / 20% Khách hàng</option>
+              <option value="90" ${state.coinsurancePct === 90 ? 'selected' : ''}>90% Công ty / 10% Khách hàng</option>
+              <option value="100" ${state.coinsurancePct === 100 ? 'selected' : ''}>100% Công ty bảo hiểm</option>
+            </select>
+          </div>
+        </div>
+
+        <button onclick="calculateClmMedical()" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg transition-all shadow-sm">
+          Tính Toán Chi Trả Viện Phí & Đối Soát Hạn Mức →
+        </button>
+      </div>
+
+      <!-- Right: Assessment Result (7 cols) -->
+      <div class="lg:col-span-7 space-y-3">
+        <div id="clm-med-result-card" class="p-4 bg-slate-50 rounded-xl border border-slate-200 shadow-2xs space-y-3">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </div>
+  `;
+
+  calculateClmMedical();
+}
+
+function calculateClmMedical() {
+  const state = window.CLM_SIM_STATE;
+  const resultCard = document.getElementById('clm-med-result-card');
+  if (!resultCard) return;
+
+  const totalRoomActual = state.inpatientDays * state.roomDailyRate;
+  const totalRoomCovered = state.inpatientDays * Math.min(state.roomDailyRate, state.roomPolicyLimit);
+  const roomExcess = totalRoomActual - totalRoomCovered;
+
+  const totalInvoiced = totalRoomActual + state.surgeryAmount + state.prescriptionAmount;
+  const totalExcluded = state.excludedExpenses + roomExcess;
+
+  const coveredBeforeDeductible = Math.max(0, totalInvoiced - totalExcluded);
+  const coveredAfterDeductible = Math.max(0, coveredBeforeDeductible - state.deductiblePerEvent);
+
+  const insurerPayable = (coveredAfterDeductible * state.coinsurancePct) / 100;
+  const finalPayable = Math.min(insurerPayable, state.annualRemainingCap);
+  const customerShare = totalInvoiced - finalPayable;
+
+  const fmt = (v) => Number(v).toLocaleString('vi-VN') + ' VND';
+
+  resultCard.innerHTML = `
+    <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+      <div>
+        <span class="text-[10px] font-mono uppercase text-slate-500 font-bold block">KẾT QUẢ THẨM ĐỊNH HÓA ĐƠN Y TẾ & VIỆN PHÍ</span>
+        <h4 class="font-extrabold text-sm text-slate-900">ĐIỀU TRỊ NỘI TRÚ (${state.inpatientDays} NGÀY) • ICD-10: ${state.diagnosisCode}</h4>
+      </div>
+      <span class="px-2.5 py-1 rounded-full text-xs font-bold font-mono bg-blue-100 text-blue-900 border border-blue-300">
+        APPROVED IN-LIMIT
+      </span>
+    </div>
+
+    <!-- Math Waterfall -->
+    <div class="p-3 bg-white rounded-xl border border-slate-200 space-y-2 text-xs">
+      <div class="flex justify-between items-center text-slate-700">
+        <span>Tổng chi phí trên hóa đơn viện phí:</span>
+        <span class="font-mono font-bold text-slate-900">${fmt(totalInvoiced)}</span>
+      </div>
+      <div class="flex justify-between items-center text-rose-700 pl-3 border-l-2 border-rose-300">
+        <span>(-) Chi phí không thuộc phạm vi + Tiền phòng vượt hạn mức:</span>
+        <span class="font-mono font-bold">-${fmt(totalExcluded)}</span>
+      </div>
+      <div class="flex justify-between items-center text-amber-700 pl-3 border-l-2 border-amber-300">
+        <span>(-) Mức miễn thường áp dụng (Deductible):</span>
+        <span class="font-mono font-bold">-${fmt(state.deductiblePerEvent)}</span>
+      </div>
+      <div class="flex justify-between items-center text-slate-700 pl-3 border-l-2 border-blue-300">
+        <span>(=) Chi phí y tế hợp lệ sau miễn thường:</span>
+        <span class="font-mono font-bold text-blue-950">${fmt(coveredAfterDeductible)}</span>
+      </div>
+      <div class="border-t border-slate-200 pt-2 flex justify-between items-center text-sm font-extrabold text-blue-900 bg-blue-50/50 p-2 rounded-lg">
+        <span>SỐ TIỀN BẢO HIỂM CHI TRẢ (${state.coinsurancePct}%):</span>
+        <span class="font-mono text-base text-blue-950">${fmt(finalPayable)}</span>
+      </div>
+      <div class="flex justify-between items-center text-xs text-slate-600 pt-1">
+        <span>Khách hàng tự chi trả (Đồng chi trả + Miễn thường + Chi phí loại trừ):</span>
+        <span class="font-mono font-bold text-rose-900">${fmt(customerShare)}</span>
+      </div>
+    </div>
+
+    <!-- Accumulator Tracking Card -->
+    <div class="p-3 bg-slate-100 rounded-xl border border-slate-200 space-y-2 text-xs">
+      <div class="flex justify-between items-center">
+        <span class="font-bold text-[11px] text-slate-800 uppercase">Đối Soát Hạn Mức Tích Lũy (Claim Accumulator Tracking)</span>
+        <span class="text-[10px] font-mono text-blue-700 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200">Annual Limit Cap</span>
+      </div>
+      <div class="space-y-1 text-[11px]">
+        <div class="flex justify-between text-slate-600">
+          <span>Hạn mức năm còn lại trước đợt điều trị này:</span>
+          <span class="font-mono font-bold text-slate-800">${fmt(state.annualRemainingCap)}</span>
+        </div>
+        <div class="flex justify-between text-slate-600">
+          <span>Số tiền chi trả lần này:</span>
+          <span class="font-mono font-bold text-blue-700">${fmt(finalPayable)}</span>
+        </div>
+        <div class="flex justify-between text-emerald-800 font-bold border-t border-slate-200 pt-1">
+          <span>Hạn mức năm còn lại sau đợt điều trị:</span>
+          <span class="font-mono text-emerald-900">${fmt(state.annualRemainingCap - finalPayable)}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function onClmMedInputChange(field, val) {
+  window.CLM_SIM_STATE[field] = Number(val);
+  calculateClmMedical();
+}
+
+window.renderClmSimulator = renderClmSimulator;
+window.renderClmLiabilityView = renderClmLiabilityView;
+window.calculateClmLiability = calculateClmLiability;
+window.onClmTypeChange = onClmTypeChange;
+window.onClmLiabInputChange = onClmLiabInputChange;
+window.renderClmMedicalView = renderClmMedicalView;
+window.calculateClmMedical = calculateClmMedical;
+window.onClmMedInputChange = onClmMedInputChange;
