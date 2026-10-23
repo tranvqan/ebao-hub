@@ -4,40 +4,23 @@ window.EBAO_MODULES = [
     "id": "MOD_01",
     "num": "01",
     "title": "Mod 01: Architecture & Product Factory",
-    "subtitle": "Microservices, BFF, BS Layer, SOR & Declarative Service Orchestration",
+    "subtitle": "4-Layer Microservices, Garment & Fabrics Orchestration, 2PC Distributed Transactions & 10-Step Product Factory",
     "icon": "box",
     "badge": "Core Architecture",
     "page_range": "Pages 1 - 32",
-    "summary": "Gemini Life Core PAS is built on InsureMO's multi-layered microservices framework. It decouples UI from back-end transactional engines using Backend-For-Frontend (BFF) and Business Service (BS) orchestration. Core transactions commit to high-performance System of Record (SOR) tables while supporting non-invasive declarative orchestration (Garment & Fabrics) for localized business logic without code recompilation.",
-    "mermaid_workflow": "graph TD\n    UI[\"Gemini Modern UI (Vue/React Portal)\"] --> BFF[\"BFF Layer (Backend For Frontend)\"]\n    BFF --> BS[\"Business Service (BS) Orchestration\"]\n    BS --> ISO[\"Internal Service Orchestration (Garment & Fabrics)\"]\n    ISO --> PF[\"Product Factory Runtime Engine\"]\n    ISO --> AtomicAPIs[\"Atomic Microservices (NB, UW, CS, CLM, FIN)\"]\n    AtomicAPIs --> SOR[\"SOR Tables (System of Record Database)\"]\n    AtomicAPIs --> EventBus[\"Event Bus / Message Queue\"]\n    EventBus --> BatchEngine[\"Batch Console Engine\"]",
+    "summary": "Nền tảng kiến trúc Core PAS eBao Gemini Life và Động cơ Định cấu hình Sản phẩm (Product Factory). Vận hành trên mô hình Microservices 4 tầng (UI, BFF, Business Services, System of Record) với cơ chế điều phối quy trình nội bộ khai báo Garment & Fabrics cho phép tùy biến logic theo từng Tenant (như bổ sung tính thuế GST/VAT) mà không sửa mã nguồn cốt lõi. Tích hợp khung quản lý giao dịch phân tán toàn cục 2PC (InsureMO Seata AT) với cơ chế tự động bù trừ qua t_pub_tx_undo_log. Module cung cấp xưởng sản phẩm Product Factory 10 bước khép kín từ định nghĩa sản phẩm, bảng tỷ lệ phí đa chiều, hệ số kỳ đóng phí, lịch giá trị hoàn lại, ma trận rider tương thích, đến phát hành phiên bản runtime lên SOR với cơ chế bảo vệ nâng cấp baseline (record_usage = 5).",
+    "mermaid_workflow": "graph TD\n    subgraph UI_Layer [\"1. Presentation Layer (UI)\"]\n        UI_NB[\"Sales Portal / NB Workbench\"]\n        UI_CS[\"Customer Service Portal\"]\n        UI_CLM[\"Claim Processing Portal\"]\n    end\n\n    subgraph BFF_Layer [\"2. Backend for Frontend (BFF) Layer\"]\n        BFF[\"Regional BFF & API Gateway<br/>(Protocol Translation & Session Auth)\"]\n    end\n\n    subgraph BS_Layer [\"3. Business Service (BS) Layer - Garment & Fabrics\"]\n        PA_BS[\"PA BS (Policy Admin)\"]\n        CLM_BS[\"Claim BS (Claims)\"]\n        BCP_BS[\"BCP BS (Billing & Collection)\"]\n        \n        subgraph Pipeline [\"Quotation Garment Pipeline\"]\n            F1[\"Step 1: Build Context\"] --> F2[\"Step 2: Pre-Validation\"]\n            F2 --> F3[\"Step 3: Fetch Master Data\"]\n            F3 --> F4[\"Step 4: Rate Calculation\"]\n            F4 --> F5[\"Step 16: GST/Tax (Tenant Fabric)\"]\n            F5 --> F6[\"Step 17: Save & 2PC Log\"]\n        end\n    end\n\n    subgraph Global_TX [\"Global Transaction & Compensation (InsureMO Seata AT)\"]\n        TX_MGR[\"Transaction Coordinator\"]\n        UNDO_LOG[(\"t_pub_tx_undo_log<br/>(JPA Pre-image Snapshot)\")]\n    end\n\n    subgraph SOR_Layer [\"4. System of Record (SOR) Relational Database\"]\n        T_POL[(\"t_pol_policy<br/>(Master Contract)\")]\n        T_CV[(\"t_pol_cash_value<br/>(CV Schedule)\")]\n        T_RATE[(\"t_rt_ratetable_data<br/>(Actuarial Rates)\")]\n    end\n\n    UI_NB -->|REST/JSON| BFF\n    UI_CS -->|REST/JSON| BFF\n    UI_CLM -->|REST/JSON| BFF\n    BFF --> PA_BS\n    BFF --> CLM_BS\n    BFF --> BCP_BS\n    PA_BS --> Pipeline\n    Pipeline -->|2PC Two-Phase Commit| TX_MGR\n    TX_MGR -->|Record State| UNDO_LOG\n    Pipeline -->|Commit Validated State| T_POL\n    Pipeline -->|Commit Validated State| T_CV\n    Pipeline -->|Read Matrix| T_RATE\n\n    classDef ui fill:#e0f2fe,stroke:#0284c7,stroke-width:2px,color:#0369a1;\n    classDef bff fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#b45309;\n    classDef bs fill:#ede9fe,stroke:#7c3aed,stroke-width:2px,color:#6d28d9;\n    classDef sor fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#15803d;\n    classDef tx fill:#ffe4e6,stroke:#e11d48,stroke-width:2px,color:#be123c;\n\n    class UI_NB,UI_CS,UI_CLM ui;\n    class BFF bff;\n    class PA_BS,CLM_BS,BCP_BS,F1,F2,F3,F4,F5,F6 bs;\n    class T_POL,T_CV,T_RATE sor;\n    class TX_MGR,UNDO_LOG tx;",
     "core_concepts": [
-      {
-        "term": "BFF (Backend for Frontend)",
-        "definition": "An aggregation and translation layer that adapts core microservices to specific web, mobile, and partner portal requirements, preventing frontend coupling to internal database schemas."
-      },
-      {
-        "term": "BS (Business Service Layer)",
-        "definition": "Orchestrates atomic microservices (building blocks) into composite end-to-end transaction APIs (e.g. Complete Proposal Submission or Claim Settlement)."
-      },
-      {
-        "term": "SOR (System of Record)",
-        "definition": "Authoritative database tables maintaining immutable transactional policy states separated cleanly from staging or temporary quotation workbenches."
-      },
-      {
-        "term": "Garment & Fabrics Orchestration",
-        "definition": "A declarative workflow pattern in Gemini where a 'Garment' represents the processing context and 'Fabrics' represent modular execution steps woven dynamically to customize regional rules without modifying core source code."
-      }
+      "Kiến trúc Microservices 4 Tầng: Presentation Layer (UI), BFF (Backend for Frontend), Business Services (PA BS, Claim BS, BCP BS), SOR (System of Record lưu trữ bảng t_pol_*, t_party_* bất biến).",
+      "Mô hình Khai báo Garment & Fabrics: Garment là điểm vào xử lý nghiệp vụ (entrypoint Java method mang JSON context); Fabrics là các microservices nguyên tử (atomic steps) được dệt (weave) tuần tự. Cho phép thêm/sửa step theo Tenant mà không sửa mã nguồn baseline.",
+      "Khung Giao dịch Toàn cục & Bù trừ (Global 2PC Transaction): Dựa trên InsureMO Seata AT mode. Mỗi thao tác ghi dữ liệu cục bộ tự động trích xuất JPA Entity snapshot vào bảng t_pub_tx_undo_log; nếu dịch vụ hạ nguồn thất bại, giao dịch tự động đảo ngược về trạng thái ban đầu.",
+      "Đa Khách thuê & Múi giờ UTC: JVM chạy trên chuẩn múi giờ UTC; BFF và Business Service chuyển đổi ngày kinh doanh theo múi giờ tenant (ví dụ Asia/Ho_Chi_Minh). Phân vùng dữ liệu triệt để ngăn chặn rò rỉ dữ liệu chéo giữa các Tenant.",
+      "Quy chuẩn Đặt tên Cache Redis & Invalidation: Tiền tố bắt buộc '[BIZ-DATA] + [Tên Module] + [Chi tiết]' (ví dụ [BIZ-DATA][PROD]RateTable). Hết hạn mặc định 24h, hỗ trợ xóa tập trung qua cơ chế broadcast RabbitMQ.",
+      "Cơ chế Ghi đè Cấu hình Baseline (record_usage = 5): Bảng Code Table, Data Table, I18n Message cho phép reload theo Tenant. Thiết lập record_usage = 5 giúp cấu hình của Tenant không bị ghi đè khi nâng cấp phiên bản Gemini baseline.",
+      "Quy trình 10 Bước Định Cấu Hình Sản Phẩm (Product Factory): Trải qua 10 bước chuẩn hóa từ Product Master, Terms/Eligibility, Sum Assured Bounds, Rate Tables, Modal Loadings, Cash Value Schedule, Rider Matrix, Auto-UW STP, Non-Forfeiture đến Compile & Publish SOR."
     ],
-    "actuary_notes": [
-      "Atomic Rating Microservice: Gemini invokes the InsureMO Product Factory runtime engine as a headless rating service, accepting JSON payloads and returning calculated gross premiums, riders, and modal factors instantly.",
-      "Dynamic Parameterization: Actuarial assumptions (interest rates, mortality tables, surrender penalty percentages) are decoupled into Config Tables, enabling product parameter tuning without releasing new software builds.",
-      "Multi-Currency & Modal Loading: Standard modal conversion formulas: Monthly = Annual * 0.088 (or 1/12 with loading), Semi-Annual = Annual * 0.51, Quarterly = Annual * 0.26."
-    ],
-    "op_notes": [
-      "Single Sign-On & URP (User Role & Permissions): Multi-tenant architecture allows segregated operational units (Servicing Branches, Agencies, Underwriting Pools) with strict row-level access control.",
-      "Auditing & Immutable Event Logs: Every transition from Reception -> Underwriting -> Inforce -> Endorsement -> Claim is timestamped with user ID, before/after JSON diffs, and workflow execution IDs.",
-      "High Throughput & Resiliency: Asynchronous task distribution ensures that heavy batch jobs (e.g., month-end valuation, premium billing runs) never degrade interactive UI response times."
-    ],
+    "actuary_notes": "Từ góc độ Định phí Bảo hiểm (Actuarial), Product Factory của eBao Gemini áp dụng cấu trúc dữ liệu đa chiều tối ưu hóa cho việc tính toán dòng tiền và phí bảo hiểm theo công thức: Annual_Premium = (Sum_Assured / 1000) * Base_Rate(Age, Gender, Smoker, Term) * Modal_Factor + Flat_Loading. Bảng tỷ lệ phí (t_rt_ratetable_data) hỗ trợ n chiều tra cứu, kết hợp hệ số đóng phí (Annual = 1.0, Semi-Annual = 0.52, Quarterly = 0.27, Monthly = 0.09). Lịch giá trị hoàn lại (Cash Value Schedule) và tỷ lệ chia lãi tích lũy/bảo tức đảo ngược (Reversionary Bonus) được kiểm soát chặt chẽ bằng ràng buộc không được âm, không vượt quá Số tiền bảo hiểm, và tuân thủ biên khả năng thanh toán theo quy định của Bộ Tài chính.",
+    "op_notes": "Về mặt Vận hành Công nghệ (System Operations), việc phân tách rõ ràng giữa New Business Workbench và SOR Tables thông qua API gọi PA BS giúp tách biệt hoàn toàn rủi ro dữ liệu giữa giai đoạn ghi nhận hồ sơ và giai đoạn quản lý hợp đồng sau phát hành. Quản trị viên hệ thống khi bổ sung cấu hình cho thị trường Việt Nam (như thuế VAT 10% hoặc các khoản phí quản lý quỹ) phải tuân thủ quy tắc tạo cấu hình trong Configuration Group riêng của Tenant trên MC Environment (https://[tenantcode]-gimc.insuremo.com) và luôn đặt tham số record_usage = 5 để bảo vệ an toàn tuyệt đối khi nâng cấp bản vá Core.",
     "sections": [
       {
         "heading": "1. Layered Microservices Topology",
@@ -1358,229 +1341,643 @@ window.EBAO_MODULES = [
     "sops": [
       {
         "code": "SOP-ARC-01",
-        "title": "Multi-Tenant Switching, Login & User Role Permission (URP) Assignment",
-        "ui_path": "System Admin > URP (User Role & Permissions) > User Management",
+        "title": "Multi-Tenant Isolation, URP Role Assignment & Branch Data Boundary",
+        "role": "System Administrator / Security Lead",
+        "objective": "Thiết lập phân vùng dữ liệu khách thuê (Multi-tenant Data Boundary), cơ cấu tổ chức chi nhánh và gán quyền người dùng (URP) đảm bảo cô lập hoàn toàn giữa các tenant và chi nhánh nghiệp vụ.",
+        "ui_path": "System Admin -> URP -> User & Role Management -> Tenant Context Setting",
+        "pdf_page": 12,
         "prerequisites": [
-          "Administrator account credentials with URP access",
-          "Valid employee email and active active directory / SSO link"
+          "Tài khoản quản trị viên cấp cao có phân quyền SUPER_ADMIN trên hệ sinh thái InsureMO.",
+          "Mã định danh Tenant (Tenant Code, ví dụ SACOM_VN, AFLI_VN) đã được kích hoạt trên MC Environment.",
+          "Cây cơ cấu tổ chức chi nhánh (Branch Org Tree) đã được phê duyệt bằng văn bản."
         ],
         "steps": [
-          "1. Access the Gemini Web Portal via browser URL and authenticate using corporate SSO or username/password.",
-          "2. If multi-tenant enabled, select the target Tenant/Entity (e.g. Life Insurance Entity Vietnam) from the top tenant picker dropdown.",
-          "3. Navigate to Main Menu > System Admin > URP > User Management.",
-          "4. In the Search Criteria area, enter the user's Employee ID or Email and click Search.",
-          "5. In the Search Result table, click Edit on the user record.",
-          "6. In the Role Assignment panel, check appropriate functional roles: [NB_OFFICER, UW_SENIOR, CS_SPECIALIST, CLM_ASSESSOR, ACTUARY_ANALYST, BATCH_ADMIN].",
-          "7. In the Organizational Unit & Servicing Branch panel, bind user to authorized operational branches (e.g., Head Office, Hanoi Branch, HCMC Branch).",
-          "8. Click Save and click Commit Permissions. Step Result: System outputs 'URP Matrix updated successfully'. User session inherits new role privileges immediately."
+          {
+            "step": 1,
+            "title": "Xác thực Tenant Context & Phân định ranh giới dữ liệu",
+            "action": "Truy cập System Admin -> URP -> Tenant Context. Kiểm tra biến môi trường TENANT_ID vàTENANT_CODE hiện hành. Đảm bảo mọi truy vấn cơ sở dữ liệu đều tự động áp dụng điều kiện lọc mặc định 'WHERE tenant_id = :CURRENT_TENANT'."
+          },
+          {
+            "step": 2,
+            "title": "Khởi tạo Cây Chi nhánh và Phòng ban (Branch Hierarchy)",
+            "action": "Vào Organization Management -> Branch Setup. Nhập mã chi nhánh (ví dụ BR-HCM-01), tên chi nhánh (Chi nhánh TP. Hồ Chí Minh), mã chi nhánh cấp cha (Parent Branch), và tiền tố hợp đồng (Policy Number Prefix)."
+          },
+          {
+            "step": 3,
+            "title": "Định nghĩa Vai trò Nghiệp vụ (Role Definition) & Menu Authorization",
+            "action": "Vào Role Management -> Add Role. Tạo vai trò mới (ví dụ UW_OFFICER_L2, CLAIM_ASSESSOR_L1). Chọn các chức năng và menu được phép truy cập trong cây thẩm quyền (Function Tree) với các quyền Read, Write, Approve, Export."
+          },
+          {
+            "step": 4,
+            "title": "Gán Giới hạn Phân quyền Dữ liệu Chi nhánh (Data Boundary Assignment)",
+            "action": "Trong màn hình Role Data Scope, thiết lập phạm vi dữ liệu: 'Own Branch Only' (chỉ dữ liệu chi nhánh mình), 'Sub-branches Included' (bao gồm chi nhánh trực thuộc), hoặc 'All Branches' (toàn quốc - dành cho ban thẩm định/kế toán trung tâm)."
+          },
+          {
+            "step": 5,
+            "title": "Tạo Người dùng (User Account) & Gán Phân quyền Kép (Dual Role Mapping)",
+            "action": "Vào User Management -> Create User. Nhập thông tin nhân viên, email, số điện thoại, gán chi nhánh công tác, và gắn các Role tương ứng. Áp dụng chính sách bảo mật xác thực 2 lớp (MFA)."
+          },
+          {
+            "step": 6,
+            "title": "Kiểm thử Ranh giới Dữ liệu (Isolation Audit & Sign-off)",
+            "action": "Đăng nhập bằng tài khoản vừa tạo trên phiên bản thử nghiệm. Kiểm tra lệnh truy vấn hồ sơ để xác nhận không thể nhìn thấy hồ sơ thuộc chi nhánh hoặc Tenant khác. Xuất nhật ký phân quyền (Audit Log)."
+          }
         ],
         "fields_table": [
           {
-            "name": "Tenant Code",
-            "type": "Select",
+            "field": "TENANT_CODE",
+            "type": "String",
             "required": "Yes",
-            "desc": "Unique identifier for operating insurance entity"
+            "default": "N/A",
+            "description": "Mã định danh duy nhất của khách thuê (ví dụ: SACOM_VN)"
           },
           {
-            "name": "User ID / Email",
-            "type": "Text",
+            "field": "BRANCH_CODE",
+            "type": "String",
             "required": "Yes",
-            "desc": "Unique corporate identifier"
+            "default": "N/A",
+            "description": "Mã định danh chi nhánh (ví dụ: BR-HCM-01)"
           },
           {
-            "name": "Role Profile",
-            "type": "Multi-select",
+            "field": "DATA_SCOPE_TYPE",
+            "type": "Enum",
             "required": "Yes",
-            "desc": "Standard eBao role bundles controlling menu and button visibility"
+            "default": "BRANCH_ONLY",
+            "description": "Phạm vi dữ liệu: OWN_USER, BRANCH_ONLY, BRANCH_AND_SUB, ALL_COMPANY"
           },
           {
-            "name": "Branch Code",
-            "type": "Tree Select",
+            "field": "ROLE_CODE",
+            "type": "String",
             "required": "Yes",
-            "desc": "Defines row-level data access boundary for policy searches"
+            "default": "N/A",
+            "description": "Mã vai trò trong hệ thống URP (ví dụ: UW_L2)"
+          },
+          {
+            "field": "EFFECTIVE_FROM",
+            "type": "Date",
+            "required": "Yes",
+            "default": "CURRENT_DATE",
+            "description": "Ngày bắt đầu có hiệu lực của quyền truy cập"
+          },
+          {
+            "field": "EFFECTIVE_TO",
+            "type": "Date",
+            "required": "No",
+            "default": "9999-12-31",
+            "description": "Ngày hết hạn hiệu lực của quyền truy cập"
           }
         ],
-        "actuary_notes": "Actuarial roles typically receive read-only access to SOR transaction ledgers plus write access to Product Factory rate tables and valuation extract runs.",
-        "op_notes": "Operations supervisors must ensure dual-control segregation: a user with Underwriting role must never have Cashier / Payment Release permissions.",
-        "pdf_page": 12,
         "validation_rules": [
           {
-            "ruleId": "VAL-PF-001",
-            "module": "MOD_01",
-            "moduleName": "Architecture & Product Factory",
-            "lifecyclePhase": "01. Product Configuration",
-            "stage": "Product Definition",
-            "targetEntity": "T_PROD_TERM",
-            "ruleName": "Policy Term vs Premium Paying Term Alignment",
-            "condition": "Premium Paying Term (PPT) must be strictly <= Policy Term (PT).",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_PF_TERM_MISMATCH",
-            "errorMessage": "Premium paying term cannot exceed policy duration.",
-            "systemAction": "Blocks product publication to SOR runtime tables.",
-            "actuarialBasis": "Prevent negative reserve accumulation and unbacked liability exposure post-premium paying period.",
-            "pdfPage": 26
+            "code": "VAL-ARC-01-A",
+            "rule": "Cấm truy cập chéo giữa 2 Tenant ID khác nhau trong cùng một JVM session. Trả về mã lỗi 403 Forbidden."
           },
           {
-            "ruleId": "VAL-PF-002",
-            "module": "MOD_01",
-            "moduleName": "Architecture & Product Factory",
-            "lifecyclePhase": "01. Product Configuration",
-            "stage": "Eligibility Setup",
-            "targetEntity": "T_PROD_AGE_LIMIT",
-            "ruleName": "Maturity Age Ceiling Enforcement",
-            "condition": "Issue Age + Policy Term must not exceed Maximum Maturity Age (e.g. Age 75 or Age 99).",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_PF_MAX_MATURITY_EXCEEDED",
-            "errorMessage": "Entry age plus coverage term exceeds maximum maturity age defined in product charter.",
-            "systemAction": "Invalidates product rate grid compilation.",
-            "actuarialBasis": "Mortality tables terminate at maximum attained age; extrapolation beyond ceiling causes undefined pricing rates.",
-            "pdfPage": 27
+            "code": "VAL-ARC-01-B",
+            "rule": "Mỗi người dùng nghiệp vụ bắt buộc phải gắn với tối thiểu 1 Chi nhánh hợp lệ có trạng thái ACTIVE."
+          },
+          {
+            "code": "VAL-ARC-01-C",
+            "rule": "Chỉ tài khoản có cờ IS_HEAD_OFFICE = true mới được cấp phạm vi dữ liệu ALL_COMPANY."
           }
-        ]
+        ],
+        "actuary_notes": "Phân định dữ liệu chặt chẽ giúp bảo vệ báo cáo tài chính và dữ liệu dự phòng kỹ thuật không bị trộn lẫn giữa các công ty con hoặc các đối tác phân phối.",
+        "op_notes": "Định kỳ rà soát tài khoản người dùng mỗi quý (Quarterly Access Review) để thu hồi quyền của nhân sự đã thôi việc hoặc chuyển phòng ban."
       },
       {
         "code": "SOP-ARC-02",
-        "title": "Inspecting & Customizing Internal Service Orchestration (Garment & Fabrics)",
-        "ui_path": "System Admin > Internal Service Orchestration > Garment Pipeline",
+        "title": "Declarative Microservices Orchestration (Garment & Fabrics Pipeline)",
+        "role": "Integration Architect / Core Solution Specialist",
+        "objective": "Cấu hình, điều phối và mở rộng luồng xử lý nghiệp vụ nội bộ bằng cơ chế dệt Garment & Fabrics, cho phép thêm bước nghiệp vụ riêng của từng Tenant (ví dụ tính thuế GST/VAT, kiểm tra AML nâng cao) mà không sửa mã nguồn Java baseline.",
+        "ui_path": "BS Configuration Center -> Orchestration -> Garment Management -> Fabric Weaving Studio",
+        "pdf_page": 17,
         "prerequisites": [
-          "System Analyst or Technical Lead privileges",
-          "Understanding of BFF (Backend for Frontend) and Business Service (BS) topology"
+          "Truy cập vào trung tâm cấu hình BS Configuration Center trên môi trường MC.",
+          "Garment mục tiêu đã được đăng ký trong danh mục dịch vụ (ví dụ NewBusinessQuotationGarment).",
+          "Các Fabrics cần thiết (Java method microservice) đã được đóng gói và nạp vào Fabric Registry."
         ],
         "steps": [
-          "1. From Main Menu, navigate to System Admin > Internal Service Orchestration.",
-          "2. In the Pipeline List, locate the target business service (e.g., 'NB_SUBMIT_PROPOSAL_GARMENT').",
-          "3. Click View Fabrics Pipeline to open the visual execution graph.",
-          "4. Inspect the sequence of atomic steps (Fabrics): Fabric 1 (Validate Mandatory Fields) -> Fabric 2 (Check Watchlist / PEP) -> Fabric 3 (Invoke Product Factory Rating) -> Fabric 4 (Trigger UW STP Rules) -> Fabric 5 (Commit to SOR).",
-          "5. To modify local logic without changing code: Click 'Insert Step', select regional Fabric (e.g., 'VN_TAX_VAT_CALCULATION'), configure input/output JSON mapping parameters, and click Save.",
-          "6. Click Test Garment Payload: Paste a sample proposal JSON payload and click 'Dry Run'.",
-          "7. Verify that the execution log returns HTTP 200 OK with output context populated.",
-          "8. Click Publish Pipeline to deploy the change into the runtime environment."
+          {
+            "step": 1,
+            "title": "Mở Danh mục Garment và Chọn Luồng Nghiệp vụ Cần Điều phối",
+            "action": "Truy cập BS Configuration Center -> Orchestration. Tìm kiếm Garment cần cấu hình (ví dụ quotationApplicationGarment). Xem danh sách các bước chuẩn (Baseline Fabrics Pipeline)."
+          },
+          {
+            "step": 2,
+            "title": "Khởi tạo Phiên bản Cấu hình Dành riêng cho Tenant (Tenant Specific Pipeline)",
+            "action": "Nhấn nút 'Create Tenant Weaving Rule'. Chọn Tenant đích (ví dụ SACOM_VN hoặc AFLI). Hệ thống sao chép pipeline từ bản Baseline sang giao diện chỉnh sửa trực quan."
+          },
+          {
+            "step": 3,
+            "title": "Kiểm tra Thứ tự Các Bước Tiêu chuẩn (Steps 1 đến 8)",
+            "action": "Rà soát các Fabrics chuẩn: Step 1 Build context, Step 2 Pre-validation, Step 3 Prepare data, Step 4 Quotation application processing, Step 5 Post-validation, Step 6 Event broadcast, Step 7 Suspense check, Step 8 Routing."
+          },
+          {
+            "step": 4,
+            "title": "Chèn Fabric Bổ sung của Tenant (Insert Custom Fabric)",
+            "action": "Chọn vị trí giữa Step 15 và Step 17. Nhấn '+ Insert Fabric'. Chọn Fabric 'processingGstTaxFabric' (hoặc 'vietnamVatCalculationFabric'). Cấu hình tham số đầu vào lấy từ Processing Context và tham số đầu ra ghi vào Response Context."
+          },
+          {
+            "step": 5,
+            "title": "Định nghĩa Quy tắc Nhánh & Suspense Handling (Branching Rules)",
+            "action": "Thiết lập điều kiện rẽ nhánh tại Step 8: Nếu 'suspense_check_result == SUCCESS' thì chuyển tiếp Step 9; nếu 'SUSPEND' thì chuyển hướng sang Step 12 Suspense Notification Fabric."
+          },
+          {
+            "step": 6,
+            "title": "Lưu, Biên dịch & Triển khai Kiểm thử (Dry Run & Hot Reload)",
+            "action": "Nhấn 'Compile & Validate Pipeline'. Hệ thống kiểm tra tính hợp lệ của chuỗi Fabrics. Nhấn 'Hot Reload' để cập nhật pipeline vào runtime cache mà không cần khởi động lại container BS."
+          }
         ],
         "fields_table": [
           {
-            "name": "Garment Code",
+            "field": "GARMENT_ID",
             "type": "String",
             "required": "Yes",
-            "desc": "Unique identifier of the orchestration context"
+            "default": "N/A",
+            "description": "Mã định danh của dịch vụ nghiệp vụ chính (Garment)"
           },
           {
-            "name": "Fabric Step Name",
+            "field": "FABRIC_STEP_NO",
+            "type": "Integer",
+            "required": "Yes",
+            "default": "N/A",
+            "description": "Thứ tự thực thi của Fabric trong pipeline (1, 2, 3...)"
+          },
+          {
+            "field": "FABRIC_NAME",
             "type": "String",
             "required": "Yes",
-            "desc": "Atomic microservice invoked during pipeline step"
+            "default": "N/A",
+            "description": "Tên định danh Java method của microservice nguyên tử"
           },
           {
-            "name": "Execution Condition",
-            "type": "Expression",
-            "required": "Optional",
-            "desc": "SpEL or JSONPath expression determining whether step executes"
+            "field": "EXECUTION_MODE",
+            "type": "Enum",
+            "required": "Yes",
+            "default": "SYNCHRONOUS",
+            "description": "Chế độ thực thi: SYNCHRONOUS, ASYNCHRONOUS, CONDITIONAL"
+          },
+          {
+            "field": "FAILURE_POLICY",
+            "type": "Enum",
+            "required": "Yes",
+            "default": "ABORT_AND_ROLLBACK",
+            "description": "Hành vi khi bước lỗi: ABORT_AND_ROLLBACK, IGNORE_AND_CONTINUE, RETRY"
           }
         ],
-        "actuary_notes": "Garment & Fabrics allows Actuaries to insert custom reserve or commission calculation fabrics directly into the issuance flow without waiting for IT core release cycles.",
-        "op_notes": "Dry run feature provides step-by-step latency profiling to identify performance bottlenecks in third-party API calls (e.g. external credit bureau check).",
-        "pdf_page": 24,
         "validation_rules": [
           {
-            "ruleId": "VAL-PF-001",
-            "module": "MOD_01",
-            "moduleName": "Architecture & Product Factory",
-            "lifecyclePhase": "01. Product Configuration",
-            "stage": "Product Definition",
-            "targetEntity": "T_PROD_TERM",
-            "ruleName": "Policy Term vs Premium Paying Term Alignment",
-            "condition": "Premium Paying Term (PPT) must be strictly <= Policy Term (PT).",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_PF_TERM_MISMATCH",
-            "errorMessage": "Premium paying term cannot exceed policy duration.",
-            "systemAction": "Blocks product publication to SOR runtime tables.",
-            "actuarialBasis": "Prevent negative reserve accumulation and unbacked liability exposure post-premium paying period.",
-            "pdfPage": 26
+            "code": "VAL-ARC-02-A",
+            "rule": "Thứ tự thực thi Fabric Step No phải là số nguyên dương tăng dần không trùng lặp."
           },
           {
-            "ruleId": "VAL-PF-002",
-            "module": "MOD_01",
-            "moduleName": "Architecture & Product Factory",
-            "lifecyclePhase": "01. Product Configuration",
-            "stage": "Eligibility Setup",
-            "targetEntity": "T_PROD_AGE_LIMIT",
-            "ruleName": "Maturity Age Ceiling Enforcement",
-            "condition": "Issue Age + Policy Term must not exceed Maximum Maturity Age (e.g. Age 75 or Age 99).",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_PF_MAX_MATURITY_EXCEEDED",
-            "errorMessage": "Entry age plus coverage term exceeds maximum maturity age defined in product charter.",
-            "systemAction": "Invalidates product rate grid compilation.",
-            "actuarialBasis": "Mortality tables terminate at maximum attained age; extrapolation beyond ceiling causes undefined pricing rates.",
-            "pdfPage": 27
+            "code": "VAL-ARC-02-B",
+            "rule": "Tất cả các tham số Input Context mà Fabric yêu cầu phải được cung cấp bởi các Fabric thực thi trước đó."
+          },
+          {
+            "code": "VAL-ARC-02-C",
+            "rule": "Bước Pick and Return Step bắt buộc phải là bước cuối cùng trong pipeline để hoàn trả kết quả cho client."
           }
-        ]
+        ],
+        "actuary_notes": "Cho phép đội ngũ kỹ thuật nhúng các thuật toán kiểm tra khả năng chi trả hoặc tính toán thuế giá trị gia tăng chuyên biệt theo từng thị trường mà không ảnh hưởng tới lõi tính phí.",
+        "op_notes": "Sử dụng tính năng Dry Run trong MC để chạy giả lập 100 giao dịch mẫu trước khi phát hành cấu hình pipeline lên môi trường Production."
       },
       {
         "code": "SOP-ARC-03",
-        "title": "Configuring New Life Insurance Product: Plan Definition, Age Limits, Riders & Actuarial Rate Tables",
-        "ui_path": "Main Menu > Architecture & Product Factory > Product Master > Plan Configuration Console",
+        "title": "Global Distributed Transaction & Undo Log Compensation Management",
+        "role": "Core PAS Architect / Database Administrator",
+        "objective": "Quản trị khung giao dịch toàn cục phân tán 2PC (InsureMO Seata AT), giám sát bảng nhật ký bù trừ t_pub_tx_undo_log và xử lý phục hồi tự động khi có sự cố dịch vụ hạ nguồn trong quá trình phát hành hợp đồng.",
+        "ui_path": "System Admin -> Transaction Monitor -> Global Transactions & Undo Logs",
+        "pdf_page": 22,
         "prerequisites": [
-          "Product Factory Administrator or Appointed Actuary role assigned in URP",
-          "Product Specification Document, actuarial rate tables, and modal loading factors approved"
+          "Quyền quản trị Database Administrator hoặc Core System Architect.",
+          "Truy cập vào bảng t_pub_tx_undo_log và giao diện giám sát Transaction Coordinator (TC).",
+          "Hiểu rõ chu trình 2 pha: Phase 1 Local Commit + Undo Image Record; Phase 2 Global Commit (Async Delete Undo Log) hoặc Global Rollback (Compensate State)."
         ],
         "steps": [
-          "1. Navigate to Architecture & Product Factory > Product Master > Create New Plan.",
-          "2. Step 1 - Plan Header Definition:\n   - Enter Plan Code (e.g. 'ENDOW_20'), Plan Name ('Endowment 20-Year Participating'), LOB Type ('Traditional / Savings'), and Base Currency ('VND' / 'USD').",
-          "3. Step 2 - Contract Term & Age Rules Configuration:\n   - Set Issue Age Range: Minimum Entry Age (30 Days), Maximum Entry Age (60 Years).\n   - Define Coverage Term (20 Years fixed) and Premium Payment Term (PPT: 10, 15, or 20 Years).",
-          "4. Step 3 - Supplementary Rider Binding:\n   - Select allowed riders from compatibility matrix: 'CI-02 Critical Illness', 'HI-03 Hospital Income', 'ACC-01 Personal Accident', 'WOP-01 Waiver of Premium'.\n   - Set Maximum Rider SA multiplier: Rider SA cannot exceed 100% of Base SA.",
-          "5. Step 4 - Actuarial Rate Tables Upload & Parameterization:\n   - Upload CSV/Excel rate tables: Gross Annual Premium per 1,000 SA, Guaranteed Cash Value schedule, Surrender Penalty scale, and Terminal Bonus factors.\n   - Configure Modal Factors: Annual (1.0), Semi-Annual (0.51), Quarterly (0.26), Monthly (0.088).",
-          "6. Step 5 - Rating Engine Testing & Validation:\n   - Input test sample: Male, Age 35, Non-Smoker, SA 100,000,000 VND. Click 'Execute Rating Test'.\n   - Verify calculated premium matches actuarial specification with 0.00% variance.",
-          "7. Step 6 - Publish to System of Record:\n   - Click 'Publish Plan'. System commits definitions into T_PLAN, T_PLAN_BENEFIT, T_RATE_TABLE, activating plan for instant quotation across Sales Portals and Core PAS."
+          {
+            "step": 1,
+            "title": "Kích hoạt Giám sát Giao dịch Toàn cục (Global Transaction Inspection)",
+            "action": "Vào Transaction Monitor -> Active Global Transactions. Lọc các giao dịch có thời gian thực thi vượt quá ngưỡng cảnh báo (Duration > 5000ms) hoặc có trạng thái SUSPENDED."
+          },
+          {
+            "step": 2,
+            "title": "Tra cứu Bản ghi Snapshot Bù trừ (Examine Undo Log Snapshot)",
+            "action": "Truy vấn bảng t_pub_tx_undo_log theo XID (Global Transaction ID). Kiểm tra trường rollback_info chứa JSON lưu trữ pre-image (trạng thái bản ghi trước khi thay đổi) và post-image."
+          },
+          {
+            "step": 3,
+            "title": "Mô phỏng Xử lý Lỗi Dịch vụ Hạ nguồn (Simulate Downstream Failure)",
+            "action": "Trong trường hợp dịch vụ thanh toán (Payment Gateway) hoặc dịch vụ cấp số hợp đồng bị timeout: Transaction Coordinator phát lệnh Rollback toàn cục tới tất cả Resource Managers (RM)."
+          },
+          {
+            "step": 4,
+            "title": "Kích hoạt Đảo ngược Trạng thái Tự động (Execute Automated Compensation)",
+            "action": "RM đọc dữ liệu pre-image trong t_pub_tx_undo_log, so sánh với trạng thái hiện tại của dòng dữ liệu trong cơ sở dữ liệu để kiểm tra dirty write. Nếu khớp, khôi phục lại giá trị pre-image ban đầu."
+          },
+          {
+            "step": 5,
+            "title": "Dọn dẹp Bù trừ Sau Hoàn tất (Post-Rollback Cleanup)",
+            "action": "Sau khi bù trừ thành công, Transaction Coordinator xóa dòng nhật ký tương ứng trong t_pub_tx_undo_log và giải phóng khóa toàn cục (Global Lock)."
+          },
+          {
+            "step": 6,
+            "title": "Kiểm tra Tính Nhất quán Dữ liệu (Consistency Verification & Reconciliation)",
+            "action": "Chạy báo cáo đối soát Data Reconciliation giữa bảng tạm New Business và bảng SOR (t_pol_policy) đảm bảo không có hợp đồng 'mồ côi' (orphan records) bị lưu sót."
+          }
         ],
         "fields_table": [
           {
-            "name": "Plan Code",
-            "type": "String (Unique)",
+            "field": "XID",
+            "type": "String",
             "required": "Yes",
-            "desc": "Contractual product identifier"
+            "default": "N/A",
+            "description": "Global Transaction ID duy nhất trên toàn hệ sinh thái microservices"
           },
           {
-            "name": "Line of Business",
-            "type": "Select",
+            "field": "BRANCH_ID",
+            "type": "Long",
             "required": "Yes",
-            "desc": "Traditional, Par, Non-Par, ILP, Universal"
+            "default": "N/A",
+            "description": "Branch Transaction ID của từng microservice thành phần"
           },
           {
-            "name": "Entry Age Bounds",
-            "type": "Integer Range",
+            "field": "ROLLBACK_INFO",
+            "type": "Blob/JSON",
             "required": "Yes",
-            "desc": "Min age (days) and Max entry age"
+            "default": "N/A",
+            "description": "Dữ liệu JSON snapshot lưu pre-image và post-image của JPA Entity"
           },
           {
-            "name": "Rate Table Matrices",
-            "type": "File Upload / DB",
+            "field": "LOG_STATUS",
+            "type": "Integer",
             "required": "Yes",
-            "desc": "Mortality, premium rate, cash value schedules"
+            "default": "0",
+            "description": "Trạng thái log: 0 = Normal, 1 = Defense Rollback, 2 = Completed"
+          },
+          {
+            "field": "LOG_CREATED",
+            "type": "Timestamp",
+            "required": "Yes",
+            "default": "CURRENT_TIMESTAMP",
+            "description": "Thời điểm tạo bản ghi snapshot giao dịch"
           }
         ],
-        "actuary_notes": "All pricing tables are decoupled from backend code. Formula engine dynamically loads tables at runtime via headless API.",
-        "op_notes": "Once published, plan parameters are version-controlled with audit logs to ensure regulatory compliance with Ministry of Finance approvals.",
-        "pdf_page": 28,
         "validation_rules": [
           {
-            "ruleId": "VAL-PF-003",
-            "module": "MOD_01",
-            "moduleName": "Architecture & Product Factory",
-            "lifecyclePhase": "01. Product Configuration",
-            "stage": "Rider Compatibility",
-            "targetEntity": "T_RIDER_COMPATIBILITY",
-            "ruleName": "Rider Sum Assured & Term Capping",
-            "condition": "Attached Rider Sum Assured <= 100% of Base Plan Sum Assured, and Rider Expiry Date <= Base Plan Expiry Date.",
-            "severity": "HARD_STOP",
-            "errorCode": "ERR_PF_RIDER_EXCEEDS_BASE",
-            "errorMessage": "Rider coverage cannot exceed base plan sum assured or extend beyond base maturity.",
-            "systemAction": "Disallows rider attachment in proposal workbench.",
-            "actuarialBasis": "Anti-selection control: supplementary riders cannot be utilized as standalone primary life coverage.",
-            "pdfPage": 55
+            "code": "VAL-ARC-03-A",
+            "rule": "Tuyệt đối không được xóa thủ công bản ghi trong t_pub_tx_undo_log khi transaction đang ở trạng thái ACTIVE."
+          },
+          {
+            "code": "VAL-ARC-03-B",
+            "rule": "Nếu phát hiện Dirty Write (dữ liệu hiện tại khác post-image), cơ chế tự động bù trừ phải dừng lại và gửi cảnh báo mức CRITICAL cho DBA."
+          },
+          {
+            "code": "VAL-ARC-03-C",
+            "rule": "Thời gian timeout tối đa của một Global Transaction là 60 giây; vượt quá thời gian này hệ thống tự động kích hoạt rollback."
           }
-        ]
+        ],
+        "actuary_notes": "Bảo đảm tính toàn vẹn 100% của dòng tiền thu phí đầu tiên: Không bao giờ xảy ra tình huống tiền đã trừ khỏi tài khoản khách hàng nhưng hợp đồng không được ghi nhận trong SOR.",
+        "op_notes": "Cấu hình tiến trình dọn dẹp (Housekeeping Job) định kỳ xóa các bản ghi undo log đã hoàn tất (status = Completed) cũ hơn 7 ngày để tối ưu dung lượng lưu trữ."
+      },
+      {
+        "code": "SOP-ARC-04",
+        "title": "Product Definition, Term Alignment & Sum Assured Eligibility Boundaries",
+        "role": "Product Actuary / Product Configuration Specialist",
+        "objective": "Thiết lập sản phẩm bảo hiểm mới trên Product Factory: Định nghĩa thông tin tổng quát sản phẩm, các kỳ hạn hợp đồng (Policy Term), kỳ hạn đóng phí (Premium Term), giới hạn tuổi tham gia và hạn mức số tiền bảo hiểm (SA).",
+        "ui_path": "Product Factory -> Product Master -> Plan Definition & Eligibility Setup",
+        "pdf_page": 26,
+        "prerequisites": [
+          "Bản tóm tắt tính năng sản phẩm (Product Spec) và Quy tắc - Điều khoản đã được Bộ Tài chính phê duyệt.",
+          "Mã sản phẩm (Product Code, ví dụ ENDOW_20, UL_FLEX) đã được cấp phép trong danh mục sản phẩm.",
+          "Tài khoản thuộc nhóm Chuyên viên Định phí (Product Actuary) có quyền khởi tạo cấu hình trên MC."
+        ],
+        "steps": [
+          {
+            "step": 1,
+            "title": "Đăng ký Mã Sản phẩm Mới (Create Product Master Header)",
+            "action": "Vào Product Factory -> Product Master -> Add Product. Nhập Product Code (ví dụ PROD_ENDOW_20), Tên sản phẩm tiếng Việt và tiếng Anh, Loại hình bảo hiểm (Endowment, Term, Whole Life, Unit-Linked), và Đơn vị tiền tệ (VND)."
+          },
+          {
+            "step": 2,
+            "title": "Thiết lập Phiên bản Sản phẩm (Product Versioning & Effective Dates)",
+            "action": "Tạo phiên bản mới (Version 1.0). Thiết lập Ngày bắt đầu bán (Effective Start Date) và Ngày kết thúc (Effective End Date). Chọn trạng thái là DRAFT."
+          },
+          {
+            "step": 3,
+            "title": "Cấu hình Cặp Thời hạn Hợp đồng & Thời hạn Đóng phí (PT & PPT Alignment)",
+            "action": "Vào tab Policy Terms. Định cấu hình cặp Thời hạn bảo vệ (Policy Term - PT) và Thời hạn đóng phí (Premium Paying Term - PPT). Ví dụ: PT = 20 năm, PPT = 10, 15, hoặc 20 năm; hoặc Đóng phí 1 lần (Single Premium)."
+          },
+          {
+            "step": 4,
+            "title": "Thiết lập Giới hạn Tuổi Người được bảo hiểm & Bên mua bảo hiểm",
+            "action": "Vào tab Eligibility Criteria. Nhập Tuổi tham gia tối thiểu của NĐBH (ví dụ: 30 ngày tuổi), Tuổi tham gia tối đa (ví dụ: 65 tuổi), và Tuổi tối đa khi đáo hạn hợp đồng (ví dụ: 80 tuổi hoặc 99 tuổi)."
+          },
+          {
+            "step": 5,
+            "title": "Xác lập Giới hạn Số tiền Bảo hiểm (Sum Assured Boundaries)",
+            "action": "Vào tab Sum Assured Rules. Cấu hình Số tiền bảo hiểm tối thiểu (Min SA, ví dụ 100,000,000 VND), Số tiền bảo hiểm tối đa (Max SA, ví dụ 10,000,000,000 VND), và Bước nhảy số tiền (SA Step Unit, ví dụ 1,000,000 VND)."
+          },
+          {
+            "step": 6,
+            "title": "Lưu Dự thảo và Chạy Bộ Kiểm tra Hợp lệ Ban đầu (Run Validation Suite)",
+            "action": "Nhấn nút 'Validate Term & Age Alignment'. Hệ thống kích hoạt các quy tắc kiểm tra chéo (ví dụ Max Age + PT <= Max Maturity Age). Đảm bảo không có thông báo lỗi cảnh báo."
+          }
+        ],
+        "fields_table": [
+          {
+            "field": "PROD_CODE",
+            "type": "String",
+            "required": "Yes",
+            "default": "N/A",
+            "description": "Mã định danh sản phẩm duy nhất trong toàn hệ thống"
+          },
+          {
+            "field": "PROD_TYPE",
+            "type": "Enum",
+            "required": "Yes",
+            "default": "TRADITIONAL",
+            "description": "Loại hình: TRADITIONAL, INVESTMENT_LINKED, UNIVERSAL_LIFE, TERM"
+          },
+          {
+            "field": "POLICY_TERM_YEARS",
+            "type": "Integer",
+            "required": "Yes",
+            "default": "20",
+            "description": "Thời hạn hợp đồng tính bằng năm (hoặc đến tuổi cố định)"
+          },
+          {
+            "field": "PREM_PAYING_TERM_YEARS",
+            "type": "Integer",
+            "required": "Yes",
+            "default": "20",
+            "description": "Thời hạn đóng phí tính bằng năm (phải <= Policy Term)"
+          },
+          {
+            "field": "MIN_ENTRY_AGE_DAYS",
+            "type": "Integer",
+            "required": "Yes",
+            "default": "30",
+            "description": "Tuổi tham gia tối thiểu tính bằng ngày (cho trẻ sơ sinh)"
+          },
+          {
+            "field": "MAX_ENTRY_AGE_YEARS",
+            "type": "Integer",
+            "required": "Yes",
+            "default": "65",
+            "description": "Tuổi tham gia tối đa tính bằng năm"
+          },
+          {
+            "field": "MAX_MATURITY_AGE",
+            "type": "Integer",
+            "required": "Yes",
+            "default": "85",
+            "description": "Tuổi tối đa của Người được bảo hiểm tại ngày đáo hạn"
+          },
+          {
+            "field": "MIN_SUM_ASSURED",
+            "type": "Decimal",
+            "required": "Yes",
+            "default": "50000000",
+            "description": "Số tiền bảo hiểm tối thiểu chấp nhận trên hệ thống"
+          }
+        ],
+        "validation_rules": [
+          {
+            "code": "VAL-ARC-04-A",
+            "rule": "Thời hạn đóng phí (PPT) phải nhỏ hơn hoặc bằng Thời hạn hợp đồng (PT). Vi phạm sẽ bị chặn lưu với mã lỗi ERR_PF_TERM_MISMATCH."
+          },
+          {
+            "code": "VAL-ARC-04-B",
+            "rule": "Tổng của Tuổi tham gia tối đa và Thời hạn hợp đồng không được vượt quá Tuổi đáo hạn tối đa (Max Entry Age + PT <= Max Maturity Age)."
+          },
+          {
+            "code": "VAL-ARC-04-C",
+            "rule": "Số tiền bảo hiểm yêu cầu phải là bội số nguyên của Bước nhảy số tiền (SA Step Unit)."
+          }
+        ],
+        "actuary_notes": "Ràng buộc PPT <= PT là nguyên lý định phí cốt lõi nhằm tránh tình trạng quỹ dự phòng nghiệp vụ bị âm do phải gánh chịu chi phí rủi ro tử vong khi không còn nguồn thu phí.",
+        "op_notes": "Khi định nghĩa sản phẩm liên kết đầu tư (Unit-Linked), cần cấu hình thêm tỷ lệ phân bổ phí ban đầu (Initial Allocation Rate) theo từng năm hợp đồng."
+      },
+      {
+        "code": "SOP-ARC-05",
+        "title": "Multi-Dimensional Rate Table, Modal Loading & Actuarial Formula Compilation",
+        "role": "Appointed Actuary / Pricing Specialist",
+        "objective": "Nạp bảng tỷ lệ phí bảo hiểm đa chiều (Rate Tables), cấu hình các hệ số định kỳ đóng phí (Modal Factors), và biên dịch công thức tính phí toán học trong Product Factory.",
+        "ui_path": "Product Factory -> Rate Tables -> Import & Actuarial Formula Builder",
+        "pdf_page": 28,
+        "prerequisites": [
+          "Bảng tỷ lệ phí thuần và phí gộp đã được Bộ phận Định phí (Pricing Team) tính toán và phê duyệt theo mô hình Prophet/Excel.",
+          "Tệp dữ liệu tỷ lệ phí chuẩn định dạng CSV/Excel với các chiều tra cứu: Age, Gender, Smoker, Term, Sub-Plan.",
+          "Cấu trúc bảng t_rt_ratetable_data đã được ánh xạ đúng schema trong Data Dictionary."
+        ],
+        "steps": [
+          {
+            "step": 1,
+            "title": "Khởi tạo Định nghĩa Bảng Tỷ lệ Phí (Create Rate Table Definition)",
+            "action": "Vào Rate Tables -> Add Rate Table. Đặt mã bảng (ví dụ RT_ENDOW20_MORT_2026), chọn loại bảng (Premium Rate Table, Cost of Insurance Rate Table, hoặc Surrender Charge Rate Table)."
+          },
+          {
+            "step": 2,
+            "title": "Thiết lập Các Chiều Tra cứu (Define Search Dimensions)",
+            "action": "Khai báo các cột làm khóa tra cứu (Lookup Keys): AGE (Integer, Range 0-70), GENDER (String, M/F), SMOKER_STATUS (String, S/NS), POLICY_TERM (Integer). Cột giá trị trả về là RATE_PER_THOUSAND (Decimal 6 chữ số thập phân)."
+          },
+          {
+            "step": 3,
+            "title": "Tải lên Ma trận Tỷ lệ Phí (Batch Import Matrix)",
+            "action": "Nhấn nút 'Upload Data Matrix'. Tải lên tệp CSV chứa dữ liệu. Hệ thống thực hiện kiểm tra sơ bộ định dạng dữ liệu (Data Format Pre-check), kiểm tra các ô trống (Null checks), và tính toàn vẹn của ma trận."
+          },
+          {
+            "step": 4,
+            "title": "Cấu hình Hệ số Kỳ Đóng phí (Modal Loading Factors Setup)",
+            "action": "Vào Modal Loading Settings. Thiết lập hệ số quy đổi theo phương thức đóng phí chuẩn: Annual = 1.000, Semi-Annual = 0.520, Quarterly = 0.270, Monthly = 0.090."
+          },
+          {
+            "step": 5,
+            "title": "Biên dịch Công thức Phí Toán học (Actuarial Expression Compilation)",
+            "action": "Trong Formula Builder, nhập biểu thức tính toán: 'ROUND((SA / 1000) * LOOKUP(RT_ENDOW20, AGE, GENDER, SMOKER) * MODAL_FACTOR, 0)'. Nhấn 'Compile Formula' để kiểm tra cú pháp và hiệu năng tính toán."
+          },
+          {
+            "step": 6,
+            "title": "Chạy Kiểm thử Khớp Phí Độc lập (Reconciliation Benchmark Test)",
+            "action": "Nhập 5 kịch bản mẫu (Test Vectors) gồm các độ tuổi, giới tính và tần suất đóng phí khác nhau. So sánh kết quả phí tính được từ Product Factory với bảng minh họa chuẩn của Định phí. Sai số cho phép bằng 0 VND."
+          }
+        ],
+        "fields_table": [
+          {
+            "field": "RATE_TABLE_CODE",
+            "type": "String",
+            "required": "Yes",
+            "default": "N/A",
+            "description": "Mã bảng tỷ lệ phí duy nhất (ví dụ: RT_ENDOW_STD_2026)"
+          },
+          {
+            "field": "DIMENSION_KEYS",
+            "type": "Array",
+            "required": "Yes",
+            "default": "['AGE', 'GENDER']",
+            "description": "Danh sách các khóa chiều không gian dùng để tra cứu"
+          },
+          {
+            "field": "RATE_VALUE",
+            "type": "Decimal(10,6)",
+            "required": "Yes",
+            "default": "N/A",
+            "description": "Tỷ lệ phí trên mỗi đơn vị 1,000 VND số tiền bảo hiểm"
+          },
+          {
+            "field": "MODAL_FACTOR_ANNUAL",
+            "type": "Decimal(4,3)",
+            "required": "Yes",
+            "default": "1.000",
+            "description": "Hệ số đóng phí năm"
+          },
+          {
+            "field": "MODAL_FACTOR_SEMI",
+            "type": "Decimal(4,3)",
+            "required": "Yes",
+            "default": "0.520",
+            "description": "Hệ số đóng phí nửa năm (chứa lãi suất và chi phí quản lý)"
+          },
+          {
+            "field": "MODAL_FACTOR_QUARTER",
+            "type": "Decimal(4,3)",
+            "required": "Yes",
+            "default": "0.270",
+            "description": "Hệ số đóng phí quý"
+          },
+          {
+            "field": "MODAL_FACTOR_MONTH",
+            "type": "Decimal(4,3)",
+            "required": "Yes",
+            "default": "0.090",
+            "description": "Hệ số đóng phí tháng"
+          }
+        ],
+        "validation_rules": [
+          {
+            "code": "VAL-ARC-05-A",
+            "rule": "Tỷ lệ phí Rate Value trong toàn bộ bảng phải là số dương nghiêm ngặt (> 0)."
+          },
+          {
+            "code": "VAL-ARC-05-B",
+            "rule": "Ma trận tỷ lệ phí phải phủ kín 100% không gian tra cứu; không được phép tồn tại ô trống hoặc giá trị NULL."
+          },
+          {
+            "code": "VAL-ARC-05-C",
+            "rule": "Các hệ số kỳ đóng phí phải thỏa mãn điều kiện chống kinh doanh chênh lệch giá (No-arbitrage): Annual <= 2*Semi <= 4*Quarter <= 12*Month."
+          }
+        ],
+        "actuary_notes": "Hệ số đóng phí kỳ nhỏ hơn 1 năm luôn lớn hơn tỷ lệ chia đều (ví dụ Semi 0.52 thay vì 0.50) nhằm bù đắp chi phí cơ hội lãi suất bị mất và chi phí quản lý thu phí phát sinh nhiều lần.",
+        "op_notes": "Khi nạp bảng tỷ lệ phí vào môi trường Core, hệ thống tự động lưu vào t_rt_ratetable_data và đẩy bản sao vào cache Redis '[BIZ-DATA][PROD]RateTable' để đạt tốc độ truy xuất < 2ms."
+      },
+      {
+        "code": "SOP-ARC-06",
+        "title": "Cash Value Schedule, Bonus Engine & Non-Forfeiture Publishing to SOR",
+        "role": "Lead Product Architect / Release Manager",
+        "objective": "Cấu hình lịch trình giá trị hoàn lại (Cash Value Schedule), cơ chế tích lũy bảo tức, các quyền chọn không hủy bỏ hiệu lực (Non-Forfeiture Options: RPU, ETI, APL), và phát hành phiên bản sản phẩm chính thức lên SOR.",
+        "ui_path": "Product Factory -> Non-Forfeiture & Cash Values -> SOR Release Workbench",
+        "pdf_page": 29,
+        "prerequisites": [
+          "Bảng tỷ lệ phí và các quy tắc sản phẩm đã vượt qua 100% các bài kiểm tra xác thực (Validation Suite).",
+          "Biểu giá trị hoàn lại theo từng năm hợp đồng đã được Appointed Actuary ký duyệt.",
+          "Biên bản nghiệm thu cấu hình sản phẩm giữa Khối Kỹ thuật Nghiệp vụ và Khối CNTT."
+        ],
+        "steps": [
+          {
+            "step": 1,
+            "title": "Cấu hình Bảng Tỷ lệ Giá trị Hoàn lại (Cash Value Schedule Setup)",
+            "action": "Vào Non-Forfeiture -> Cash Value Tables. Nạp bảng hệ số giá trị hoàn lại trên 1,000 VND số tiền bảo hiểm theo Năm hợp đồng (Policy Year 1..n). Xác nhận năm đầu tiên có giá trị hoàn lại (thường từ Năm 2 hoặc Năm 3)."
+          },
+          {
+            "step": 2,
+            "title": "Thiết lập Động cơ Bảo tức & Chia lãi (Bonus & Dividend Engine)",
+            "action": "Vào Bonus Configuration. Cấu hình loại hình bảo tức: Bảo tức định kỳ (Reversionary Bonus), Bảo tức tri ân/đáo hạn (Terminal Bonus), và Lãi suất tích lũy bảo tức để lại (Accumulated Dividend Interest Rate, ví dụ 5.5%/năm)."
+          },
+          {
+            "step": 3,
+            "title": "Cấu hình Các Quyền chọn Không hủy bỏ Hiệu lực (Non-Forfeiture Options)",
+            "action": "Vào Non-Forfeiture Options. Bật các tùy chọn cho phép khách hàng áp dụng khi ngừng đóng phí: Đóng phí tự động từ giá trị hoàn lại (APL - Automatic Premium Loan), Bảo hiểm giảm số tiền bảo hiểm (RPU - Reduced Paid-Up), và Gia hạn số tiền bảo hiểm (ETI - Extended Term Insurance)."
+          },
+          {
+            "step": 4,
+            "title": "Thiết lập Hạn mức & Lãi suất Vay theo Hợp đồng (Policy Loan Parameters)",
+            "action": "Cấu hình Tỷ lệ cho vay tối đa trên Giá trị hoàn lại ròng (Max Loan to CSV Ratio, ví dụ 80%), Mức vay tối thiểu (ví dụ 5,000,000 VND), và Lãi suất vay hợp đồng theo quy định (ví dụ 6.5%/năm)."
+          },
+          {
+            "step": 5,
+            "title": "Ghi nhận Tham số Bảo vệ Nâng cấp (Set record_usage = 5)",
+            "action": "Trong bảng cấu hình Tenant MC, đánh dấu tham số record_usage = 5 cho tất cả các bảng dữ liệu sản phẩm của Tenant. Quy định này ngăn chặn tiến trình nâng cấp baseline ghi đè làm mất cấu hình riêng."
+          },
+          {
+            "step": 6,
+            "title": "Biên dịch Toàn cục & Phát hành lên Runtime SOR (Compile & Publish to SOR)",
+            "action": "Nhấn nút 'Publish to System of Record (SOR)'. Hệ thống thực hiện kiểm tra toàn vẹn 10 bước, nạp dữ liệu vào các bảng runtime t_prod_def, t_prod_term, t_prod_sa_rule, và phát thông điệp RabbitMQ xóa cache cũ."
+          }
+        ],
+        "fields_table": [
+          {
+            "field": "CSV_START_YEAR",
+            "type": "Integer",
+            "required": "Yes",
+            "default": "2",
+            "description": "Năm hợp đồng đầu tiên bắt đầu phát sinh giá trị hoàn lại"
+          },
+          {
+            "field": "CSV_RATE_PER_1000",
+            "type": "Decimal(8,4)",
+            "required": "Yes",
+            "default": "N/A",
+            "description": "Tỷ lệ giá trị hoàn lại trên mỗi 1,000 VND số tiền bảo hiểm"
+          },
+          {
+            "field": "APL_ALLOWED",
+            "type": "Boolean",
+            "required": "Yes",
+            "default": "TRUE",
+            "description": "Cho phép kích hoạt tính năng Tự động tạm ứng đóng phí bảo hiểm (APL)"
+          },
+          {
+            "field": "MAX_LOAN_PCT_OF_CSV",
+            "type": "Decimal(4,2)",
+            "required": "Yes",
+            "default": "0.80",
+            "description": "Tỷ lệ tối đa được phép vay trên Giá trị hoàn lại ròng (80%)"
+          },
+          {
+            "field": "POLICY_LOAN_ANNUAL_INT",
+            "type": "Decimal(4,3)",
+            "required": "Yes",
+            "default": "0.065",
+            "description": "Lãi suất năm tính cho các khoản tạm ứng vay theo hợp đồng (6.5%)"
+          },
+          {
+            "field": "RECORD_USAGE",
+            "type": "Integer",
+            "required": "Yes",
+            "default": "5",
+            "description": "Cờ bảo vệ cấu hình Tenant chống bị ghi đè khi nâng cấp baseline (Bắt buộc = 5)"
+          }
+        ],
+        "validation_rules": [
+          {
+            "code": "VAL-ARC-06-A",
+            "rule": "Giá trị hoàn lại của mọi năm hợp đồng không được vượt quá Số tiền bảo hiểm quyền lợi tử vong."
+          },
+          {
+            "code": "VAL-ARC-06-B",
+            "rule": "Tỷ lệ vay theo hợp đồng không được vượt quá 80% Giá trị hoàn lại sau khi đã khấu trừ các khoản nợ phí và tạm ứng trước đó."
+          },
+          {
+            "code": "VAL-ARC-06-C",
+            "rule": "Tham số record_usage bắt buộc phải bằng 5 đối với tất cả cấu hình sản phẩm phát hành của Tenant."
+          }
+        ],
+        "actuary_notes": "Giá trị hoàn lại được tính toán dựa trên dự phòng nghiệp vụ trừ đi chi phí thu hồi ban đầu chưa phân bổ (Unamortized Acquisition Expenses) theo đúng công thức đã đăng ký với Bộ Tài chính.",
+        "op_notes": "Sau khi phát hành thành công lên SOR, cần gửi thông báo phát hành (Release Notification) kèm theo bộ test vector cho đội ngũ kinh doanh và ban thẩm định trước khi mở bán chính thức."
       }
     ],
-    "sop_count": 3,
+    "sop_count": 6,
     "interconnections": {
       "module_code": "ARCH_ISO",
       "upstream_sources": [
@@ -1631,8 +2028,8 @@ window.EBAO_MODULES = [
       ]
     },
     "pdf_start_page": 1,
-    "pdf_end_page": 32,
-    "pdf_chapter": "Chapter 1: System Foundation & Architecture",
+    "pdf_end_page": 33,
+    "pdf_chapter": "Module 01: Architecture Overview & System Configuration (Pages 1-33)",
     "validation_rules": [
       {
         "ruleId": "VAL-PF-001",
@@ -1645,9 +2042,9 @@ window.EBAO_MODULES = [
         "condition": "Premium Paying Term (PPT) must be strictly <= Policy Term (PT).",
         "severity": "HARD_STOP",
         "errorCode": "ERR_PF_TERM_MISMATCH",
-        "errorMessage": "Premium paying term cannot exceed policy duration.",
-        "systemAction": "Blocks product publication to SOR runtime tables.",
-        "actuarialBasis": "Prevent negative reserve accumulation and unbacked liability exposure post-premium paying period.",
+        "errorMessage": "Thời hạn đóng phí không được phép lớn hơn thời hạn hợp đồng bảo hiểm.",
+        "systemAction": "Chặn biên dịch và phát hành sản phẩm lên bảng runtime SOR.",
+        "actuarialBasis": "Ngăn ngừa dự phòng kỹ thuật âm và rủi ro không có dòng tiền thu phí bù đắp chi phí bảo hiểm trong tương lai.",
         "pdfPage": 26
       },
       {
@@ -1657,13 +2054,13 @@ window.EBAO_MODULES = [
         "lifecyclePhase": "01. Product Configuration",
         "stage": "Eligibility Setup",
         "targetEntity": "T_PROD_AGE_LIMIT",
-        "ruleName": "Maturity Age Ceiling Enforcement",
-        "condition": "Issue Age + Policy Term must not exceed Maximum Maturity Age (e.g. Age 75 or Age 99).",
+        "ruleName": "Entry Age Boundary & Maturity Ceiling",
+        "condition": "Min Entry Age < Max Entry Age AND (Max Entry Age + Policy Term) <= Max Maturity Age (typically 80 or 99).",
         "severity": "HARD_STOP",
-        "errorCode": "ERR_PF_MAX_MATURITY_EXCEEDED",
-        "errorMessage": "Entry age plus coverage term exceeds maximum maturity age defined in product charter.",
-        "systemAction": "Invalidates product rate grid compilation.",
-        "actuarialBasis": "Mortality tables terminate at maximum attained age; extrapolation beyond ceiling causes undefined pricing rates.",
+        "errorCode": "ERR_PF_AGE_EXCEEDED",
+        "errorMessage": "Tổng tuổi tham gia tối đa và thời hạn hợp đồng vượt quá tuổi đáo hạn tối đa cho phép.",
+        "systemAction": "Hệ thống từ chối lưu cấu hình điều kiện tham gia sản phẩm.",
+        "actuarialBasis": "Bảo đảm xác suất tử vong không vượt quá giới hạn bảng tỷ lệ tử vong CSO/Việt Nam 2014.",
         "pdfPage": 27
       },
       {
@@ -1671,51 +2068,465 @@ window.EBAO_MODULES = [
         "module": "MOD_01",
         "moduleName": "Architecture & Product Factory",
         "lifecyclePhase": "01. Product Configuration",
-        "stage": "Rider Compatibility",
-        "targetEntity": "T_RIDER_COMPATIBILITY",
-        "ruleName": "Rider Sum Assured & Term Capping",
-        "condition": "Attached Rider Sum Assured <= 100% of Base Plan Sum Assured, and Rider Expiry Date <= Base Plan Expiry Date.",
+        "stage": "Rate Table Import",
+        "targetEntity": "T_RT_RATETABLE_DATA",
+        "ruleName": "Multi-Dimensional Rate Table Full Coverage",
+        "condition": "Rate Table matrix must cover all defined combinations of Age, Gender, and Smoker status without NULL cells.",
         "severity": "HARD_STOP",
-        "errorCode": "ERR_PF_RIDER_EXCEEDS_BASE",
-        "errorMessage": "Rider coverage cannot exceed base plan sum assured or extend beyond base maturity.",
-        "systemAction": "Disallows rider attachment in proposal workbench.",
-        "actuarialBasis": "Anti-selection control: supplementary riders cannot be utilized as standalone primary life coverage.",
-        "pdfPage": 55
+        "errorCode": "ERR_PF_RATE_GAP",
+        "errorMessage": "Bảng tỷ lệ phí bị khuyết ô dữ liệu tại một số kết hợp tuổi/giới tính.",
+        "systemAction": "Chặn nhập ma trận phí và xuất danh sách các tọa độ bị thiếu dữ liệu.",
+        "actuarialBasis": "Đảm bảo New Business Workbench không bao giờ gặp lỗi tính phí không tìm thấy tỷ lệ tại runtime.",
+        "pdfPage": 28
       },
       {
         "ruleId": "VAL-PF-004",
         "module": "MOD_01",
         "moduleName": "Architecture & Product Factory",
         "lifecyclePhase": "01. Product Configuration",
-        "stage": "Cash Value Schedule",
-        "targetEntity": "T_SURRENDER_VAL_SCHEDULE",
-        "ruleName": "Cash Value Non-Negative & Non-Decreasing Guarantee",
-        "condition": "Guaranteed Cash Value schedule must be monotonic non-decreasing for policy durations >= 3 years.",
+        "stage": "Modal Loading",
+        "targetEntity": "T_MODAL_FACTOR",
+        "ruleName": "No-Arbitrage Modal Loading Hierarchy",
+        "condition": "Annual Premium <= 2 * Semi-Annual <= 4 * Quarterly <= 12 * Monthly Premium.",
         "severity": "HARD_STOP",
-        "errorCode": "ERR_PF_INVALID_CV_SCHEDULE",
-        "errorMessage": "Surrender cash value schedule violates actuarial non-forfeiture minimum standard.",
-        "systemAction": "Rejects cash value table import.",
-        "actuarialBasis": "Compliance with Insurance Business Law statutory minimum guaranteed cash value standards.",
-        "pdfPage": 29
+        "errorCode": "ERR_PF_MODAL_ARBITRAGE",
+        "errorMessage": "Hệ số định kỳ đóng phí vi phạm nguyên tắc chống kinh doanh chênh lệch giá lãi suất.",
+        "systemAction": "Cảnh báo đỏ và chặn lưu cấu hình hệ số định kỳ.",
+        "actuarialBasis": "Phương thức đóng phí kỳ nhỏ hơn phải gánh thêm lãi suất trả chậm và chi phí quản lý vận hành.",
+        "pdfPage": 28
       },
       {
         "ruleId": "VAL-PF-005",
         "module": "MOD_01",
         "moduleName": "Architecture & Product Factory",
         "lifecyclePhase": "01. Product Configuration",
-        "stage": "Unit-Linked Parameters",
-        "targetEntity": "T_ILP_FUND_CONFIG",
-        "ruleName": "Investment Fund Apportionment Ceiling",
-        "condition": "Apportionment percentages must be integers between 0% and 100%, and total must equal exactly 100%.",
+        "stage": "Cash Value Schedule",
+        "targetEntity": "T_SURRENDER_VAL_SCHEDULE",
+        "ruleName": "Cash Value Ceiling & Monotonic Growth",
+        "condition": "0 <= Cash Value Rate(t) <= Sum Assured for all policy years t.",
         "severity": "HARD_STOP",
-        "errorCode": "ERR_PF_FUND_APPORTION_SUM",
-        "errorMessage": "Fund allocation percentages must sum up to 100%.",
-        "systemAction": "Blocks fund portfolio configuration save.",
-        "actuarialBasis": "Prevents unallocated premium cash flows or over-allocated fund unit creation.",
-        "pdfPage": 50
+        "errorCode": "ERR_PF_CSV_OVERFLOW",
+        "errorMessage": "Giá trị hoàn lại tại một số năm hợp đồng vượt quá số tiền bảo hiểm quyền lợi tử vong.",
+        "systemAction": "Chặn phê duyệt biểu giá trị hoàn lại.",
+        "actuarialBasis": "Tránh hiện tượng tự sát vì lợi ích kinh tế hoặc trục lợi giá trị hoàn lại vượt quá trách nhiệm bảo vệ.",
+        "pdfPage": 29
+      },
+      {
+        "ruleId": "VAL-PF-006",
+        "module": "MOD_01",
+        "moduleName": "Architecture & Product Factory",
+        "lifecyclePhase": "01. Product Configuration",
+        "stage": "Microservices Orchestration",
+        "targetEntity": "T_DD_BUSI_CONTEXT",
+        "ruleName": "Garment & Fabrics Monotonic Pipeline Sequence",
+        "condition": "Fabric step numbers in a Garment pipeline must be strictly positive and increasing without circular references.",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_ARC_FABRIC_ORDER",
+        "errorMessage": "Thứ tự thực thi các bước Fabric bị trùng lặp hoặc chứa vòng lặp vô tận.",
+        "systemAction": "Từ chối biên dịch pipeline điều phối dịch vụ nội bộ.",
+        "actuarialBasis": "Bảo đảm tính xác định đơn dòng (deterministic sequential flow) của nghiệp vụ bảo hiểm.",
+        "pdfPage": 15
+      },
+      {
+        "ruleId": "VAL-PF-007",
+        "module": "MOD_01",
+        "moduleName": "Architecture & Product Factory",
+        "lifecyclePhase": "01. Product Configuration",
+        "stage": "System Configuration",
+        "targetEntity": "T_DD_BUSI_DATA_TABLE_RECORD",
+        "ruleName": "Tenant Configuration Upgrade Protection Flag",
+        "condition": "All custom Tenant configuration records in MC environment must have record_usage = 5.",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_ARC_RECORD_USAGE_INVALID",
+        "errorMessage": "Cấu hình riêng của Tenant chưa được gán cờ bảo vệ record_usage = 5.",
+        "systemAction": "Cảnh báo nguy cơ bị mất cấu hình khi hệ thống nâng cấp phiên bản Gemini SDK.",
+        "actuarialBasis": "Bảo vệ các quy định nghiệp vụ và bảng phí đã đăng ký của công ty bảo hiểm khi có bản vá hệ điều hành core.",
+        "pdfPage": 28
+      },
+      {
+        "ruleId": "VAL-PF-008",
+        "module": "MOD_01",
+        "moduleName": "Architecture & Product Factory",
+        "lifecyclePhase": "01. Product Configuration",
+        "stage": "Global Transaction",
+        "targetEntity": "T_PUB_TX_UNDO_LOG",
+        "ruleName": "Two-Phase Commit Pre-Image Snapshot Validation",
+        "condition": "Before executing any local write, pre-image snapshot of the entity must be persisted in t_pub_tx_undo_log.",
+        "severity": "CRITICAL",
+        "errorCode": "ERR_ARC_UNDO_LOG_MISSING",
+        "errorMessage": "Không thể ghi snapshot bù trừ vào bảng t_pub_tx_undo_log trước khi sửa đổi dữ liệu.",
+        "systemAction": "Hủy giao dịch (Abort) ngay lập tức và ngăn cản việc ghi vào bảng SOR.",
+        "actuarialBasis": "Bảo toàn tính toàn vẹn dữ liệu hợp đồng; nếu dịch vụ hạ nguồn đứt gãy, hệ thống có thể hoàn tác chính xác 100%.",
+        "pdfPage": 22
+      },
+      {
+        "ruleId": "VAL-PF-009",
+        "module": "MOD_01",
+        "moduleName": "Architecture & Product Factory",
+        "lifecyclePhase": "01. Product Configuration",
+        "stage": "Cache Management",
+        "targetEntity": "REDIS_CACHE_CLUSTER",
+        "ruleName": "Standardized Cache Naming Convention",
+        "condition": "Cache keys must strictly start with prefix '[BIZ-DATA]' + Module Name + Detail (e.g. '[BIZ-DATA][PROD]RateTable').",
+        "severity": "WARNING",
+        "errorCode": "WARN_ARC_CACHE_KEY_INVALID",
+        "errorMessage": "Tên khóa bộ nhớ đệm không tuân thủ quy chuẩn [BIZ-DATA].",
+        "systemAction": "Khóa cache sẽ không nhận được lệnh xóa tự động khi có thông điệp broadcast qua RabbitMQ.",
+        "actuarialBasis": "Tránh dùng lại dữ liệu phí cũ đã lỗi thời trong bộ nhớ đệm khi bảng tỷ lệ phí mới đã được kích hoạt.",
+        "pdfPage": 25
+      },
+      {
+        "ruleId": "VAL-PF-010",
+        "module": "MOD_01",
+        "moduleName": "Architecture & Product Factory",
+        "lifecyclePhase": "01. Product Configuration",
+        "stage": "Timezone Handling",
+        "targetEntity": "JVM_RUNTIME",
+        "ruleName": "JVM UTC Timezone Strict Compliance",
+        "condition": "Gemini container JVM timezone must be UTC (0); localized conversion occurs only at BFF/BS boundary.",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_ARC_TIMEZONE_POLLUTION",
+        "errorMessage": "Container khởi động với múi giờ khác UTC gây sai lệch ngày kinh doanh toàn hệ thống.",
+        "systemAction": "Chặn khởi động dịch vụ Core PAS.",
+        "actuarialBasis": "Ngày hiệu lực hợp đồng và thời gian 21 ngày cân nhắc phải được tính toán chính xác tuyệt đối trên cùng một chuẩn thời gian.",
+        "pdfPage": 24
+      },
+      {
+        "ruleId": "VAL-PF-011",
+        "module": "MOD_01",
+        "moduleName": "Architecture & Product Factory",
+        "lifecyclePhase": "01. Product Configuration",
+        "stage": "Rider Compatibility",
+        "targetEntity": "T_RIDER_COMPATIBILITY",
+        "ruleName": "Rider Policy Term Bound by Base Plan",
+        "condition": "Rider Policy Term (PT_Rider) must be <= Base Policy Term (PT_Base).",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_PF_RIDER_TERM_EXCEEDED",
+        "errorMessage": "Thời hạn bảo vệ của sản phẩm bổ trợ không được vượt quá thời hạn hợp đồng chính.",
+        "systemAction": "Chặn liên kết rider vào gói sản phẩm chính.",
+        "actuarialBasis": "Sản phẩm bổ trợ không thể tồn tại độc lập khi hợp đồng chính đã đáo hạn hoặc chấm dứt hiệu lực.",
+        "pdfPage": 27
+      },
+      {
+        "ruleId": "VAL-PF-012",
+        "module": "MOD_01",
+        "moduleName": "Architecture & Product Factory",
+        "lifecyclePhase": "01. Product Configuration",
+        "stage": "Non-Forfeiture Setup",
+        "targetEntity": "T_NON_FORFEITURE_PARAM",
+        "ruleName": "Policy Loan Ceiling & Regulatory Interest Floor",
+        "condition": "Max Loan Ratio <= 80% Net CSV AND Policy Loan Annual Interest Rate >= 5.0%.",
+        "severity": "HARD_STOP",
+        "errorCode": "ERR_PF_LOAN_TERMS_INVALID",
+        "errorMessage": "Tỷ lệ vay vượt quá 80% giá trị hoàn lại hoặc lãi suất vay thấp hơn sàn quy định.",
+        "systemAction": "Chặn cấu hình điều khoản vay hợp đồng.",
+        "actuarialBasis": "Tuân thủ quy định trần an toàn tài chính của Luật Kinh doanh Bảo hiểm và bảo đảm rủi ro thấu chi không vượt quá quỹ hoàn lại.",
+        "pdfPage": 29
       }
     ],
-    "validation_rules_count": 5
+    "validation_rules_count": 12,
+    "product_factory_archetypes": [
+      {
+        "code": "PROD-ENDOW-20",
+        "name": "Sacom Bảo Gia Phúc (Endowment 20-Yr)",
+        "category": "Traditional Endowment with Savings & Terminal Bonus",
+        "description": "Sản phẩm tích lũy truyền thống 20 năm, kết hợp bảo vệ quyền lợi Tử vong / Thương tật toàn bộ vĩnh viễn (TPD) và Bảo tức tri ân khi đáo hạn.",
+        "pt": 20,
+        "ppt": 20,
+        "minAge": 0,
+        "maxAge": 60,
+        "maxMaturityAge": 80,
+        "minSA": 100000000,
+        "maxSA": 10000000000,
+        "baseRatePer1000": 38.5,
+        "hasSurrenderValue": true,
+        "csvStartYear": 2,
+        "csvRateYr5": 145.0,
+        "csvRateYr10": 380.0,
+        "csvRateYr20": 1050.0,
+        "reversionaryBonusPct": 1.5,
+        "terminalBonusPct": 10.0,
+        "modalFactors": {
+          "Annual": 1.0,
+          "Semi": 0.52,
+          "Quarter": 0.27,
+          "Month": 0.09
+        },
+        "allowedRiders": [
+          "RIDER-PA-01 (Tai nạn 24/7)",
+          "RIDER-CI-02 (37 Bệnh lý nghiêm trọng)",
+          "RIDER-MED-03 (Chăm sóc y tế cao cấp)"
+        ],
+        "features": [
+          "Bảo tức tích lũy hàng năm",
+          "Đáo hạn nhận 100% STBH + Toàn bộ Bảo tức",
+          "Hỗ trợ Tự động tạm ứng đóng phí (APL)",
+          "Vay tối đa 80% Giá trị hoàn lại"
+        ]
+      },
+      {
+        "code": "PROD-TERM-10",
+        "name": "Sacom An Tâm Vững Bước (Level Term 10-Yr)",
+        "category": "Pure Protection Level Term Insurance",
+        "description": "Bảo hiểm tử kỳ thuần túy 10 năm với mức phí cố định, bảo vệ thu nhập người trụ cột ở mức chi phí thấp nhất, không có giá trị hoàn lại.",
+        "pt": 10,
+        "ppt": 10,
+        "minAge": 18,
+        "maxAge": 65,
+        "maxMaturityAge": 75,
+        "minSA": 200000000,
+        "maxSA": 20000000000,
+        "baseRatePer1000": 8.2,
+        "hasSurrenderValue": false,
+        "csvStartYear": 0,
+        "csvRateYr5": 0.0,
+        "csvRateYr10": 0.0,
+        "csvRateYr20": 0.0,
+        "reversionaryBonusPct": 0.0,
+        "terminalBonusPct": 0.0,
+        "modalFactors": {
+          "Annual": 1.0,
+          "Semi": 0.52,
+          "Quarter": 0.27,
+          "Month": 0.09
+        },
+        "allowedRiders": [
+          "RIDER-PA-01 (Tai nạn 24/7)",
+          "RIDER-CI-02 (37 Bệnh lý nghiêm trọng)"
+        ],
+        "features": [
+          "Phí bảo hiểm thấp tối đa",
+          "100% Phí thuần cho rủi ro tử vong",
+          "Không có giá trị giải ước",
+          "Không áp dụng chính sách vay hợp đồng"
+        ]
+      },
+      {
+        "code": "PROD-WHOLE-99",
+        "name": "Sacom Trọn Đời Yêu Thương (Whole Life to 99)",
+        "category": "Whole Life with Cash Value & Compounding Dividends",
+        "description": "Bảo hiểm trọn đời đến 99 tuổi, đóng phí ngắn hạn (10, 15, 20 năm), bảo đảm tài chính vững chắc và chuyển giao di sản kế thừa qua các thế hệ.",
+        "pt": 99,
+        "ppt": 15,
+        "minAge": 0,
+        "maxAge": 65,
+        "maxMaturityAge": 99,
+        "minSA": 150000000,
+        "maxSA": 50000000000,
+        "baseRatePer1000": 46.8,
+        "hasSurrenderValue": true,
+        "csvStartYear": 2,
+        "csvRateYr5": 160.0,
+        "csvRateYr10": 420.0,
+        "csvRateYr20": 980.0,
+        "reversionaryBonusPct": 2.0,
+        "terminalBonusPct": 15.0,
+        "modalFactors": {
+          "Annual": 1.0,
+          "Semi": 0.52,
+          "Quarter": 0.27,
+          "Month": 0.09
+        },
+        "allowedRiders": [
+          "RIDER-PA-01",
+          "RIDER-CI-02",
+          "RIDER-MED-03",
+          "RIDER-WOP-04 (Miễn đóng phí bệnh hiểm nghèo)"
+        ],
+        "features": [
+          "Bảo vệ trọn đời đến 99 tuổi",
+          "Đóng phí ngắn hạn 15 năm",
+          "Giá trị hoàn lại tăng trưởng liên tục",
+          "Hỗ trợ rút một phần giá trị tài khoản từ năm 10"
+        ]
+      },
+      {
+        "code": "PROD-UL-INV",
+        "name": "Sacom Đầu Tư Linh Hoạt (Unit-Linked Universal Life)",
+        "category": "Investment-Linked Life Insurance (ILP)",
+        "description": "Sản phẩm bảo hiểm liên kết đơn vị đầu tư hiện đại, tách bạch rõ ràng giữa phí bảo hiểm rủi ro (COI), chi phí ban đầu, và giá trị tài khoản đầu tư sinh lời theo danh mục quỹ.",
+        "pt": 99,
+        "ppt": 99,
+        "minAge": 18,
+        "maxAge": 65,
+        "maxMaturityAge": 99,
+        "minSA": 300000000,
+        "maxSA": 100000000000,
+        "baseRatePer1000": 22.0,
+        "hasSurrenderValue": true,
+        "csvStartYear": 1,
+        "csvRateYr5": 210.0,
+        "csvRateYr10": 580.0,
+        "csvRateYr20": 1320.0,
+        "reversionaryBonusPct": 0.0,
+        "terminalBonusPct": 0.0,
+        "modalFactors": {
+          "Annual": 1.0,
+          "Semi": 0.52,
+          "Quarter": 0.27,
+          "Month": 0.09
+        },
+        "allowedRiders": [
+          "RIDER-PA-01",
+          "RIDER-CI-02",
+          "RIDER-MED-03"
+        ],
+        "features": [
+          "Đầu tư linh hoạt vào 3 quỹ: Tăng trưởng, Cân bằng, Bảo toàn",
+          "Khấu trừ phí rủi ro COI hàng tháng từ quỹ",
+          "Phí ban đầu: Năm 1 (60%), Năm 2 (30%), Năm 3 (10%), Năm 4+ (0%)",
+          "Miễn phí chuyển đổi quỹ 4 lần/năm"
+        ]
+      }
+    ],
+    "garment_fabrics_catalog": [
+      {
+        "step": 1,
+        "fabric": "buildContextQuotationFabric",
+        "desc": "Khởi tạo ngữ cảnh xử lý báo giá từ request của client (Quotation JSON Envelope).",
+        "layer": "BS Context Builder"
+      },
+      {
+        "step": 2,
+        "fabric": "preValidationDataFormatFabric",
+        "desc": "Kiểm tra định dạng dữ liệu (Schema validation) và quy tắc nhập liệu ban đầu.",
+        "layer": "Pre-Validation"
+      },
+      {
+        "step": 3,
+        "fabric": "prepareMasterDataFabric",
+        "desc": "Truy vấn thông tin sản phẩm từ cache Redis [BIZ-DATA][PROD] và thông tin khách hàng.",
+        "layer": "Data Provider"
+      },
+      {
+        "step": 4,
+        "fabric": "quotationCoreProcessingFabric",
+        "desc": "Thực thi thuật toán định phí: Tra cứu bảng tỷ lệ phí và áp dụng hệ số định kỳ.",
+        "layer": "Actuarial Engine"
+      },
+      {
+        "step": 5,
+        "fabric": "postValidationBusinessRulesFabric",
+        "desc": "Kiểm tra giới hạn SA, tuổi tham gia, và điều kiện thẩm định sơ bộ.",
+        "layer": "Business Rule Validator"
+      },
+      {
+        "step": 6,
+        "fabric": "applicationEventBroadcastFabric",
+        "desc": "Phát thông điệp sự kiện tính phí báo giá qua RabbitMQ cho hệ thống analytics.",
+        "layer": "Event Broker"
+      },
+      {
+        "step": 7,
+        "fabric": "checkSuspenseStatusFabric",
+        "desc": "Kiểm tra các cờ tạm dừng (Suspense Check) nếu có ngoại lệ cần duyệt thủ công.",
+        "layer": "Routing Engine"
+      },
+      {
+        "step": 8,
+        "fabric": "routeSuspenseBranchFabric",
+        "desc": "Điều hướng quy trình theo kết quả kiểm tra Suspense (Pass hay Pend UW).",
+        "layer": "Workflow Router"
+      },
+      {
+        "step": 16,
+        "fabric": "processingGstTaxFabric",
+        "desc": "[Tenant Custom Fabric - AFLI/SACOM] Tính toán thuế giá trị gia tăng hoặc phí đặc thù theo quốc gia.",
+        "layer": "Tenant Custom Extension"
+      },
+      {
+        "step": 17,
+        "fabric": "saveUpdatedDataFabric",
+        "desc": "Ghi nhận dữ liệu vào bảng New Business và tạo snapshot t_pub_tx_undo_log.",
+        "layer": "Persistence & 2PC"
+      },
+      {
+        "step": 18,
+        "fabric": "saveEventBroadcastFabric",
+        "desc": "Phát sự kiện lưu trữ dữ liệu báo giá thành công.",
+        "layer": "Event Broker"
+      },
+      {
+        "step": 19,
+        "fabric": "prepareResponseDataFabric",
+        "desc": "Đóng gói kết quả tính phí, biểu minh họa tóm tắt vào Response Object.",
+        "layer": "Response Assembler"
+      },
+      {
+        "step": 20,
+        "fabric": "putCustomerDetailsFabric",
+        "desc": "Bổ sung thông tin đối tượng tham gia và đại lý phục vụ vào Response.",
+        "layer": "Response Assembler"
+      },
+      {
+        "step": 21,
+        "fabric": "pickAndReturnStepFabric",
+        "desc": "Trích xuất Response Object từ Context và hoàn trả JSON cho client qua BFF.",
+        "layer": "Exit Gateway"
+      }
+    ],
+    "product_factory_10_steps": [
+      {
+        "step": 1,
+        "name": "Product Master Definition",
+        "table": "t_prod_def, t_prod_version",
+        "desc": "Khai báo mã sản phẩm, phân loại hình bảo hiểm, tiền tệ và quản lý phiên bản hiệu lực."
+      },
+      {
+        "step": 2,
+        "name": "Terms & Age Eligibility Setup",
+        "table": "t_prod_term, t_prod_age_limit",
+        "desc": "Cấu hình cặp Policy Term & Premium Paying Term, giới hạn tuổi tham gia và tuổi đáo hạn."
+      },
+      {
+        "step": 3,
+        "name": "Sum Assured Bounds & Rules",
+        "table": "t_prod_sa_rule",
+        "desc": "Xác lập hạn mức Số tiền bảo hiểm tối thiểu, tối đa và bước nhảy số tiền theo kênh phân phối."
+      },
+      {
+        "step": 4,
+        "name": "Rate Tables & Actuarial Expression",
+        "table": "t_rt_ratetable_data, t_pub_res_ctx_*",
+        "desc": "Nạp ma trận tỷ lệ phí đa chiều (Age, Gender, Smoker) và biên dịch công thức phí toán học."
+      },
+      {
+        "step": 5,
+        "name": "Modal Loading Factors",
+        "table": "t_modal_factor",
+        "desc": "Thiết lập hệ số quy đổi theo kỳ đóng phí (Annual = 1.0, Semi = 0.52, Quarter = 0.27, Month = 0.09)."
+      },
+      {
+        "step": 6,
+        "name": "Surrender Cash Value Schedule",
+        "table": "t_surrender_val_schedule",
+        "desc": "Nạp bảng tỷ lệ giá trị hoàn lại theo năm hợp đồng và cấu hình động cơ bảo tức/chia lãi."
+      },
+      {
+        "step": 7,
+        "name": "Rider Compatibility Matrix",
+        "table": "t_rider_compatibility",
+        "desc": "Quy định danh mục các sản phẩm bổ trợ được phép bán kèm, hạn mức SA rider theo hợp đồng chính."
+      },
+      {
+        "step": 8,
+        "name": "Auto-Underwriting STP Engine",
+        "table": "t_auto_uw_rule",
+        "desc": "Thiết lập ngưỡng phát hành tự động không qua thẩm định viên (STP Limits & Medical Thresholds)."
+      },
+      {
+        "step": 9,
+        "name": "Non-Forfeiture & Policy Loan",
+        "table": "t_non_forfeiture_param",
+        "desc": "Kích hoạt tính năng APL, RPU, ETI và trần tỷ lệ cho vay hợp đồng (Max 80% CSV, Lãi 6.5%/năm)."
+      },
+      {
+        "step": 10,
+        "name": "SOR Compilation & Publish",
+        "table": "record_usage = 5 -> SOR Runtime",
+        "desc": "Kiểm tra toàn vẹn, gắn cờ record_usage = 5 bảo vệ nâng cấp baseline và phát hành lên SOR."
+      }
+    ]
   },
   {
     "id": "MOD_02",

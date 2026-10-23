@@ -104,15 +104,7 @@ function initApp() {
     }
   }
 
-  if (mod.id === 'MOD_07') {
-    setTimeout(() => {
-      renderGlPattern('JE-01');
-    }, 50);
-  } else if (mod.id === 'MOD_03') {
-    setTimeout(() => {
-      renderUwImpairmentPattern('IMP-01');
-    }, 50);
-  }
+
 }
 
 function setupSystemDateControls() {
@@ -537,12 +529,19 @@ function renderModuleDossier(moduleId) {
         <!-- SOP Step by Step Checklist with Number Badges -->
         <div class="space-y-2 pt-1">
           <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono">Step-by-Step Procedure:</div>
-          ${(sop.steps || []).map((stepText, sIdx) => {
-            const cleanStep = stepText.replace(/^\s*\d+[\.\)]\s*/, '').trim();
+          ${(sop.steps || []).map((stepItem, sIdx) => {
+            let cleanStep = '';
+            let stepTitle = '';
+            if (typeof stepItem === 'string') {
+              cleanStep = stepItem.replace(/^\s*\d+[\.\)]\s*/, '').trim();
+            } else if (stepItem && typeof stepItem === 'object') {
+              stepTitle = stepItem.title ? `<b>${stepItem.title}:</b> ` : '';
+              cleanStep = stepItem.action || stepItem.text || JSON.stringify(stepItem);
+            }
             return `
               <div class="flex items-start gap-3 text-xs text-slate-700">
                 <span class="std-num-badge">${sIdx + 1}</span>
-                <span class="leading-relaxed mt-0.5">${cleanStep}</span>
+                <span class="leading-relaxed mt-0.5">${stepTitle}${cleanStep}</span>
               </div>
             `;
           }).join('')}
@@ -587,7 +586,25 @@ function renderModuleDossier(moduleId) {
   
   // Milestone Highlight Banner
   let milestoneBannerHtml = '';
-  if (mod.id === 'MOD_02') {
+  if (mod.id === 'MOD_01') {
+    milestoneBannerHtml = `
+      <div class="mb-6 p-4 rounded-xl bg-blue-50 border border-blue-200 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-2xs">
+        <div class="flex items-center gap-3">
+          <span class="p-2 bg-blue-100 text-blue-800 rounded-lg">${window.getLineIcon ? window.getLineIcon('cog', 'w-5 h-5') : ''}</span>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-blue-900 uppercase font-mono">Kiến Trúc Microservices 4 Tầng & Xưởng Sản Phẩm 10 Bước</span>
+              <span class="text-[10px] bg-blue-200 text-blue-900 font-bold px-1.5 py-0.5 rounded">Garment & Fabrics • 2PC Undo Log • record_usage=5</span>
+            </div>
+            <p class="text-xs text-blue-800 mt-0.5">Vận hành theo mô hình Microservices 4 tầng (UI, BFF, Business Service, SOR). Cơ chế điều phối khai báo <b>Garment & Fabrics</b> cho phép nhúng quy trình riêng của Tenant (như tính thuế GST/VAT) mà không sửa core code. Quản lý giao dịch toàn cục 2PC qua <b>t_pub_tx_undo_log</b> và bảo vệ cấu hình Tenant khi nâng cấp với <b>record_usage = 5</b>.</p>
+          </div>
+        </div>
+        <button onclick="document.getElementById('sec-arc-interactive-engine')?.scrollIntoView({behavior: 'smooth'})" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl whitespace-nowrap shadow-sm transition-all">
+          Mở Bộ Giả Lập Product Factory & Pipeline →
+        </button>
+      </div>
+    `;
+  } else if (mod.id === 'MOD_02') {
     milestoneBannerHtml = `
       <div class="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-2xs">
         <div class="flex items-center gap-3">
@@ -707,6 +724,37 @@ function renderModuleDossier(moduleId) {
       </ul>
     </div>
 
+
+    <!-- SPECIALIZED ARCHITECTURE & PRODUCT FACTORY WORKBENCH (Only for MOD_01) -->
+    ${mod.id === 'MOD_01' ? `
+      <div id="sec-arc-interactive-engine" class="mb-6 p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-5">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200 pb-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="p-1.5 bg-blue-100 text-blue-700 rounded-lg">${window.getLineIcon ? window.getLineIcon('cpu', 'w-4 h-4') : ''}</span>
+              <h3 class="font-extrabold text-sm text-slate-900 uppercase tracking-wider">
+                Interactive Product Factory & Microservices Orchestration Engine Simulator
+              </h3>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Giả lập điều phối Garment & Fabrics (21 bước), xử lý giao dịch phân tán toàn cục 2PC bù trừ t_pub_tx_undo_log, và xưởng sản phẩm 10 bước tính phí Actuarial thời gian thực.</p>
+          </div>
+          <!-- Sub-mode Tabs -->
+          <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
+            <button id="btn-arc-tab-factory" onclick="renderArcSimulator('factory')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-blue-900 shadow-2xs">
+              10-Step Product Factory & Pricing
+            </button>
+            <button id="btn-arc-tab-pipeline" onclick="renderArcSimulator('pipeline')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
+              Garment & Fabrics 2PC Pipeline
+            </button>
+          </div>
+        </div>
+
+        <!-- Dynamic Container for Active Sub-mode -->
+        <div id="arc-simulator-content" class="space-y-4">
+          <!-- Populated dynamically by renderArcSimulator() -->
+        </div>
+      </div>
+    ` : ''}
 
     <!-- SPECIALIZED UNDERWRITING WORKBENCH (Only for MOD_03) -->
     ${mod.id === 'MOD_03' ? `
@@ -920,6 +968,21 @@ function renderModuleDossier(moduleId) {
       </div>
     </div>
   `;
+
+  // Initialize interactive sub-engines for specialized modules
+  if (mod.id === 'MOD_01') {
+    setTimeout(() => {
+      if (window.renderArcSimulator) renderArcSimulator('factory');
+    }, 50);
+  } else if (mod.id === 'MOD_07') {
+    setTimeout(() => {
+      if (window.renderGlPattern) renderGlPattern('JE-01');
+    }, 50);
+  } else if (mod.id === 'MOD_03') {
+    setTimeout(() => {
+      if (window.renderUwImpairmentPattern) renderUwImpairmentPattern('IMP-01');
+    }, 50);
+  }
 }
 
 function jumpToSimulatorWorkbench(moduleId) {
@@ -2800,3 +2863,507 @@ function renderUwImpairmentPattern(impId) {
   `;
 }
 window.renderUwImpairmentPattern = renderUwImpairmentPattern;
+
+// ============================================================================
+// MODULE 01: ARCHITECTURE & PRODUCT FACTORY INTERACTIVE SIMULATOR
+// ============================================================================
+
+window.ARC_SIM_STATE = {
+  currentTab: 'factory',
+  selectedProdCode: 'PROD-ENDOW-20',
+  age: 35,
+  gender: 'M',
+  smoker: 'NS',
+  sumAssured: 500000000,
+  paymentFreq: 'Annual',
+  // Pipeline state
+  garmentType: 'NewBusinessQuotationGarment',
+  tenantContext: 'AFLI', // Standard vs AFLI
+  txOutcome: 'SUCCESS', // SUCCESS vs ROLLBACK
+  pipelineRunning: false
+};
+
+function renderArcSimulator(mode) {
+  if (mode) window.ARC_SIM_STATE.currentTab = mode;
+  const tab = window.ARC_SIM_STATE.currentTab;
+
+  const btnFactory = document.getElementById('btn-arc-tab-factory');
+  const btnPipeline = document.getElementById('btn-arc-tab-pipeline');
+  const container = document.getElementById('arc-simulator-content');
+  if (!container) return;
+
+  if (tab === 'factory') {
+    if (btnFactory) btnFactory.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-blue-900 shadow-2xs';
+    if (btnPipeline) btnPipeline.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900';
+    renderArcFactoryView(container);
+  } else {
+    if (btnFactory) btnFactory.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900';
+    if (btnPipeline) btnPipeline.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-blue-900 shadow-2xs';
+    renderArcPipelineView(container);
+  }
+}
+
+function renderArcFactoryView(container) {
+  const mod01 = (window.EBAO_MODULES || []).find(m => m.id === 'MOD_01');
+  const archetypes = mod01?.product_factory_archetypes || [];
+  const currentProd = archetypes.find(p => p.code === window.ARC_SIM_STATE.selectedProdCode) || archetypes[0];
+  const tenSteps = mod01?.product_factory_10_steps || [];
+
+  container.innerHTML = `
+    <!-- Top Configuration Header & Archetype Selector -->
+    <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div>
+        <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Chọn Gói Cấu Hình Sản Phẩm Mẫu (Product Archetype)</span>
+        <div class="flex items-center gap-2 mt-1">
+          <select id="sel-arc-prod" onchange="onArcProdSelect(this.value)" class="text-xs bg-white border border-slate-300 rounded-lg px-3 py-1.5 font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            ${archetypes.map(p => `<option value="${p.code}" ${p.code === currentProd.code ? 'selected' : ''}>${p.code}: ${p.name}</option>`).join('')}
+          </select>
+          <span class="text-[11px] font-semibold text-blue-800 bg-blue-100 px-2.5 py-1 rounded-md border border-blue-200">${currentProd.category}</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 text-xs text-slate-600">
+        <span class="px-2 py-1 bg-white border border-slate-200 rounded font-mono font-bold text-emerald-700">PT: ${currentProd.pt} Năm</span>
+        <span class="px-2 py-1 bg-white border border-slate-200 rounded font-mono font-bold text-indigo-700">PPT: ${currentProd.ppt} Năm</span>
+        <span class="px-2 py-1 bg-white border border-slate-200 rounded font-mono font-bold text-purple-700">Tuổi: ${currentProd.minAge}-${currentProd.maxAge}</span>
+      </div>
+    </div>
+
+    <!-- Product Description & Core Features -->
+    <div class="p-3 bg-blue-50/50 rounded-xl border border-blue-100 text-xs text-slate-700 flex flex-col md:flex-row md:items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+        <span><b>Mô tả:</b> ${currentProd.description}</span>
+      </div>
+      <div class="flex items-center gap-1.5 flex-wrap">
+        ${(currentProd.features || []).map(f => `<span class="px-2 py-0.5 bg-white text-slate-700 border border-slate-200 rounded text-[10px] font-medium">${f}</span>`).join('')}
+      </div>
+    </div>
+
+    <!-- Interactive Pricing Simulation Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <!-- Input Parameters Panel (5 cols) -->
+      <div class="lg:col-span-5 p-4 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+          <span class="font-bold text-xs text-slate-900 uppercase tracking-wide">Actuarial Rating Parameters</span>
+          <span class="text-[10px] font-mono text-slate-400">T_RATE_TABLE</span>
+        </div>
+
+        <!-- Issue Age -->
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="text-slate-600 font-medium">Tuổi tham gia (Issue Age):</span>
+            <span id="txt-arc-age" class="font-mono font-bold text-blue-900">${window.ARC_SIM_STATE.age} tuổi</span>
+          </div>
+          <input type="range" min="${currentProd.minAge || 1}" max="${currentProd.maxAge || 65}" value="${window.ARC_SIM_STATE.age}" id="inp-arc-age" oninput="onArcParamChange('age', this.value)" class="w-full accent-blue-600 cursor-pointer">
+        </div>
+
+        <!-- Gender & Smoker -->
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Giới tính:</label>
+            <select id="inp-arc-gender" onchange="onArcParamChange('gender', this.value)" class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg p-2 font-bold text-slate-800">
+              <option value="M" ${window.ARC_SIM_STATE.gender === 'M' ? 'selected' : ''}>Nam (Male)</option>
+              <option value="F" ${window.ARC_SIM_STATE.gender === 'F' ? 'selected' : ''}>Nữ (Female)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Hút thuốc:</label>
+            <select id="inp-arc-smoker" onchange="onArcParamChange('smoker', this.value)" class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg p-2 font-bold text-slate-800">
+              <option value="NS" ${window.ARC_SIM_STATE.smoker === 'NS' ? 'selected' : ''}>Không hút (NS)</option>
+              <option value="S" ${window.ARC_SIM_STATE.smoker === 'S' ? 'selected' : ''}>Có hút thuốc (S)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Sum Assured -->
+        <div>
+          <label class="block text-[11px] font-medium text-slate-600 mb-1">Số tiền bảo hiểm (Sum Assured - VND):</label>
+          <input type="number" step="50000000" min="${currentProd.minSA}" max="${currentProd.maxSA}" value="${window.ARC_SIM_STATE.sumAssured}" id="inp-arc-sa" onchange="onArcParamChange('sumAssured', this.value)" class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg p-2 font-mono font-bold text-slate-900">
+          <span class="text-[10px] text-slate-400">Min: ${(currentProd.minSA/1e6).toFixed(0)}M - Max: ${(currentProd.maxSA/1e6).toFixed(0)}M VND</span>
+        </div>
+
+        <!-- Payment Frequency -->
+        <div>
+          <label class="block text-[11px] font-medium text-slate-600 mb-1">Định kỳ đóng phí (Modal Frequency):</label>
+          <div class="grid grid-cols-4 gap-1.5">
+            ${['Annual', 'Semi', 'Quarter', 'Month'].map(f => `
+              <button onclick="onArcParamChange('paymentFreq', '${f}')" class="py-1.5 text-center text-xs font-bold rounded-lg border transition-all ${window.ARC_SIM_STATE.paymentFreq === f ? 'bg-blue-600 text-white border-blue-600 shadow-2xs' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'}">
+                ${f === 'Annual' ? 'Năm (1.0)' : f === 'Semi' ? 'Nửa năm (0.52)' : f === 'Quarter' ? 'Quý (0.27)' : 'Tháng (0.09)'}
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Calculation Breakdown (7 cols) -->
+      <div class="lg:col-span-7 p-4 bg-slate-900 text-white rounded-xl shadow-md space-y-4 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-blue-400">Actuarial Cash Flow & Premium Output</span>
+            <span class="text-[10px] font-mono bg-blue-900/50 text-blue-300 px-2 py-0.5 rounded border border-blue-700">Formula Engine v3.14</span>
+          </div>
+
+          <div id="arc-calc-output-box" class="pt-3 space-y-3">
+            <!-- Computed dynamically in calculateArcPremium() -->
+          </div>
+        </div>
+
+        <!-- Surrender Cash Value & Loan Parameters Bar -->
+        <div id="arc-cv-output-box" class="pt-3 border-t border-slate-800 text-xs space-y-2">
+          <!-- Computed dynamically in calculateArcPremium() -->
+        </div>
+      </div>
+    </div>
+
+    <!-- 10-Step Configuration Matrix Audit Grid -->
+    <div class="p-4 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-3">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2">
+        <div class="flex items-center gap-2">
+          <span class="p-1 bg-amber-100 text-amber-800 rounded font-mono text-[10px] font-bold">CONFIG AUDIT</span>
+          <span class="text-xs font-extrabold text-slate-900 uppercase">Quy Trình 10 Bước Định Cấu Hình Sản Phẩm (Product Factory Pipeline)</span>
+        </div>
+        <span class="text-[10px] font-mono bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded border border-emerald-200 font-bold">record_usage = 5 (Baseline Upgrade Immunity)</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2.5">
+        ${tenSteps.map(s => `
+          <div class="p-2.5 bg-slate-50 rounded-lg border border-slate-200 space-y-1 hover:border-blue-300 transition-all">
+            <div class="flex items-center justify-between">
+              <span class="font-mono text-[10px] font-bold text-white bg-blue-700 w-5 h-5 rounded-full flex items-center justify-center">${s.step}</span>
+              <span class="text-[9px] font-mono text-slate-500">${s.table.split(',')[0]}</span>
+            </div>
+            <div class="font-bold text-[11px] text-slate-900 leading-tight">${s.name}</div>
+            <p class="text-[10px] text-slate-500 line-clamp-2">${s.desc}</p>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  calculateArcPremium();
+}
+
+function renderArcPipelineView(container) {
+  const mod01 = (window.EBAO_MODULES || []).find(m => m.id === 'MOD_01');
+  const catalog = mod01?.garment_fabrics_catalog || [];
+  const state = window.ARC_SIM_STATE;
+
+  container.innerHTML = `
+    <!-- Pipeline Controls Bar -->
+    <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div class="flex items-center gap-2 flex-wrap">
+        <div>
+          <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Chọn Dịch Vụ Garment (Entrypoint)</label>
+          <select id="sel-arc-garment" onchange="onArcGarmentChange(this.value)" class="text-xs bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-800">
+            <option value="NewBusinessQuotationGarment" ${state.garmentType === 'NewBusinessQuotationGarment' ? 'selected' : ''}>NewBusinessQuotationGarment (Quotation)</option>
+            <option value="PolicyIssuanceGarment" ${state.garmentType === 'PolicyIssuanceGarment' ? 'selected' : ''}>PolicyIssuanceGarment (Issuance 2PC)</option>
+            <option value="CustomerServiceEndorsementGarment" ${state.garmentType === 'CustomerServiceEndorsementGarment' ? 'selected' : ''}>CustomerServiceEndorsementGarment (CS)</option>
+            <option value="ClaimSettlementGarment" ${state.garmentType === 'ClaimSettlementGarment' ? 'selected' : ''}>ClaimSettlementGarment (Claims)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Ngữ Cảnh Khách Thuê (Tenant Context)</label>
+          <select id="sel-arc-tenant" onchange="onArcTenantChange(this.value)" class="text-xs bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-800">
+            <option value="AFLI" ${state.tenantContext === 'AFLI' ? 'selected' : ''}>AFLI / SACOM Tenant (+GST/VAT Step 16)</option>
+            <option value="BASELINE" ${state.tenantContext === 'BASELINE' ? 'selected' : ''}>BaseLine Tenant (Standard Pipeline)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Kịch Bản Giao Dịch (2PC Outcome)</label>
+          <select id="sel-arc-tx" onchange="onArcTxOutcomeChange(this.value)" class="text-xs bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-800">
+            <option value="SUCCESS" ${state.txOutcome === 'SUCCESS' ? 'selected' : ''}>Normal Commit (200 OK Thành công)</option>
+            <option value="ROLLBACK" ${state.txOutcome === 'ROLLBACK' ? 'selected' : ''}>Downstream Failure -> Auto 2PC Rollback</option>
+          </select>
+        </div>
+      </div>
+
+      <button id="btn-run-pipeline" onclick="runArcPipelineSimulation()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 self-end md:self-auto">
+        <span>${window.getLineIcon ? window.getLineIcon('play', 'w-4 h-4') : '▶'}</span>
+        <span>Chạy Mô Phỏng Pipeline</span>
+      </button>
+    </div>
+
+    <!-- Active Pipeline Execution Trace Flow -->
+    <div class="p-4 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-3">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+        <div class="flex items-center gap-2">
+          <span class="font-extrabold text-xs text-slate-900 uppercase">Fabrics Execution Pipeline Sequence</span>
+          <span class="text-[10px] font-mono bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-200">Garment JSON Context Trace</span>
+        </div>
+        <span id="arc-pipeline-status" class="text-xs font-bold text-slate-500">Sẵn sàng thực thi</span>
+      </div>
+
+      <!-- Steps sequence cards -->
+      <div id="arc-pipeline-steps-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5">
+        ${catalog.map(f => {
+          const isAFLIStep = f.step === 16;
+          const isHiddenInBaseline = isAFLIStep && state.tenantContext === 'BASELINE';
+          if (isHiddenInBaseline) return '';
+          return `
+            <div id="step-card-${f.step}" class="p-3 rounded-xl border border-slate-200 bg-slate-50 space-y-1.5 transition-all">
+              <div class="flex items-center justify-between">
+                <span class="font-mono text-xs font-bold ${isAFLIStep ? 'bg-amber-600' : 'bg-slate-700'} text-white w-6 h-6 rounded-full flex items-center justify-center">${f.step}</span>
+                <span id="step-badge-${f.step}" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-600">STANDBY</span>
+              </div>
+              <div class="font-mono text-xs font-bold text-slate-900 truncate" title="${f.fabric}">${f.fabric}</div>
+              <div class="text-[11px] text-slate-500 line-clamp-2">${f.desc}</div>
+              <div class="pt-1 text-[9px] font-mono text-blue-700 border-t border-slate-200/60">${f.layer}</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+
+    <!-- Undo Log & Compensation Terminal Box -->
+    <div id="arc-undo-log-box" class="p-4 bg-slate-900 text-white rounded-xl shadow-md space-y-2 font-mono text-xs">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <span class="text-xs font-bold text-rose-400">InsureMO Seata AT: t_pub_tx_undo_log Monitor</span>
+        <span class="text-[10px] text-slate-400">XID: tx_gemini_20261023_88921</span>
+      </div>
+      <div id="arc-undo-terminal" class="text-[11px] text-slate-300 space-y-1 max-h-48 overflow-y-auto">
+        <p class="text-slate-500">// Hệ thống đang chờ kích hoạt pipeline để theo dõi nhật ký bù trừ 2PC...</p>
+      </div>
+    </div>
+  `;
+}
+
+function onArcProdSelect(prodCode) {
+  window.ARC_SIM_STATE.selectedProdCode = prodCode;
+  const mod01 = (window.EBAO_MODULES || []).find(m => m.id === 'MOD_01');
+  const archetypes = mod01?.product_factory_archetypes || [];
+  const prod = archetypes.find(p => p.code === prodCode);
+  if (prod) {
+    window.ARC_SIM_STATE.age = Math.max(prod.minAge, Math.min(35, prod.maxAge));
+    window.ARC_SIM_STATE.sumAssured = prod.minSA || 500000000;
+  }
+  renderArcSimulator('factory');
+}
+
+function onArcParamChange(field, val) {
+  if (field === 'age') {
+    window.ARC_SIM_STATE.age = parseInt(val) || 35;
+    const txt = document.getElementById('txt-arc-age');
+    if (txt) txt.textContent = `${window.ARC_SIM_STATE.age} tuổi`;
+  } else if (field === 'gender') {
+    window.ARC_SIM_STATE.gender = val;
+  } else if (field === 'smoker') {
+    window.ARC_SIM_STATE.smoker = val;
+  } else if (field === 'sumAssured') {
+    window.ARC_SIM_STATE.sumAssured = parseFloat(val) || 500000000;
+  } else if (field === 'paymentFreq') {
+    window.ARC_SIM_STATE.paymentFreq = val;
+    renderArcSimulator('factory');
+    return;
+  }
+  calculateArcPremium();
+}
+
+function calculateArcPremium() {
+  const mod01 = (window.EBAO_MODULES || []).find(m => m.id === 'MOD_01');
+  const prod = (mod01?.product_factory_archetypes || []).find(p => p.code === window.ARC_SIM_STATE.selectedProdCode);
+  if (!prod) return;
+
+  const outBox = document.getElementById('arc-calc-output-box');
+  const cvBox = document.getElementById('arc-cv-output-box');
+  if (!outBox) return;
+
+  const age = window.ARC_SIM_STATE.age;
+  const gender = window.ARC_SIM_STATE.gender;
+  const smoker = window.ARC_SIM_STATE.smoker;
+  const sa = window.ARC_SIM_STATE.sumAssured;
+  const freq = window.ARC_SIM_STATE.paymentFreq;
+
+  // Base rate calculation logic
+  let baseRate = prod.baseRatePer1000 || 25.0;
+  const ageFactor = Math.pow(1.035, Math.max(0, age - 25));
+  baseRate = baseRate * ageFactor;
+  if (gender === 'F') baseRate *= 0.82;
+  if (smoker === 'S') baseRate *= 1.45;
+
+  const modalFactor = prod.modalFactors[freq] || 1.0;
+  const annualPremium = (sa / 1000) * baseRate;
+  const periodicPremium = annualPremium * modalFactor;
+
+  outBox.innerHTML = `
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+      <div class="p-2.5 bg-slate-800 rounded-lg">
+        <span class="text-[10px] text-slate-400 block">Tỷ lệ phí chuẩn (per 1k SA):</span>
+        <span class="font-mono font-bold text-yellow-400 text-sm">${baseRate.toFixed(3)} VND</span>
+      </div>
+      <div class="p-2.5 bg-slate-800 rounded-lg">
+        <span class="text-[10px] text-slate-400 block">Hệ số định kỳ (${freq}):</span>
+        <span class="font-mono font-bold text-sky-400 text-sm">x${modalFactor.toFixed(3)}</span>
+      </div>
+      <div class="p-2.5 bg-slate-800 rounded-lg col-span-2 sm:col-span-1">
+        <span class="text-[10px] text-slate-400 block">Phí quy năm (Annualized):</span>
+        <span class="font-mono font-bold text-white text-sm">${Math.round(annualPremium).toLocaleString()} VND</span>
+      </div>
+    </div>
+
+    <!-- Final Highlighted Periodic Premium Box -->
+    <div class="p-3 bg-blue-950/80 border border-blue-600/50 rounded-xl flex items-center justify-between">
+      <div>
+        <span class="text-[10px] text-blue-300 uppercase font-bold tracking-wider block">Phí Định Kỳ Phải Đóng (${freq})</span>
+        <span class="text-xs text-slate-300">Công thức: (SA / 1000) * BaseRate * ModalFactor</span>
+      </div>
+      <span class="font-mono text-xl font-extrabold text-emerald-400">${Math.round(periodicPremium).toLocaleString()} VND</span>
+    </div>
+  `;
+
+  if (cvBox) {
+    if (prod.hasSurrenderValue) {
+      const csv5 = (sa / 1000) * (prod.csvRateYr5 || 0);
+      const csv10 = (sa / 1000) * (prod.csvRateYr10 || 0);
+      const csv20 = (sa / 1000) * (prod.csvRateYr20 || 0);
+      const maxLoan = csv10 * 0.8;
+
+      cvBox.innerHTML = `
+        <div class="flex items-center justify-between text-slate-400">
+          <span class="font-bold text-slate-300 uppercase tracking-wide">Dự Phóng Giá Trị Hoàn Lại & Vay Hợp Đồng</span>
+          <span>Bắt đầu từ Năm: <b class="text-white">${prod.csvStartYear}</b></span>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <div class="p-2 bg-slate-800 rounded text-center">
+            <span class="text-[10px] text-slate-400 block">Năm 5</span>
+            <span class="font-mono font-bold text-slate-200">${Math.round(csv5).toLocaleString()} VND</span>
+          </div>
+          <div class="p-2 bg-slate-800 rounded text-center">
+            <span class="text-[10px] text-slate-400 block">Năm 10</span>
+            <span class="font-mono font-bold text-slate-200">${Math.round(csv10).toLocaleString()} VND</span>
+          </div>
+          <div class="p-2 bg-slate-800 rounded text-center">
+            <span class="text-[10px] text-slate-400 block">Năm 20 (Đáo hạn)</span>
+            <span class="font-mono font-bold text-emerald-400">${Math.round(csv20).toLocaleString()} VND</span>
+          </div>
+        </div>
+        <div class="flex justify-between items-center text-[11px] text-slate-400 pt-1">
+          <span>Hạn mức vay tối đa (80% CSV năm 10): <b class="font-mono text-yellow-400">${Math.round(maxLoan).toLocaleString()} VND</b></span>
+          <span>Lãi suất vay: <b class="font-mono text-white">6.5%/năm</b></span>
+        </div>
+      `;
+    } else {
+      cvBox.innerHTML = `
+        <div class="p-2.5 bg-slate-800/80 rounded-lg text-slate-400 text-center">
+          <span>Sản phẩm thuần bảo vệ tử kỳ (Term Insurance): <b>Không tích lũy giá trị hoàn lại và không hỗ trợ vay hợp đồng.</b></span>
+        </div>
+      `;
+    }
+  }
+}
+
+function onArcGarmentChange(val) {
+  window.ARC_SIM_STATE.garmentType = val;
+}
+function onArcTenantChange(val) {
+  window.ARC_SIM_STATE.tenantContext = val;
+  renderArcSimulator('pipeline');
+}
+function onArcTxOutcomeChange(val) {
+  window.ARC_SIM_STATE.txOutcome = val;
+}
+
+function runArcPipelineSimulation() {
+  const mod01 = (window.EBAO_MODULES || []).find(m => m.id === 'MOD_01');
+  const catalog = (mod01?.garment_fabrics_catalog || []).filter(f => {
+    if (f.step === 16 && window.ARC_SIM_STATE.tenantContext === 'BASELINE') return false;
+    return true;
+  });
+
+  const btn = document.getElementById('btn-run-pipeline');
+  const statusEl = document.getElementById('arc-pipeline-status');
+  const terminal = document.getElementById('arc-undo-terminal');
+  if (btn) btn.disabled = true;
+
+  if (terminal) terminal.innerHTML = '';
+  const log = (msg, color = 'text-slate-300') => {
+    if (!terminal) return;
+    const p = document.createElement('p');
+    p.className = `${color} leading-relaxed`;
+    p.textContent = msg;
+    terminal.appendChild(p);
+    terminal.scrollTop = terminal.scrollHeight;
+  };
+
+  log(`[${new Date().toISOString().split('T')[1].slice(0,8)}] >>> KHỞI ĐỘNG GARMENT: ${window.ARC_SIM_STATE.garmentType}`, 'text-blue-400 font-bold');
+  log(`[SYSTEM] Tenant Context: ${window.ARC_SIM_STATE.tenantContext} | JVM Timezone: UTC | Business Date: 2026-10-23`, 'text-slate-400');
+
+  let currentIdx = 0;
+  const isRollback = window.ARC_SIM_STATE.txOutcome === 'ROLLBACK';
+  const failStep = 17; // Step 17 Save Data fails in 2PC simulation
+
+  const stepInterval = setInterval(() => {
+    if (currentIdx >= catalog.length) {
+      clearInterval(stepInterval);
+      if (btn) btn.disabled = false;
+      if (statusEl) {
+        statusEl.textContent = 'HOÀN TẤT THÀNH CÔNG (200 OK)';
+        statusEl.className = 'text-xs font-bold text-emerald-600';
+      }
+      log(`[${new Date().toISOString().split('T')[1].slice(0,8)}] <<< PIPELINE COMPLETED. Response JSON Picked & Returned to Client.`, 'text-emerald-400 font-bold');
+      log(`[2PC-TC] Global Transaction XID committed. t_pub_tx_undo_log record cleaned asynchronously.`, 'text-sky-300');
+      return;
+    }
+
+    const stepObj = catalog[currentIdx];
+    const card = document.getElementById(`step-card-${stepObj.step}`);
+    const badge = document.getElementById(`step-badge-${stepObj.step}`);
+
+    if (isRollback && stepObj.step === failStep) {
+      clearInterval(stepInterval);
+      if (card) {
+        card.className = 'p-3 rounded-xl border border-rose-500 bg-rose-50 space-y-1.5 transition-all shadow-md';
+      }
+      if (badge) {
+        badge.className = 'text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-rose-600 text-white animate-pulse';
+        badge.textContent = '500 ERROR';
+      }
+      if (statusEl) {
+        statusEl.textContent = 'ĐÃ KÍCH HOẠT 2PC ROLLBACK BÙ TRỪ';
+        statusEl.className = 'text-xs font-bold text-rose-600';
+      }
+
+      log(`[ERROR] Step ${stepObj.step} (${stepObj.fabric}) failed: Downstream Service Timeout (HTTP 504 Gateway Timeout)!`, 'text-rose-400 font-bold');
+      log(`[2PC-TC] Transaction Coordinator phát lệnh GLOBAL_ROLLBACK tới các Resource Manager (RM).`, 'text-amber-400 font-bold');
+      log(`[UNDO-LOG] Đọc snapshot Pre-image từ t_pub_tx_undo_log cho bảng t_pol_policy...`, 'text-yellow-300');
+      log(`[COMPENSATION] Khôi phục trạng thái ban đầu: Entity rolled back cleanly. Không có dirty write.`, 'text-emerald-300 font-bold');
+      log(`[CLEANUP] Giải phóng Global Lock và xóa undo log record. Giao dịch an toàn 100%.`, 'text-slate-400');
+
+      if (btn) btn.disabled = false;
+      return;
+    }
+
+    if (card) {
+      card.className = 'p-3 rounded-xl border border-emerald-500 bg-emerald-50/50 space-y-1.5 transition-all';
+    }
+    if (badge) {
+      badge.className = 'text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-600 text-white';
+      badge.textContent = 'PASS';
+    }
+
+    log(`[STEP ${stepObj.step}] ${stepObj.fabric} -> ${stepObj.layer}: OK`, stepObj.step === 16 ? 'text-amber-300 font-bold' : 'text-slate-300');
+
+    if (stepObj.step === 4) {
+      log(`  └─ [ACTUARY] Tra cứu bảng tỷ lệ phí t_rt_ratetable_data: Match found!`, 'text-sky-300');
+    } else if (stepObj.step === 16) {
+      log(`  └─ [AFLI-CUSTOM] Đã áp dụng tính thuế GST 10% theo quy định Tenant!`, 'text-amber-400');
+    } else if (stepObj.step === 17) {
+      log(`  └─ [2PC-SEATA] Đã ghi JPA Entity Snapshot Pre-image vào t_pub_tx_undo_log`, 'text-purple-300');
+    }
+
+    currentIdx++;
+  }, 350);
+}
+
+// Make functions globally available
+window.renderArcSimulator = renderArcSimulator;
+window.renderArcFactoryView = renderArcFactoryView;
+window.renderArcPipelineView = renderArcPipelineView;
+window.onArcProdSelect = onArcProdSelect;
+window.onArcParamChange = onArcParamChange;
+window.calculateArcPremium = calculateArcPremium;
+window.onArcGarmentChange = onArcGarmentChange;
+window.onArcTenantChange = onArcTenantChange;
+window.onArcTxOutcomeChange = onArcTxOutcomeChange;
+window.runArcPipelineSimulation = runArcPipelineSimulation;
