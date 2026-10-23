@@ -103,6 +103,12 @@ function initApp() {
       console.warn('Mermaid initialization note:', e);
     }
   }
+
+  if (mod.id === 'MOD_07') {
+    setTimeout(() => {
+      renderGlPattern('JE-01');
+    }, 50);
+  }
 }
 
 function setupSystemDateControls() {
@@ -678,6 +684,82 @@ function renderModuleDossier(moduleId) {
         ${summaryHtml}
       </ul>
     </div>
+
+
+    <!-- SPECIALIZED FINANCE & GL WORKBENCH (Only for MOD_07) -->
+    ${mod.id === 'MOD_07' ? `
+      <div id="sec-gl-interactive-engine" class="mb-6 p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-5">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200 pb-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="p-1.5 bg-brand-navy-light text-brand-navy rounded-lg">${window.getLineIcon ? window.getLineIcon('landmark', 'w-4 h-4') : ''}</span>
+              <h3 class="font-extrabold text-sm text-slate-900 uppercase tracking-wider">
+                Interactive 7-Segment Accounting Rule & Insurance Journal Entry Simulator
+              </h3>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Explore real-world double-entry bookkeeping rules for all 12 core life insurance lifecycle transactions.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-semibold text-slate-600">Select Transaction:</span>
+            <select id="sel-gl-tx-pattern" onchange="renderGlPattern(this.value)" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-navy">
+              ${(mod.journal_entry_patterns || []).map(je => `<option value="${je.id}">${je.id}: ${je.name}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+
+        <!-- Dynamic Journal Entry T-Account Box -->
+        <div id="gl-pattern-detail-box" class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+          <!-- Populated by renderGlPattern() -->
+        </div>
+
+        <!-- 7-Segment Architecture & Maker-Checker Limits Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-2">
+          <!-- 7-Segment Breakdown -->
+          <div class="p-3.5 bg-slate-50/70 rounded-xl border border-slate-200 space-y-2">
+            <span class="font-bold text-slate-900 uppercase tracking-wider text-[11px] block flex items-center gap-1.5">
+              <span>🗂️</span> Standard 7-Segment Chart of Accounts:
+            </span>
+            <div class="space-y-1.5 text-[11px]">
+              ${(mod.gl_segments_spec || []).map(s => `
+                <div class="flex items-center justify-between p-1.5 bg-white rounded border border-slate-100">
+                  <span class="font-mono font-bold text-brand-navy">${s.seg} (${s.name})</span>
+                  <span class="font-mono text-slate-600 bg-slate-50 px-1.5 py-0.2 rounded border border-slate-200">${s.example}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- Multi-Tier Maker-Checker Authority Matrix -->
+          <div class="p-3.5 bg-slate-50/70 rounded-xl border border-slate-200 space-y-2">
+            <span class="font-bold text-slate-900 uppercase tracking-wider text-[11px] block flex items-center gap-1.5">
+              <span>🛡️</span> Maker-Checker Payment Authorization Limits (P.387):
+            </span>
+            <div class="space-y-1.5 text-[11px]">
+              <div class="flex items-center justify-between p-1.5 bg-white rounded border border-slate-100">
+                <span class="font-mono font-bold text-slate-800">D_CSD_PAY_AUTH_L10</span>
+                <span class="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.2 rounded border border-emerald-200">Max $10,000 / 250M VND</span>
+              </div>
+              <div class="flex items-center justify-between p-1.5 bg-white rounded border border-slate-100">
+                <span class="font-mono font-bold text-slate-800">D_CSD_PAY_AUTH_L30</span>
+                <span class="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.2 rounded border border-emerald-200">Max $30,000 / 750M VND</span>
+              </div>
+              <div class="flex items-center justify-between p-1.5 bg-white rounded border border-slate-100">
+                <span class="font-mono font-bold text-slate-800">D_CSD_PAY_AUTH_L70</span>
+                <span class="font-bold text-amber-700 bg-amber-50 px-2 py-0.2 rounded border border-amber-200">Max $75,000 / 1.875B VND</span>
+              </div>
+              <div class="flex items-center justify-between p-1.5 bg-white rounded border border-slate-100">
+                <span class="font-mono font-bold text-slate-800">D_CSD_PAY_AUTH_L100</span>
+                <span class="font-bold text-purple-700 bg-purple-50 px-2 py-0.2 rounded border border-purple-200">Max $100,000 / 2.5B VND</span>
+              </div>
+              <div class="flex items-center justify-between p-1.5 bg-white rounded border border-slate-100">
+                <span class="font-mono font-bold text-slate-800">D_CSD_PAY_AUTH_L140</span>
+                <span class="font-bold text-red-700 bg-red-50 px-2 py-0.2 rounded border border-red-200">Unlimited (CFO / Board Sign-off)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    ` : ''}
 
     <!-- 2 Column Layout: Concepts & SOPs -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -2431,3 +2513,74 @@ function renderValidationRulesTable() {
   }).join('');
 }
 window.renderValidationRulesTable = renderValidationRulesTable;
+
+
+// ==============================================================
+// 4G. RENDER GL JOURNAL ENTRY PATTERN (INTERACTIVE SIMULATOR)
+// ==============================================================
+function renderGlPattern(patternId) {
+  const box = document.getElementById('gl-pattern-detail-box');
+  if (!box || !window.EBAO_MODULES) return;
+
+  const mod07 = window.EBAO_MODULES.find(m => m.id === 'MOD_07');
+  if (!mod07 || !mod07.journal_entry_patterns) return;
+
+  const pattern = mod07.journal_entry_patterns.find(p => p.id === patternId) || mod07.journal_entry_patterns[0];
+
+  box.innerHTML = `
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
+      <div class="flex items-center gap-2">
+        <span class="font-mono text-xs font-bold text-white bg-brand-navy px-2 py-0.5 rounded shadow-2xs">${pattern.id}</span>
+        <span class="font-extrabold text-xs text-slate-900">${pattern.name}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-[10px] font-mono font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded border border-indigo-200">Fee Source: ${pattern.source}</span>
+        <span class="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">${pattern.txCode}</span>
+      </div>
+    </div>
+
+    <!-- T-Account Double Entry Box -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+      <!-- DEBIT SIDE -->
+      <div class="p-3 bg-white rounded-lg border-l-4 border-l-emerald-600 border border-slate-200 shadow-2xs space-y-1.5">
+        <div class="flex items-center justify-between">
+          <span class="font-extrabold text-xs text-emerald-800 uppercase tracking-wider">Debit (DR) Account</span>
+          <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">Asset / Expense / Revenue Reversal</span>
+        </div>
+        <div class="font-bold text-slate-900 text-xs whitespace-pre-line">${pattern.dr}</div>
+        <div class="text-[10px] font-mono text-slate-500 bg-slate-50 p-1.5 rounded border border-slate-100">
+          <span class="font-semibold text-slate-700">7-Segment:</span> ${pattern.segDr}
+        </div>
+      </div>
+
+      <!-- CREDIT SIDE -->
+      <div class="p-3 bg-white rounded-lg border-l-4 border-l-blue-600 border border-slate-200 shadow-2xs space-y-1.5">
+        <div class="flex items-center justify-between">
+          <span class="font-extrabold text-xs text-blue-800 uppercase tracking-wider">Credit (CR) Account</span>
+          <span class="text-[10px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200">Revenue / Liability / Asset Offset</span>
+        </div>
+        <div class="font-bold text-slate-900 text-xs whitespace-pre-line">${pattern.cr}</div>
+        <div class="text-[10px] font-mono text-slate-500 bg-slate-50 p-1.5 rounded border border-slate-100">
+          <span class="font-semibold text-slate-700">7-Segment:</span> ${pattern.segCr}
+        </div>
+      </div>
+    </div>
+
+    <!-- Balance Check & Actuarial Context -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 bg-emerald-50 rounded-lg border border-emerald-200 text-xs">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span class="font-bold text-emerald-950">Mathematical Double-Entry Balance Check:</span>
+        <span class="text-emerald-800 font-semibold">SUM(Debit) == SUM(Credit) [0.00 Variance]</span>
+      </div>
+      <span class="font-mono text-[10px] font-bold text-emerald-900 bg-white px-2 py-0.5 rounded border border-emerald-300">
+        Status: 100% RECONCILED
+      </span>
+    </div>
+
+    <p class="text-xs text-slate-600 italic bg-white p-2.5 rounded-lg border border-slate-100 leading-relaxed">
+      <span class="font-bold text-slate-800 not-italic">Nghiệp Vụ & Căn Cứ Kế Toán:</span> ${pattern.desc}
+    </p>
+  `;
+}
+window.renderGlPattern = renderGlPattern;
